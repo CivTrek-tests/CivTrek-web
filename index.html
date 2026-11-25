@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer" />
+  <title>CivTrek | Test Series</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              DEFAULT: '#0b3c70',
+              deep: '#072b52',
+              light: '#e6f0fa',
+              ink: '#0e2742'
+            },
+            brandOrange: {
+              DEFAULT: '#e58e26',
+              deep: '#c9731a',
+              light: '#fff4e6'
+            },
+            paper: '#f3f6fb'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Segoe UI', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --navy: #0b3c70;
+      --navy-deep: #072b52;
+      --orange: #e58e26;
+      --paper: #f3f6fb;
+    }
+    body {
+      background-color: var(--paper);
+      color: #0e2742;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .login-bg {
+      background:
+        radial-gradient(circle at 20% 20%, rgba(11, 60, 112, 0.07), transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(229, 142, 38, 0.08), transparent 45%),
+        #eef3f9;
+    }
+    .brand-panel-bg {
+      background: linear-gradient(155deg, #104c8a 0%, #0b3c70 60%, #062140 100%);
+    }
+
+    #sideDrawerBackdrop { transition: opacity 0.22s ease; }
+    #sideDrawer { transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1); }
+    .drawer-closed #sideDrawerBackdrop { opacity: 0; pointer-events: none; }
+    .drawer-closed #sideDrawer { transform: translateX(100%); }
+    .drawer-open #sideDrawerBackdrop { opacity: 1; pointer-events: auto; }
+    .drawer-open #sideDrawer { transform: translateX(0); }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.96) translateY(6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-pop { animation: popIn 0.18s ease-out forwards; }
+  </style>
+</head>
+<body class="font-sans min-h-screen antialiased selection:bg-navy selection:text-white">
+
+  <!-- =========================================================
+       1. LOGIN SCREEN (Pure White Card • Large Logo • Simple)
+  ========================================================== -->
+  <section id="loginScreen" class="login-bg min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden animate-pop">
+      <div class="h-1.5 w-full bg-gradient-to-r from-navy via-[#1e5694] to-brandOrange"></div>
+
+      <div class="px-8 py-12 sm:px-10 flex flex-col items-center text-center">
+        <div class="w-full flex items-center justify-center bg-white mb-6">
+          <img src="https://lh3.googleusercontent.com/d/1fNu9MVHI2xp_qqRNAyD2VoLdQVLwHWW0"
+               alt="CivTrek"
+               referrerpolicy="no-referrer"
+               class="w-60 sm:w-64 max-w-full h-auto object-contain"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';" />
+          <span class="hidden text-4xl font-extrabold tracking-tight text-navy">Civ<span class="text-brandOrange">Trek</span></span>
+        </div>
+
+        <div class="w-14 h-1 rounded-full bg-slate-100 mb-6"></div>
+
+        <h1 class="text-xl sm:text-2xl font-extrabold text-navy tracking-tight mb-7">
+          Test Series
+        </h1>
+
+        <button onclick="handleGoogleSignIn()"
+          class="w-full flex items-center justify-center gap-3.5 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-800 font-bold py-4 px-5 rounded-2xl border-2 border-slate-200 hover:border-navy shadow-sm hover:shadow-md transition-all">
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google" />
+          <span class="text-base">Sign in with Google</span>
+        </button>
+
+        <div id="demoModeBadge" class="mt-5 w-full py-2 px-3 rounded-xl bg-amber-50 border border-amber-200/70 text-xs text-amber-900">
+          Preview Mode: Tap <b>Sign in with Google</b>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       2. ACCESS DENIED SCREEN
+  ========================================================== -->
+  <section id="deniedScreen" class="hidden login-bg min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full text-center border border-red-100 animate-pop">
+      <div class="text-4xl mb-3">🚫</div>
+      <h2 class="text-xl font-extrabold text-red-600">Access Denied</h2>
+      <p id="deniedEmailText" class="text-xs text-slate-500 mt-1"></p>
+      <button onclick="resetToLogin()" class="mt-6 w-full py-3 bg-navy text-white font-bold rounded-xl text-sm">
+        Try Another Account
+      </button>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       3. APP SHELL (Home Workspace + Full-Screen Past Results)
+  ========================================================== -->
+  <div id="appShell" class="hidden min-h-screen flex flex-col">
+
+    <!-- Minimal Top Header -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+      <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+        <!-- Logo -->
+        <div class="flex items-center cursor-pointer" onclick="goHomeRoot()">
+          <img src="https://lh3.googleusercontent.com/d/1fNu9MVHI2xp_qqRNAyD2VoLdQVLwHWW0"
+               alt="CivTrek"
+               referrerpolicy="no-referrer"
+               class="h-9 sm:h-10 w-auto object-contain"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';" />
+          <span class="hidden text-xl font-extrabold tracking-tight text-navy">Civ<span class="text-brandOrange">Trek</span></span>
+        </div>
+
+        <!-- Right Icons -->
+        <div class="flex items-center gap-2">
+          <button id="demoUserSwitchBtn" onclick="toggleDemoRole()"
+            class="hidden text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+            User 1
+          </button>
+
+          <!-- Search & Filter Toggle Button -->
+          <button onclick="toggleSearchPanel()" id="searchToggleBtn" aria-label="Search"
+            class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-navy-light text-navy flex items-center justify-center transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+
+          <!-- Top-Right 3-Line Sidebar Button (☰) -->
+          <button onclick="openDrawer()" aria-label="Menu"
+            class="w-10 h-10 rounded-xl bg-navy-light/80 hover:bg-navy text-navy hover:text-white flex items-center justify-center transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" viewBox="0 0 24 24">
+              <line x1="4" y1="7" x2="20" y2="7"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="17" x2="20" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Collapsible Search & 2-Dropdown Filter Bar -->
+      <div id="searchFilterDrawer" class="hidden border-t border-slate-100 bg-white px-4 py-3">
+        <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <div class="sm:col-span-5">
+            <input type="search" id="globalSearchInput" oninput="renderWorkspace()"
+              placeholder="Search folders or tests..."
+              class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
+          </div>
+          <div class="sm:col-span-3">
+            <select id="filterDomainSelect" onchange="onFilterChange()"
+              class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none focus:border-navy">
+              <option value="all">All Subjects</option>
+              <option value="technical">Technical</option>
+              <option value="nontechnical">Non-Technical</option>
+            </select>
+          </div>
+          <div class="sm:col-span-4">
+            <select id="filterTestTypeSelect" onchange="onFilterChange()"
+              class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none focus:border-navy">
+              <option value="all">All Tests</option>
+              <option value="topic">Topic-wise</option>
+              <option value="chapter">Chapter-wise</option>
+              <option value="subject">Subject-wise</option>
+              <option value="multi">Multi-Subject</option>
+              <option value="fulllength">Full-Length</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =======================================================
+         VIEW A: HOME & FOLDER WORKSPACE
+    ======================================================== -->
+    <main id="homeView" class="flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-28 space-y-5">
+
+      <!-- 1. Multi-Exam Countdown Strip + Calendar Icon -->
+      <div class="flex items-center gap-2">
+        <div id="examCountdownsStrip" class="flex-1 flex items-center gap-2.5 overflow-x-auto no-scrollbar py-0.5"></div>
+        <button onclick="openCalendarModal()" aria-label="Exam Calendar" title="Calendar"
+          class="w-11 h-11 rounded-2xl bg-white hover:bg-navy-light text-navy border border-slate-200/90 hover:border-navy shadow-sm flex items-center justify-center shrink-0 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 2. Shared To-Do / Pinned Note Strip (Home Root Only) -->
+      <div id="pinnedNoteBar" class="bg-amber-50/90 border border-amber-200/80 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-sm shrink-0">📌</span>
+          <p id="pinnedNoteText" class="text-xs sm:text-sm font-bold text-amber-950 truncate">Sunday 10 AM: RCC Full Mock Test</p>
+        </div>
+        <button onclick="openPinnedNoteModal()" aria-label="Edit Pin"
+          class="text-xs font-extrabold text-brandOrange-deep hover:text-navy px-2 py-1 rounded-lg hover:bg-amber-100/70 shrink-0 transition">
+          Edit
+        </button>
+      </div>
+
+      <!-- Simple Back / Breadcrumb Header (Shown inside sub-folders or search) -->
+      <div id="navHeaderBar" class="hidden flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button onclick="goBackOneLevel()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm shrink-0">
+            ←
+          </button>
+          <div class="min-w-0">
+            <h1 id="currentFolderTitle" class="text-lg sm:text-xl font-extrabold text-navy truncate">Technical</h1>
+            <div id="breadcrumbsBar" class="text-[11px] font-semibold text-slate-400 truncate"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. FOLDERS GRID (Technical & Non-Technical at Root) -->
+      <div id="foldersGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+
+      <!-- TESTS GRID (Inside Folders or Search) -->
+      <div id="testsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+      <!-- Simple Empty State -->
+      <div id="emptyWorkspaceState" class="hidden py-16 text-center">
+        <div class="text-4xl mb-2">📂</div>
+        <p class="text-sm font-bold text-slate-500">No items yet</p>
+      </div>
+
+      <!-- =====================================================
+           HOME DASHBOARD WIDGETS (Visible at Root Home Only)
+      ====================================================== -->
+      <div id="homeDashboardWidgets" class="space-y-4 pt-1">
+
+        <!-- 4. Today's Focus (Up Next) & Continue Where You Left Off -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <!-- Today's Focus Card -->
+          <div id="todaysFocusCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm flex items-center justify-between gap-3">
+            <!-- Injected dynamically -->
+          </div>
+
+          <!-- Continue Where You Left Off Card -->
+          <div id="continueCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm flex items-center justify-between gap-3">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- 5. Smart Revision Hub (Mistakes + Bookmarked) & Custom Practice Generator -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <!-- Revision Bank Card -->
+          <div onclick="openRevisionBankModal()"
+            class="cursor-pointer group bg-white hover:border-rose-400 rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center text-xl shrink-0 transition-colors">
+                🎯
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="font-extrabold text-slate-900 text-sm sm:text-base truncate">Revision Bank</h3>
+                  <span id="revisionBankBadge" class="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-100 text-rose-700">0 Qs</span>
+                </div>
+                <p class="text-xs text-slate-400 truncate mt-0.5">Mistakes + Bookmarked</p>
+              </div>
+            </div>
+            <span class="text-slate-300 group-hover:text-rose-600 text-lg font-bold">›</span>
+          </div>
+
+          <!-- Custom Practice Generator Card -->
+          <div onclick="openCustomPracticeModal()"
+            class="cursor-pointer group bg-white hover:border-brandOrange rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-2xl bg-brandOrange-light text-brandOrange-deep group-hover:bg-brandOrange group-hover:text-white flex items-center justify-center text-xl shrink-0 transition-colors">
+                ⚡
+              </div>
+              <div class="min-w-0">
+                <h3 class="font-extrabold text-slate-900 text-sm sm:text-base truncate">Custom Practice</h3>
+                <p class="text-xs text-slate-400 truncate mt-0.5">Random Mix Generator</p>
+              </div>
+            </div>
+            <span class="text-slate-300 group-hover:text-brandOrange text-lg font-bold">›</span>
+          </div>
+        </div>
+
+        <!-- 6. 3-Box Quick Stats + Weekly Study Target Bar -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-4">
+          <div class="grid grid-cols-3 gap-2.5 text-center">
+            <div class="bg-paper rounded-xl p-3">
+              <div id="statTestsTaken" class="text-lg sm:text-xl font-extrabold text-navy">0</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Tests Taken</div>
+            </div>
+            <div class="bg-paper rounded-xl p-3">
+              <div id="statAvgAccuracy" class="text-lg sm:text-xl font-extrabold text-emerald-600">0%</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Avg Accuracy</div>
+            </div>
+            <div class="bg-paper rounded-xl p-3">
+              <div id="statRankStreak" class="text-lg sm:text-xl font-extrabold text-brandOrange-deep">0</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Rank #1 Streak</div>
+            </div>
+          </div>
+
+          <!-- Weekly Study Target -->
+          <div class="pt-1 border-t border-slate-100">
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <span class="font-extrabold text-navy">Weekly Study Target</span>
+              <div class="flex items-center gap-2">
+                <span id="weeklyTargetCountText" class="font-bold text-slate-500">0 / 5 Tests</span>
+                <button onclick="editWeeklyTarget()" class="text-[11px] font-extrabold text-brandOrange-deep hover:underline">Edit</button>
+              </div>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div id="weeklyTargetProgressBar" class="h-full bg-navy rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- =======================================================
+         VIEW B: FULL-SCREEN PAST RESULTS PAGE
+    ======================================================== -->
+    <main id="resultsView" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-20 space-y-5">
+      
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button onclick="showHomeView()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm">
+            ←
+          </button>
+          <h1 class="text-lg sm:text-xl font-extrabold text-navy">Past Results</h1>
+        </div>
+      </div>
+
+      <!-- Head-to-Head Summary Strip -->
+      <div id="resultsSummaryStrip" class="grid grid-cols-3 gap-2.5 sm:gap-4">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 text-center shadow-sm">
+          <div id="resTotalCount" class="text-lg sm:text-2xl font-extrabold text-navy">0</div>
+          <div class="text-[11px] font-bold text-slate-400 mt-0.5">Tests</div>
+        </div>
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 text-center shadow-sm">
+          <div id="resWinsCompare" class="text-sm sm:text-lg font-extrabold text-brandOrange-deep">0 - 0</div>
+          <div class="text-[11px] font-bold text-slate-400 mt-0.5">Rank #1 Wins</div>
+        </div>
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 text-center shadow-sm">
+          <div id="resMyAvgAcc" class="text-lg sm:text-2xl font-extrabold text-emerald-600">0%</div>
+          <div class="text-[11px] font-bold text-slate-400 mt-0.5">My Accuracy</div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+        <div class="sm:col-span-5">
+          <input type="search" id="resSearchInput" oninput="resetResultsLimitAndRender()"
+            placeholder="Search test results..."
+            class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
+        </div>
+        <div class="sm:col-span-3">
+          <select id="resDomainFilter" onchange="resetResultsLimitAndRender()"
+            class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
+            <option value="all">All Subjects</option>
+            <option value="technical">Technical</option>
+            <option value="nontechnical">Non-Technical</option>
+          </select>
+        </div>
+        <div class="sm:col-span-4">
+          <select id="resTypeFilter" onchange="resetResultsLimitAndRender()"
+            class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
+            <option value="all">All Types</option>
+            <option value="topic">Topic-wise</option>
+            <option value="chapter">Chapter-wise</option>
+            <option value="subject">Subject-wise</option>
+            <option value="multi">Multi-Subject</option>
+            <option value="fulllength">Full-Length</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Compact Expandable Results List -->
+      <div id="resultsListContainer" class="space-y-2.5"></div>
+
+      <!-- Show More Button -->
+      <div id="loadMoreResultsWrap" class="hidden text-center pt-2">
+        <button onclick="loadMoreResults()"
+          class="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-navy font-bold text-xs border border-slate-200 shadow-sm">
+          Show Older Results
+        </button>
+      </div>
+
+    </main>
+
+    <!-- Single Floating '+' Action Button -->
+    <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
+      <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
+        <button onclick="closeFabMenu(); openFolderModal();"
+          class="flex items-center gap-2.5 bg-white hover:bg-slate-50 text-navy font-bold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-lg border border-slate-200">
+          <span>📁</span> New Folder
+        </button>
+        <button onclick="closeFabMenu(); openTestModal();"
+          class="flex items-center gap-2.5 bg-white hover:bg-slate-50 text-navy font-bold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-lg border border-slate-200">
+          <span>📅</span> Schedule Test
+        </button>
+      </div>
+
+      <button onclick="toggleFabMenu()" id="fabMainBtn" aria-label="Add"
+        class="w-14 h-14 rounded-2xl bg-brandOrange hover:bg-brandOrange-deep text-white shadow-xl flex items-center justify-center text-3xl font-bold transition-transform active:scale-95">
+        +
+      </button>
+    </div>
+
+  </div>
+
+  <!-- =========================================================
+       4. CLEAN SIDEBAR DRAWER (☰) — Option 1 GitHub Auto-Hide
+  ========================================================== -->
+  <div id="drawerContainer" class="drawer-closed fixed inset-0 z-50 pointer-events-none">
+    <div id="sideDrawerBackdrop" onclick="closeDrawer()" class="absolute inset-0 bg-slate-900/45 backdrop-blur-[1px]"></div>
+
+    <aside id="sideDrawer" class="pointer-events-auto absolute top-0 right-0 h-full w-[82vw] max-w-xs bg-white shadow-2xl flex flex-col border-l border-slate-200">
+      
+      <!-- Profile Header -->
+      <div class="brand-panel-bg p-6 text-white relative">
+        <button onclick="closeDrawer()" aria-label="Close"
+          class="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-sm">
+          ✕
+        </button>
+        <div class="flex items-center gap-3.5 mt-2">
+          <img id="drawerUserAvatar" src="" alt="" class="w-12 h-12 rounded-2xl border-2 border-brandOrange object-cover hidden" />
+          <div id="drawerUserInitials" class="w-12 h-12 rounded-2xl border-2 border-brandOrange bg-white/15 flex items-center justify-center text-lg font-extrabold text-amber-300">
+            DR
+          </div>
+          <div class="min-w-0">
+            <h3 id="drawerUserName" class="font-extrabold text-base truncate">Dudekula Rafi</h3>
+            <p id="drawerUserEmail" class="text-xs text-blue-100/80 truncate">rafidudekula29@gmail.com</p>
+            <span id="drawerTargetExam" class="inline-block mt-1.5 px-2 py-0.5 rounded bg-white/15 text-[10px] font-bold">APPSC AEE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clean Menu Options -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-1.5">
+        <button onclick="openPastResultsPage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-base">🏆</span>
+            <span class="font-bold text-sm text-slate-800">Past Results</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="closeDrawer(); openRevisionBankModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base">🎯</span>
+            <span class="font-bold text-sm text-slate-800">Revision Bank</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="closeDrawer(); openCustomPracticeModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-amber-50 text-brandOrange-deep flex items-center justify-center text-base">⚡</span>
+            <span class="font-bold text-sm text-slate-800">Custom Practice</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="closeDrawer(); openCalendarModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-base">📅</span>
+            <span class="font-bold text-sm text-slate-800">Calendar &amp; Dates</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="openProfileSettingsModal()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-navy-light text-navy flex items-center justify-center text-base">⚙️</span>
+            <span class="font-bold text-sm text-slate-800">Settings</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <!-- Option 1: Auto-hides once GitHub is connected -->
+        <button id="drawerGithubSetupBtn" onclick="openGithubSettingsModal()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base">🐙</span>
+            <span class="font-bold text-sm text-slate-800">Connect GitHub</span>
+          </div>
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+        </button>
+      </div>
+
+      <!-- Logout at Bottom -->
+      <div class="p-4 border-t border-slate-100">
+        <button onclick="handleLogout()"
+          class="w-full py-3 rounded-xl bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-extrabold text-sm transition">
+          Logout
+        </button>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- =========================================================
+       5. MODALS
+  ========================================================== -->
+
+
+  <!-- Re-attempt Choice Modal (Full Test vs Only Wrong & Skipped) -->
+  <div id="reattemptChoiceModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-extrabold text-navy">Re-attempt Test</h3>
+        <button onclick="closeModal('reattemptChoiceModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <p id="reattemptTestNameLabel" class="text-xs font-bold text-slate-500 mb-4 truncate"></p>
+      <div class="space-y-2.5">
+        <button onclick="confirmReattemptMode('attempt_full')"
+          class="w-full p-3.5 rounded-2xl bg-navy hover:bg-navy-deep text-white text-left transition flex items-center justify-between">
+          <div>
+            <div class="font-extrabold text-xs sm:text-sm">Re-attempt Full Test</div>
+            <div class="text-[11px] text-blue-100/80 mt-0.5">Fresh attempt with all questions</div>
+          </div>
+          <span class="text-base">→</span>
+        </button>
+        <button onclick="confirmReattemptMode('reattempt_wrong')"
+          class="w-full p-3.5 rounded-2xl bg-brandOrange-light hover:bg-brandOrange text-brandOrange-deep hover:text-white text-left border border-amber-200 transition flex items-center justify-between">
+          <div>
+            <div class="font-extrabold text-xs sm:text-sm">Only Wrong &amp; Skipped</div>
+            <div class="text-[11px] opacity-80 mt-0.5">Practice only your mistakes</div>
+          </div>
+          <span class="text-base">🎯</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revision Bank Modal (Mistakes + Bookmarked Questions Combined) -->
+  <div id="revisionBankModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-rose-600 animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">Revision Bank</h3>
+        <button onclick="closeModal('revisionBankModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center mb-4">
+        <div class="bg-paper p-3 rounded-xl">
+          <div id="revAllCount" class="text-lg font-extrabold text-navy">0</div>
+          <div class="text-[11px] font-bold text-slate-400">Total Saved</div>
+        </div>
+        <div class="bg-rose-50/70 p-3 rounded-xl">
+          <div id="revMistakeCount" class="text-lg font-extrabold text-rose-600">0</div>
+          <div class="text-[11px] font-bold text-rose-500">Mistakes</div>
+        </div>
+        <div class="bg-amber-50/80 p-3 rounded-xl">
+          <div id="revBookmarkCount" class="text-lg font-extrabold text-brandOrange-deep">0</div>
+          <div class="text-[11px] font-bold text-amber-700">Bookmarked</div>
+        </div>
+      </div>
+
+      <div class="space-y-3 mb-5">
+        <label class="block text-xs font-bold text-slate-600">Select Questions Pool</label>
+        <select id="revPoolSelect" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none">
+          <option value="all">All (Mistakes + Bookmarked)</option>
+          <option value="mistakes">Mistakes Only</option>
+          <option value="bookmarked">Bookmarked Only (⭐)</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="launchRevisionSession('report')"
+          class="py-3 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs transition">
+          Review Solutions
+        </button>
+        <button onclick="launchRevisionSession('attempt')"
+          class="py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition">
+          Practice Test
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Practice Generator Modal -->
+  <div id="customPracticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">Custom Practice</h3>
+        <button onclick="closeModal('customPracticeModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+
+      <form onsubmit="startCustomPracticeTest(event)" class="space-y-3.5 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Subject / Folder</label>
+          <select id="cpSourceFolderSelect" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Questions</label>
+            <select id="cpQuestionCountSelect" onchange="autoUpdateCustomTime()"
+              class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none">
+              <option value="15">15 Questions</option>
+              <option value="30" selected>30 Questions</option>
+              <option value="50">50 Questions</option>
+              <option value="100">100 Questions</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Duration (Mins)</label>
+            <input type="number" id="cpDurationInput" value="36" min="5" max="240" required
+              class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-navy focus:outline-none focus:border-navy" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('customPracticeModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" id="cpStartBtn" class="px-5 py-2.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white font-extrabold text-xs">
+            Start Practice
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Pinned Note Modal -->
+  <div id="pinnedNoteModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">Pinned Note</h3>
+        <button onclick="closeModal('pinnedNoteModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="savePinnedNote(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Shared Reminder / Target</label>
+          <input type="text" id="pinnedNoteInput" required maxlength="100" placeholder="e.g., Sunday 10 AM: RCC Full Mock"
+            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeModal('pinnedNoteModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Clean Monthly Calendar & Multi-Exam Countdown Manager Modal -->
+  <div id="calendarModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-t-4 border-navy my-auto animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">Exam Calendar</h3>
+        <button onclick="closeModal('calendarModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+
+      <div class="flex items-center justify-between bg-paper px-3 py-2 rounded-xl mb-3">
+        <button onclick="changeCalMonth(-1)" class="w-8 h-8 rounded-lg bg-white hover:bg-navy hover:text-white text-navy font-bold shadow-sm transition">‹</button>
+        <div id="calMonthLabel" class="font-extrabold text-sm text-navy">November 2026</div>
+        <button onclick="changeCalMonth(1)" class="w-8 h-8 rounded-lg bg-white hover:bg-navy hover:text-white text-navy font-bold shadow-sm transition">›</button>
+      </div>
+
+      <div class="grid grid-cols-7 text-center text-[11px] font-extrabold text-slate-400 mb-1.5">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+
+      <div id="calDaysGrid" class="grid grid-cols-7 gap-1 text-center text-xs mb-3"></div>
+
+      <div id="calSelectedDayEvents" class="p-3 rounded-xl bg-paper border border-slate-200/80 text-xs min-h-[54px] flex flex-col justify-center mb-4">
+        <span class="text-slate-400 font-semibold text-center">Tap any date to view details</span>
+      </div>
+
+      <div class="flex items-center justify-between text-[11px] text-slate-500 pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3 font-semibold">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brandOrange"></span> Exam Date</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-navy"></span> Mock Test</span>
+        </div>
+        <button onclick="toggleAddExamDateForm()" class="font-extrabold text-navy hover:text-brandOrange transition">
+          + Add Exam Date
+        </button>
+      </div>
+
+      <div id="addExamDateSection" class="hidden pt-3 space-y-2.5 animate-pop">
+        <form onsubmit="saveExamTargetDate(event)" class="grid grid-cols-12 gap-2">
+          <input type="text" id="newTargetExamName" required placeholder="Exam (e.g., SSC JE)"
+            class="col-span-6 px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+          <input type="date" id="newTargetExamDate" required
+            class="col-span-4 px-2 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+          <button type="submit" class="col-span-2 bg-brandOrange text-white font-bold text-xs rounded-xl">Add</button>
+        </form>
+        <div id="manageExamDatesList" class="space-y-1.5 max-h-28 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Rename Folder Modal -->
+  <div id="folderModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-navy animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="folderModalTitle" class="text-lg font-extrabold text-navy">New Folder</h3>
+        <button onclick="closeModal('folderModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="saveFolderForm(event)" class="space-y-3.5">
+        <input type="hidden" id="editFolderId" />
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Folder Name</label>
+          <input type="text" id="newFolderName" required placeholder="e.g., Strength of Materials"
+            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Subtitle (Optional)</label>
+          <input type="text" id="newFolderDesc" placeholder="e.g., Civil Engineering"
+            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('folderModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Schedule / Edit Test Modal -->
+  <div id="testModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange my-auto animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="testModalTitle" class="text-lg font-extrabold text-navy">Schedule Test</h3>
+        <button onclick="closeModal('testModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="saveTestForm(event)" class="space-y-3.5 text-sm">
+        <input type="hidden" id="editTestId" />
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Test Name</label>
+          <input type="text" id="newTestTitle" required placeholder="e.g., SOM Test - 01"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Test Type</label>
+          <select id="newTestType" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none focus:border-navy">
+            <option value="topic">Topic-wise</option>
+            <option value="chapter">Chapter-wise</option>
+            <option value="subject">Subject-wise</option>
+            <option value="multi">Multi-Subject</option>
+            <option value="fulllength">Full-Length</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Start Time</label>
+            <input type="datetime-local" id="newTestStart" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Key Release Time</label>
+            <input type="datetime-local" id="newTestKeyTime" required
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-bold text-slate-600">Questions JSON File</label>
+            <span id="jsonAutoDetectTag" class="hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded"></span>
+          </div>
+          <input type="file" id="newTestJsonFile" accept=".json,application/json" onchange="previewJsonStats(this)"
+            class="w-full p-2 border border-dashed border-slate-300 rounded-xl text-xs bg-slate-50" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('testModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" id="saveTestSubmitBtn" class="px-5 py-2.5 rounded-xl bg-brandOrange text-white font-bold text-xs">
+            Save Test
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- GitHub Storage Setup Modal (Option 1) -->
+  <div id="githubModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-emerald-600 animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">GitHub Storage</h3>
+        <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="saveGithubConfig(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">GitHub Username</label>
+          <input type="text" id="ghOwnerInput" required placeholder="username"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Private Repo Name</label>
+          <input type="text" id="ghRepoInput" required placeholder="repo-name"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Access Token</label>
+          <input type="password" id="ghTokenInput" required placeholder="github_pat_... (Read and write)"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Read-only Token (for the other user)</label>
+          <input type="password" id="ghReadTokenInput" placeholder="github_pat_... (Read-only, optional)"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
+          <p class="text-[10px] text-slate-400 mt-1">Saved securely in Firebase. The other user gets it automatically after Google login.</p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('githubModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs">Connect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Clean Settings Modal -->
+  <div id="profileModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-navy my-auto animate-pop">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-extrabold text-navy">Settings</h3>
+        <button onclick="closeModal('profileModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="saveProfileSettings(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Your Name</label>
+          <input type="text" id="profNameInput" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Target Exam</label>
+          <input type="text" id="profTargetInput" placeholder="APPSC AEE" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Exam Language</label>
+          <select id="profLangInput" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-navy">
+            <option value="eng">English</option>
+            <option value="telugu">Telugu</option>
+          </select>
+        </div>
+        <div id="collabToggleBox" class="p-3 rounded-xl bg-paper border border-slate-200 flex items-center justify-between gap-3">
+          <span class="font-bold text-xs text-navy">Allow Friend to Add Tests</span>
+          <input type="checkbox" id="profCollabToggle" class="w-5 h-5 accent-navy cursor-pointer" />
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span id="settingsGhStatusLabel" class="font-semibold text-slate-400">GitHub: Not connected</span>
+          <button type="button" onclick="closeModal('profileModal'); openGithubSettingsModal();"
+            class="font-bold text-navy hover:text-brandOrange transition">
+            Change
+          </button>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('profileModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Simple Toast -->
+  <div id="toastBox" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-navy-deep text-white text-xs font-bold px-5 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-all duration-200">
+    Saved
+  </div>
+
+  <!-- =========================================================
+       6. APPLICATION LOGIC
+  ========================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ========================================================
+    // STEP A: PASTE YOUR FIREBASE CONFIG HERE TO GO LIVE
+    // ========================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYjYNhpvtnwLxnM0euaQU7M7ziPBl-dcc",
+      authDomain: "civtrek-885f9.firebaseapp.com",
+      projectId: "civtrek-885f9",
+      storageBucket: "civtrek-885f9.firebasestorage.app",
+      messagingSenderId: "351172516546",
+      appId: "1:351172516546:web:9c80cb16af1d95cbea795b"
+    };
+
+    // ========================================================
+    // STEP B: WHITELIST ONLY YOUR TWO GMAIL ADDRESSES
+    // ========================================================
+    const ALLOWED_EMAILS = [
+      "rafidudekula29@gmail.com",
+      "jahnavisai29@gmail.com"
+    ];
+    const ADMIN_EMAIL = "rafidudekula29@gmail.com";
+
+    const IS_DEMO_MODE = firebaseConfig.apiKey === "YOUR_API_KEY";
+
+    let auth = null, db = null, provider = null;
+    if (!IS_DEMO_MODE) {
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      provider = new GoogleAuthProvider();
+      document.getElementById('demoModeBadge').classList.add('hidden');
+    }
+
+    let currentUser = null;
+    let folderPath = [];
+    let demoRole = 'admin';
+    let resultsVisibleLimit = 10;
+    let expandedResultIds = new Set();
+
+    // Calendar state
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let calSelectedIso = new Date().toISOString().slice(0, 10);
+
+    const STORAGE_KEY = 'CIVTREK_CLEAN_PORTAL_V11';
+    const GH_LOCAL_KEY = 'CIVTREK_GH_CONFIG_V1';
+    const LAST_ACTIVITY_KEY = 'CIVTREK_LAST_ACTIVITY_V1';
+
+    function getDefaultData() {
+      const now = Date.now();
+      const fmtIso = (offsetMins) => {
+        const d = new Date(now + offsetMins * 60000);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+      const futureDate = (daysAhead) => {
+        const d = new Date(now + daysAhead * 86400000);
+        return d.toISOString().slice(0, 10);
+      };
+      return {
+        settings: { collaborativeMode: true, weeklyTarget: 5 },
+        pinnedNote: "Sunday 10 AM: RCC Full Mock Test",
+        profiles: {
+          "rafidudekula29@gmail.com": { name: "Dudekula Rafi", targetExam: "APPSC AEE", lang: "eng" },
+          "jahnavisai29@gmail.com": { name: "Jahnavi Sai", targetExam: "APPSC AEE", lang: "eng" }
+        },
+        examTargets: [
+          { id: 'et_1', name: 'APPSC AEE', date: futureDate(42) },
+          { id: 'et_2', name: 'SSC JE Mains', date: futureDate(68) },
+          { id: 'et_3', name: 'UPSC ESE', date: futureDate(115) }
+        ],
+        folders: [
+          { id: 'root_tech', parentId: null, domain: 'technical', name: 'Technical', desc: 'Civil Engineering', isRootDomain: true },
+          { id: 'root_nontech', parentId: null, domain: 'nontechnical', name: 'Non-Technical', desc: 'GS & Mental Ability', isRootDomain: true },
+
+          { id: 'sub_som', parentId: 'root_tech', domain: 'technical', name: 'Strength of Materials', desc: '' },
+          { id: 'sub_rcc', parentId: 'root_tech', domain: 'technical', name: 'Reinforced Cement Concrete', desc: '' },
+          { id: 'sub_fm', parentId: 'root_tech', domain: 'technical', name: 'Fluid Mechanics', desc: '' },
+
+          { id: 'ch_som_1', parentId: 'sub_som', domain: 'technical', name: 'Chapter 1: Simple Stresses', desc: '' },
+          { id: 'ch_som_2', parentId: 'sub_som', domain: 'technical', name: 'Chapter 2: SFD & BMD', desc: '' },
+
+          { id: 'sub_polity', parentId: 'root_nontech', domain: 'nontechnical', name: 'Indian Polity', desc: '' },
+          { id: 'sub_aptitude', parentId: 'root_nontech', domain: 'nontechnical', name: 'Mental Ability', desc: '' }
+        ],
+        tests: [
+          {
+            id: 't_som_1',
+            folderId: 'ch_som_1',
+            domain: 'technical',
+            testType: 'topic',
+            title: 'SOM Ch-1 Topic Test 01',
+            duration: 45,
+            qCount: 30,
+            startTime: fmtIso(-15),
+            keyReleaseTime: fmtIso(90),
+            githubFilePath: null
+          },
+          {
+            id: 't_som_2',
+            folderId: 'ch_som_1',
+            domain: 'technical',
+            testType: 'chapter',
+            title: 'SOM Ch-1 PYQ Test',
+            duration: 60,
+            qCount: 50,
+            startTime: fmtIso(-1500),
+            keyReleaseTime: fmtIso(-1200),
+            githubFilePath: null
+          }
+        ],
+        results: [
+          {
+            testId: 't_som_2',
+            testTitle: 'SOM Ch-1 PYQ Test',
+            domain: 'technical',
+            testType: 'chapter',
+            date: '24 Nov 2026',
+            timestamp: now - 86400000,
+            maxMarks: 50,
+            scores: [
+              { email: 'rafidudekula29@gmail.com', name: 'Dudekula Rafi', marks: 42.5, accuracy: 88, timeMins: 46 },
+              { email: 'jahnavisai29@gmail.com', name: 'Jahnavi Sai', marks: 39.0, accuracy: 82, timeMins: 51 }
+            ]
+          },
+          {
+            testId: 't_gs_old',
+            testTitle: 'Indian Polity Subject Test 01',
+            domain: 'nontechnical',
+            testType: 'subject',
+            date: '21 Nov 2026',
+            timestamp: now - 3 * 86400000,
+            maxMarks: 100,
+            scores: [
+              { email: 'jahnavisai29@gmail.com', name: 'Jahnavi Sai', marks: 76.0, accuracy: 84, timeMins: 50 },
+              { email: 'rafidudekula29@gmail.com', name: 'Dudekula Rafi', marks: 71.5, accuracy: 79, timeMins: 48 }
+            ]
+          }
+        ],
+        // Revision Bank stores both Mistakes & Bookmarked questions per user
+        revisionBank: {}
+      };
+    }
+
+    let portalData = loadPortalData();
+
+    function loadPortalData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      const def = getDefaultData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(def));
+      return def;
+    }
+
+    async function persistPortalData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(portalData));
+      if (!IS_DEMO_MODE && db) {
+        try {
+          await setDoc(doc(db, "civtrek_portal", "clean_state_v11"), portalData);
+        } catch (e) {}
+      }
+    }
+
+    async function syncFromFirestore() {
+      if (IS_DEMO_MODE || !db) return;
+      try {
+        const snap = await getDoc(doc(db, "civtrek_portal", "clean_state_v11"));
+        if (snap.exists()) {
+          portalData = snap.data();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(portalData));
+        } else {
+          await persistPortalData();
+        }
+      } catch (e) {}
+    }
+
+    // ---------------- PINNED NOTE (Shared To-Do) ----------------
+    window.openPinnedNoteModal = () => {
+      document.getElementById('pinnedNoteInput').value = portalData.pinnedNote || '';
+      document.getElementById('pinnedNoteModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('pinnedNoteInput').focus(), 80);
+    };
+
+    window.savePinnedNote = async (e) => {
+      e.preventDefault();
+      portalData.pinnedNote = document.getElementById('pinnedNoteInput').value.trim();
+      await persistPortalData();
+      document.getElementById('pinnedNoteText').textContent = portalData.pinnedNote || 'Tap Edit to pin a reminder';
+      closeModal('pinnedNoteModal');
+      showToast("Saved");
+    };
+
+    // ---------------- HOME DASHBOARD WIDGETS ----------------
+    function renderHomeDashboardWidgets() {
+      // 1. Pinned Note
+      document.getElementById('pinnedNoteText').textContent = portalData.pinnedNote || 'Tap Edit to pin a reminder';
+
+      // 2. Today's Focus (Live Test or Nearest Upcoming Test)
+      const now = Date.now();
+      const liveTests = portalData.tests.filter(t => {
+        const s = new Date(t.startTime).getTime();
+        const k = new Date(t.keyReleaseTime).getTime();
+        return now >= s && now < k;
+      });
+      const upcomingTests = portalData.tests
+        .filter(t => new Date(t.startTime).getTime() > now)
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+      const focusBox = document.getElementById('todaysFocusCard');
+      if (liveTests.length > 0) {
+        const lt = liveTests[0];
+        focusBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Live Now</span>
+            </div>
+            <h4 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(lt.title)}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">${lt.qCount || 50} Qs • ${lt.duration || 60} Mins</p>
+          </div>
+          <button onclick="launchExam('${lt.id}', 'attempt')"
+            class="px-4 py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shrink-0 shadow-sm transition">
+            Start Now
+          </button>`;
+      } else if (upcomingTests.length > 0) {
+        const ut = upcomingTests[0];
+        focusBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-brandOrange-deep mb-1">Up Next</div>
+            <h4 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(ut.title)}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Starts ${formatNiceDate(ut.startTime)}</p>
+          </div>
+          <button onclick="openFolder('${ut.folderId || 'root_tech'}')"
+            class="px-3.5 py-2.5 rounded-xl bg-navy-light text-navy font-extrabold text-xs shrink-0 transition">
+            Open
+          </button>`;
+      } else {
+        focusBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Today's Focus</div>
+            <h4 class="font-bold text-slate-700 text-sm">All scheduled tests done</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Try Custom Practice or Revision</p>
+          </div>
+          <button onclick="openCustomPracticeModal()"
+            class="px-3.5 py-2.5 rounded-xl bg-brandOrange-light text-brandOrange-deep font-extrabold text-xs shrink-0">
+            Practice
+          </button>`;
+      }
+
+      // 3. Continue Where You Left Off
+      const continueBox = document.getElementById('continueCard');
+      let lastAct = null;
+      try { lastAct = JSON.parse(localStorage.getItem(LAST_ACTIVITY_KEY)); } catch (e) {}
+
+      if (lastAct && lastAct.folderId && portalData.folders.some(f => f.id === lastAct.folderId)) {
+        const f = portalData.folders.find(x => x.id === lastAct.folderId);
+        continueBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Continue</div>
+            <h4 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(f.name)}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Last opened folder</p>
+          </div>
+          <button onclick="jumpToFolderPath('${f.id}')"
+            class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-navy hover:text-white text-navy font-extrabold text-xs shrink-0 transition">
+            Resume
+          </button>`;
+      } else if (portalData.results && portalData.results.length > 0) {
+        const latestRes = portalData.results[0];
+        continueBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Last Attempted</div>
+            <h4 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(latestRes.testTitle)}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">${latestRes.date || ''}</p>
+          </div>
+          <button onclick="openPastResultsPage()"
+            class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-navy hover:text-white text-navy font-extrabold text-xs shrink-0 transition">
+            Result
+          </button>`;
+      } else {
+        continueBox.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Quick Start</div>
+            <h4 class="font-extrabold text-slate-900 text-sm truncate">Civil Engineering</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Browse subjects &amp; chapters</p>
+          </div>
+          <button onclick="openFolder('root_tech')"
+            class="px-3.5 py-2.5 rounded-xl bg-navy-light text-navy font-extrabold text-xs shrink-0">
+            Explore
+          </button>`;
+      }
+
+      // 4. Revision Bank Count (Mistakes + Bookmarked)
+      const userBank = getUserRevisionBank();
+      document.getElementById('revisionBankBadge').textContent = `${userBank.length} Qs`;
+
+      // 5. 3-Box Quick Stats & Weekly Study Target
+      const allResults = portalData.results || [];
+      let myTestsCount = 0, myAccSum = 0, myRank1Count = 0, thisWeekCount = 0;
+      const sevenDaysAgo = Date.now() - 7 * 86400000;
+
+      allResults.forEach(r => {
+        const sorted = [...(r.scores || [])].sort((a, b) => b.marks - a.marks);
+        const myIdx = sorted.findIndex(s => s.email.toLowerCase() === currentUser.email.toLowerCase());
+        if (myIdx >= 0) {
+          myTestsCount++;
+          myAccSum += Number(sorted[myIdx].accuracy || 0);
+          if (myIdx === 0) myRank1Count++;
+          if ((r.timestamp || 0) >= sevenDaysAgo) thisWeekCount++;
+        }
+      });
+
+      document.getElementById('statTestsTaken').textContent = myTestsCount;
+      document.getElementById('statAvgAccuracy').textContent = myTestsCount ? `${Math.round(myAccSum / myTestsCount)}%` : '0%';
+      document.getElementById('statRankStreak').textContent = myRank1Count;
+
+      const weeklyGoal = (portalData.settings && portalData.settings.weeklyTarget) || 5;
+      const pct = Math.min(100, Math.round((thisWeekCount / weeklyGoal) * 100));
+      document.getElementById('weeklyTargetCountText').textContent = `${thisWeekCount} / ${weeklyGoal} Tests`;
+      document.getElementById('weeklyTargetProgressBar').style.width = `${pct}%`;
+    }
+
+    window.editWeeklyTarget = async () => {
+      const current = (portalData.settings && portalData.settings.weeklyTarget) || 5;
+      const val = prompt("Weekly test target (number of tests):", current);
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num > 0 && num <= 50) {
+        portalData.settings.weeklyTarget = num;
+        await persistPortalData();
+        renderHomeDashboardWidgets();
+        showToast("Updated");
+      }
+    };
+
+    window.jumpToFolderPath = (targetFolderId) => {
+      const chain = [];
+      let curr = portalData.folders.find(f => f.id === targetFolderId);
+      while (curr) {
+        chain.unshift({ id: curr.id, name: curr.name, domain: curr.domain });
+        curr = curr.parentId ? portalData.folders.find(f => f.id === curr.parentId) : null;
+      }
+      folderPath = chain;
+      renderWorkspace();
+    };
+
+    // ---------------- REVISION BANK (MISTAKES + BOOKMARKED) ----------------
+    function getUserRevisionBank() {
+      if (!currentUser) return [];
+      // Also read any items saved directly by exam.html in localStorage
+      try {
+        const examSaved = JSON.parse(localStorage.getItem("CIVTREK_REVISION_ITEMS") || "[]");
+        if (Array.isArray(examSaved) && examSaved.length > 0) {
+          if (!portalData.revisionBank) portalData.revisionBank = {};
+          const existing = portalData.revisionBank[currentUser.email] || [];
+          const map = new Map(existing.map(q => [q.qKey || q.question, q]));
+          examSaved.forEach(item => {
+            const key = item.qKey || item.question;
+            const prev = map.get(key) || {};
+            map.set(key, {
+              ...prev,
+              ...item,
+              isMistake: Boolean(prev.isMistake || item.isMistake),
+              isBookmarked: Boolean(prev.isBookmarked || item.isBookmarked)
+            });
+          });
+          portalData.revisionBank[currentUser.email] = Array.from(map.values());
+          localStorage.removeItem("CIVTREK_REVISION_ITEMS");
+          persistPortalData();
+        }
+      } catch (e) {}
+
+      return (portalData.revisionBank && portalData.revisionBank[currentUser.email]) || [];
+    }
+
+    window.openRevisionBankModal = () => {
+      const bank = getUserRevisionBank();
+      const mistakes = bank.filter(q => q.isMistake).length;
+      const bookmarks = bank.filter(q => q.isBookmarked).length;
+
+      document.getElementById('revAllCount').textContent = bank.length;
+      document.getElementById('revMistakeCount').textContent = mistakes;
+      document.getElementById('revBookmarkCount').textContent = bookmarks;
+      document.getElementById('revisionBankModal').classList.remove('hidden');
+    };
+
+    window.launchRevisionSession = (mode) => {
+      const bank = getUserRevisionBank();
+      const poolType = document.getElementById('revPoolSelect').value;
+
+      let selectedQs = bank;
+      if (poolType === 'mistakes') selectedQs = bank.filter(q => q.isMistake);
+      if (poolType === 'bookmarked') selectedQs = bank.filter(q => q.isBookmarked);
+
+      if (selectedQs.length === 0) {
+        showToast("No saved questions in this pool yet");
+        return;
+      }
+
+      const prof = portalData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
+      const customPayload = {
+        title: `Revision Bank (${selectedQs.length} Qs)`,
+        duration: Math.max(10, Math.round(selectedQs.length * 1.2)),
+        questions: selectedQs
+      };
+
+      localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
+        testId: 'rev_' + Date.now(),
+        title: customPayload.title,
+        duration: customPayload.duration,
+        keyReleaseTime: new Date(Date.now() - 60000).toISOString(),
+        mode,
+        userEmail: currentUser.email,
+        userName: prof.name || currentUser.displayName,
+        defaultLang: prof.lang || 'eng',
+        questionsJson: JSON.stringify(customPayload)
+      }));
+
+      closeModal('revisionBankModal');
+      window.location.href = "exam.html";
+    };
+
+    // ---------------- CUSTOM PRACTICE GENERATOR ----------------
+    window.openCustomPracticeModal = () => {
+      const sel = document.getElementById('cpSourceFolderSelect');
+      let optionsHtml = `<option value="all">All Subjects (Technical + Non-Tech)</option>`;
+      portalData.folders.forEach(f => {
+        optionsHtml += `<option value="${f.id}">${escapeHtml(f.name)}</option>`;
+      });
+      sel.innerHTML = optionsHtml;
+      autoUpdateCustomTime();
+      document.getElementById('customPracticeModal').classList.remove('hidden');
+    };
+
+    window.autoUpdateCustomTime = () => {
+      const qCount = Number(document.getElementById('cpQuestionCountSelect').value) || 30;
+      document.getElementById('cpDurationInput').value = Math.round(qCount * 1.2);
+    };
+
+    window.startCustomPracticeTest = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('cpStartBtn');
+      const sourceFolderId = document.getElementById('cpSourceFolderSelect').value;
+      const desiredCount = Number(document.getElementById('cpQuestionCountSelect').value) || 30;
+      const duration = Number(document.getElementById('cpDurationInput').value) || 36;
+
+      let candidateTests = portalData.tests.filter(t => t.githubFilePath);
+      if (sourceFolderId !== 'all') {
+        const subIds = getFolderSubtreeIds(sourceFolderId);
+        candidateTests = candidateTests.filter(t => subIds.includes(t.folderId));
+      }
+
+      if (candidateTests.length === 0) {
+        showToast("Upload JSON tests to this subject first");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Preparing...";
+
+      try {
+        // Shuffle candidate tests and fetch up to 4 files to keep generation fast
+        const shuffledTests = [...candidateTests].sort(() => Math.random() - 0.5).slice(0, 4);
+        let poolQuestions = [];
+
+        for (const t of shuffledTests) {
+          const raw = await fetchJsonFromGithubRepo(t.githubFilePath);
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            poolQuestions.push(...parsed);
+          } else if (parsed && Array.isArray(parsed.questions)) {
+            poolQuestions.push(...parsed.questions);
+          } else if (parsed && Array.isArray(parsed.sections)) {
+            parsed.sections.forEach(s => {
+              if (Array.isArray(s.questions)) poolQuestions.push(...s.questions);
+            });
+          }
+        }
+
+        if (poolQuestions.length === 0) {
+          showToast("No questions found in files");
+          return;
+        }
+
+        // Randomize & slice desired question count
+        const finalQuestions = poolQuestions
+          .sort(() => Math.random() - 0.5)
+          .slice(0, Math.min(desiredCount, poolQuestions.length));
+
+        const prof = portalData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
+        const folderObj = portalData.folders.find(f => f.id === sourceFolderId);
+        const testTitle = `Custom Practice • ${folderObj ? folderObj.name : 'Mixed'} (${finalQuestions.length} Qs)`;
+
+        localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
+          testId: 'cp_' + Date.now(),
+          title: testTitle,
+          duration,
+          keyReleaseTime: new Date(Date.now() - 60000).toISOString(),
+          mode: 'attempt',
+          isCustomPractice: true,
+          userEmail: currentUser.email,
+          userName: prof.name || currentUser.displayName,
+          defaultLang: prof.lang || 'eng',
+          questionsJson: JSON.stringify({
+            title: testTitle,
+            duration,
+            questions: finalQuestions
+          })
+        }));
+
+        closeModal('customPracticeModal');
+        window.location.href = "exam.html";
+      } catch (err) {
+        showToast(err.message || "Could not generate test");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Start Practice";
+      }
+    };
+
+    // ---------------- MULTI-EXAM COUNTDOWN STRIP ----------------
+    function renderExamCountdownsStrip() {
+      const strip = document.getElementById('examCountdownsStrip');
+      const targets = (portalData.examTargets || [])
+        .map(et => {
+          const targetMs = new Date(et.date + 'T09:00:00').getTime();
+          const diffMs = targetMs - Date.now();
+          const daysLeft = Math.ceil(diffMs / 86400000);
+          return { ...et, daysLeft, diffMs };
+        })
+        .filter(et => et.daysLeft >= 0)
+        .sort((a, b) => a.daysLeft - b.daysLeft);
+
+      if (targets.length === 0) {
+        strip.innerHTML = `
+          <button onclick="openCalendarModal(); toggleAddExamDateForm();"
+            class="px-4 py-2.5 rounded-2xl bg-white border border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-navy hover:text-navy transition">
+            + Add Exam Countdown
+          </button>`;
+        return;
+      }
+
+      strip.innerHTML = targets.map((et, idx) => {
+        const isNearest = idx === 0;
+        const dayText = et.daysLeft === 0 ? 'Today' : (et.daysLeft === 1 ? '1 Day' : `${et.daysLeft} Days`);
+        return `
+          <div onclick="openCalendarModal('${et.date}')"
+            class="cursor-pointer shrink-0 px-3.5 py-2 rounded-2xl border shadow-sm transition flex items-center gap-2.5 ${isNearest ? 'bg-navy text-white border-navy' : 'bg-white text-slate-800 border-slate-200/90 hover:border-navy'}">
+            <span class="text-xs font-extrabold truncate max-w-[130px]">${escapeHtml(et.name)}</span>
+            <span class="px-2 py-0.5 rounded-lg text-[11px] font-extrabold ${isNearest ? 'bg-brandOrange text-white' : 'bg-navy-light text-navy'}">
+              ${dayText}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---------------- MONTHLY CALENDAR & EXAM DATES ----------------
+    window.openCalendarModal = (focusIsoDate) => {
+      if (focusIsoDate) {
+        const d = new Date(focusIsoDate);
+        if (!isNaN(d.getTime())) {
+          calYear = d.getFullYear();
+          calMonth = d.getMonth();
+          calSelectedIso = focusIsoDate;
+        }
+      }
+      document.getElementById('addExamDateSection').classList.add('hidden');
+      renderCalendarGrid();
+      renderManageExamDatesList();
+      document.getElementById('calendarModal').classList.remove('hidden');
+    };
+
+    window.changeCalMonth = (delta) => {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendarGrid();
+    };
+
+    window.selectCalendarDay = (isoDate) => {
+      calSelectedIso = isoDate;
+      renderCalendarGrid();
+    };
+
+    function renderCalendarGrid() {
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      document.getElementById('calMonthLabel').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      const examTargets = portalData.examTargets || [];
+      const tests = portalData.tests || [];
+
+      let cellsHtml = '';
+      for (let i = 0; i < firstDay; i++) {
+        cellsHtml += `<div></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasExam = examTargets.some(et => et.date === iso);
+        const hasMock = tests.some(t => (t.startTime || '').slice(0, 10) === iso);
+        const isSelected = calSelectedIso === iso;
+        const isToday = todayIso === iso;
+
+        cellsHtml += `
+          <button onclick="selectCalendarDay('${iso}')"
+            class="h-10 rounded-xl flex flex-col items-center justify-center font-bold transition relative
+              ${isSelected ? 'bg-navy text-white shadow-sm' : (isToday ? 'bg-navy-light text-navy' : 'hover:bg-slate-100 text-slate-700')}">
+            <span>${day}</span>
+            <div class="flex items-center gap-0.5 mt-0.5 h-1.5">
+              ${hasExam ? `<span class="w-1.5 h-1.5 rounded-full bg-brandOrange"></span>` : ''}
+              ${hasMock ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-navy'}"></span>` : ''}
+            </div>
+          </button>
+        `;
+      }
+      document.getElementById('calDaysGrid').innerHTML = cellsHtml;
+
+      const dayExams = examTargets.filter(et => et.date === calSelectedIso);
+      const dayMocks = tests.filter(t => (t.startTime || '').slice(0, 10) === calSelectedIso);
+      const detailsBox = document.getElementById('calSelectedDayEvents');
+
+      if (dayExams.length === 0 && dayMocks.length === 0) {
+        detailsBox.innerHTML = `<span class="text-slate-400 font-semibold text-center">${calSelectedIso} • No exams or tests</span>`;
+      } else {
+        let itemsHtml = `<div class="text-[10px] font-extrabold text-slate-400 mb-1">${calSelectedIso}</div><div class="space-y-1">`;
+        dayExams.forEach(et => {
+          itemsHtml += `<div class="font-extrabold text-brandOrange-deep">🎯 ${escapeHtml(et.name)}</div>`;
+        });
+        dayMocks.forEach(t => {
+          itemsHtml += `<div class="font-bold text-navy">📝 ${escapeHtml(t.title)}</div>`;
+        });
+        itemsHtml += `</div>`;
+        detailsBox.innerHTML = itemsHtml;
+      }
+    }
+
+    window.toggleAddExamDateForm = () => {
+      const sec = document.getElementById('addExamDateSection');
+      sec.classList.toggle('hidden');
+      renderManageExamDatesList();
+    };
+
+    window.saveExamTargetDate = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('newTargetExamName').value.trim();
+      const date = document.getElementById('newTargetExamDate').value;
+      if (!name || !date) return;
+
+      if (!portalData.examTargets) portalData.examTargets = [];
+      portalData.examTargets.push({ id: 'et_' + Date.now(), name, date });
+      await persistPortalData();
+
+      document.getElementById('newTargetExamName').value = '';
+      document.getElementById('newTargetExamDate').value = '';
+      calSelectedIso = date;
+      renderExamCountdownsStrip();
+      renderCalendarGrid();
+      renderManageExamDatesList();
+      showToast("Saved");
+    };
+
+    window.deleteExamTargetDate = async (id) => {
+      portalData.examTargets = (portalData.examTargets || []).filter(et => et.id !== id);
+      await persistPortalData();
+      renderExamCountdownsStrip();
+      renderCalendarGrid();
+      renderManageExamDatesList();
+      showToast("Deleted");
+    };
+
+    function renderManageExamDatesList() {
+      const list = document.getElementById('manageExamDatesList');
+      const targets = (portalData.examTargets || []).sort((a, b) => a.date.localeCompare(b.date));
+      list.innerHTML = targets.map(et => `
+        <div class="flex items-center justify-between bg-paper px-3 py-1.5 rounded-lg text-xs">
+          <span class="font-bold text-slate-700">${escapeHtml(et.name)} <span class="text-slate-400 font-normal">(${et.date})</span></span>
+          <button onclick="deleteExamTargetDate('${et.id}')" class="text-red-500 font-bold px-1.5">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // ---------------- AUTO-EXTRACT QUESTIONS & DURATION FROM JSON ----------------
+    function extractMetaFromExamJson(parsedObj) {
+      let qCount = 0;
+      let durationMins = 60;
+
+      if (Array.isArray(parsedObj)) {
+        qCount = parsedObj.length;
+      } else if (parsedObj && typeof parsedObj === 'object') {
+        if (Array.isArray(parsedObj.questions)) {
+          qCount = parsedObj.questions.length;
+        } else if (Array.isArray(parsedObj.sections)) {
+          parsedObj.sections.forEach(sec => {
+            if (Array.isArray(sec.questions)) qCount += sec.questions.length;
+          });
+        }
+        const rawDur = parsedObj.duration || parsedObj.totalTime || parsedObj.timeInMinutes || parsedObj.examDuration;
+        if (rawDur) {
+          const num = Number(rawDur);
+          if (!isNaN(num) && num > 0) {
+            durationMins = num > 600 ? Math.round(num / 60) : Math.round(num);
+          }
+        } else if (parsedObj.totalTimeInSeconds) {
+          durationMins = Math.max(1, Math.round(Number(parsedObj.totalTimeInSeconds) / 60));
+        }
+      }
+      return { qCount: qCount || 50, duration: durationMins || 60 };
+    }
+
+    window.previewJsonStats = async (input) => {
+      const tag = document.getElementById('jsonAutoDetectTag');
+      const file = input.files[0];
+      if (!file) {
+        tag.classList.add('hidden');
+        return;
+      }
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const meta = extractMetaFromExamJson(parsed);
+        tag.textContent = `${meta.qCount} Qs • ${meta.duration} Mins`;
+        tag.classList.remove('hidden');
+      } catch (e) {
+        tag.classList.add('hidden');
+        showToast("Invalid JSON file");
+      }
+    };
+
+    // ---------------- GITHUB STORAGE (Option 1: Auto-Hide After Connected) ----------------
+    let ghCloudConfig = null;
+
+    function getGithubConfig() {
+      if (ghCloudConfig && ghCloudConfig.owner && ghCloudConfig.repo && ghCloudConfig.token) return ghCloudConfig;
+      try { return JSON.parse(localStorage.getItem(GH_LOCAL_KEY)) || null; } catch (e) { return null; }
+    }
+
+    // Loads GitHub settings saved in Firebase (admin gets read/write, other user gets read-only)
+    async function loadGithubFromFirestore(email) {
+      ghCloudConfig = null;
+      if (IS_DEMO_MODE || !db) return;
+      const isAdm = email && email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      if (isAdm) {
+        try {
+          const w = await getDoc(doc(db, "civtrek_secure", "github_write"));
+          if (w.exists()) { ghCloudConfig = w.data(); return; }
+        } catch (e) {}
+      }
+      try {
+        const r = await getDoc(doc(db, "civtrek_secure", "github_read"));
+        if (r.exists()) ghCloudConfig = r.data();
+      } catch (e) {}
+    }
+
+    function isGithubReady() {
+      const gh = getGithubConfig();
+      return !!(gh && gh.owner && gh.repo && gh.token);
+    }
+
+    function updateGithubIndicator() {
+      const connected = isGithubReady();
+      const setupBtn = document.getElementById('drawerGithubSetupBtn');
+      if (setupBtn) setupBtn.classList.toggle('hidden', connected || !isAdmin());
+
+      const statusLabel = document.getElementById('settingsGhStatusLabel');
+      if (statusLabel) {
+        const gh = getGithubConfig();
+        statusLabel.textContent = connected ? `GitHub: ${gh.repo}` : 'GitHub: Not connected';
+      }
+    }
+
+    window.openGithubSettingsModal = () => {
+      closeDrawer();
+      if (!isAdmin()) { showToast("Only admin can change GitHub settings"); return; }
+      const gh = getGithubConfig() || {};
+      document.getElementById('ghOwnerInput').value = gh.owner || '';
+      document.getElementById('ghRepoInput').value = gh.repo || '';
+      document.getElementById('ghTokenInput').value = gh.token || '';
+      document.getElementById('ghReadTokenInput').value = '';
+      document.getElementById('githubModal').classList.remove('hidden');
+    };
+
+    window.saveGithubConfig = async (e) => {
+      e.preventDefault();
+      const owner = document.getElementById('ghOwnerInput').value.trim();
+      const repo = document.getElementById('ghRepoInput').value.trim();
+      const token = document.getElementById('ghTokenInput').value.trim();
+      const readToken = document.getElementById('ghReadTokenInput').value.trim();
+
+      if (!IS_DEMO_MODE && db) {
+        try {
+          await setDoc(doc(db, "civtrek_secure", "github_write"), { owner, repo, token });
+          if (readToken) await setDoc(doc(db, "civtrek_secure", "github_read"), { owner, repo, token: readToken });
+          ghCloudConfig = { owner, repo, token };
+          localStorage.removeItem(GH_LOCAL_KEY);
+          showToast(readToken ? "GitHub connected & shared" : "GitHub connected");
+        } catch (err) {
+          localStorage.setItem(GH_LOCAL_KEY, JSON.stringify({ owner, repo, token }));
+          showToast("Saved on this device only (check Firestore rules)");
+        }
+      } else {
+        localStorage.setItem(GH_LOCAL_KEY, JSON.stringify({ owner, repo, token }));
+        showToast("GitHub connected");
+      }
+      updateGithubIndicator();
+      closeModal('githubModal');
+    };
+
+    async function uploadJsonToGithubRepo(fileName, jsonString) {
+      const gh = getGithubConfig();
+      const path = `tests/${fileName}`;
+      const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+      const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${gh.token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: `Add ${fileName}`, content: base64Content })
+      });
+      if (!res.ok) throw new Error("GitHub upload failed");
+      return path;
+    }
+
+    async function fetchJsonFromGithubRepo(filePath) {
+      const gh = getGithubConfig();
+      if (!gh || !gh.token) throw new Error("Connect GitHub first");
+      const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${filePath}`, {
+        headers: {
+          'Authorization': `Bearer ${gh.token}`,
+          'Accept': 'application/vnd.github.raw+json'
+        }
+      });
+      if (!res.ok) throw new Error("File not found");
+      return await res.text();
+    }
+
+    async function deleteJsonFromGithubRepo(filePath) {
+      if (!filePath || !isGithubReady()) return;
+      const gh = getGithubConfig();
+      const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${filePath}`;
+      try {
+        const metaRes = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${gh.token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+        if (!metaRes.ok) return;
+        const metaData = await metaRes.json();
+        if (!metaData.sha) return;
+
+        await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${gh.token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Remove ${filePath}`,
+            sha: metaData.sha
+          })
+        });
+      } catch (e) {}
+    }
+
+    window.downloadOriginalJson = async (testId) => {
+      closeAllMenus();
+      const test = portalData.tests.find(t => t.id === testId);
+      if (!test || !test.githubFilePath) {
+        showToast("No file attached");
+        return;
+      }
+      try {
+        showToast("Downloading...");
+        const content = await fetchJsonFromGithubRepo(test.githubFilePath);
+        const blob = new Blob([content], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${test.title.replace(/[^a-z0-9]/gi, '_')}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast("Downloaded");
+      } catch (err) {
+        showToast(err.message);
+      }
+    };
+
+    // ---------------- AUTH ----------------
+    window.handleGoogleSignIn = async () => {
+      if (IS_DEMO_MODE) {
+        const email = demoRole === 'admin' ? ADMIN_EMAIL : ALLOWED_EMAILS[1];
+        const prof = portalData.profiles[email] || { name: 'Candidate', targetExam: 'APPSC AEE', lang: 'eng' };
+        enterAuthenticatedApp({ email, displayName: prof.name, photoURL: '' });
+        return;
+      }
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        showToast("Login failed");
+      }
+    };
+
+    if (!IS_DEMO_MODE && auth) {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          if (ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
+            await syncFromFirestore();
+            await loadGithubFromFirestore(user.email);
+            enterAuthenticatedApp(user);
+          } else {
+            document.getElementById('deniedEmailText').textContent = user.email;
+            await signOut(auth);
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appShell').classList.add('hidden');
+            document.getElementById('deniedScreen').classList.remove('hidden');
+          }
+        } else {
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('appShell').classList.add('hidden');
+        }
+      });
+    }
+
+    function enterAuthenticatedApp(user) {
+      currentUser = user;
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('deniedScreen').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+
+      if (IS_DEMO_MODE) {
+        const swBtn = document.getElementById('demoUserSwitchBtn');
+        swBtn.classList.remove('hidden');
+        swBtn.textContent = demoRole === 'admin' ? 'User 1' : 'User 2';
+      }
+
+      ingestPendingExamResult().then(() => {
+        updateProfileUI();
+        updateGithubIndicator();
+        renderExamCountdownsStrip();
+        showHomeView();
+      });
+    }
+
+    window.toggleDemoRole = () => {
+      demoRole = demoRole === 'admin' ? 'member' : 'admin';
+      const email = demoRole === 'admin' ? ADMIN_EMAIL : ALLOWED_EMAILS[1];
+      const prof = portalData.profiles[email] || { name: 'Candidate' };
+      currentUser = { email, displayName: prof.name, photoURL: '' };
+      document.getElementById('demoUserSwitchBtn').textContent = demoRole === 'admin' ? 'User 1' : 'User 2';
+      updateProfileUI();
+      if (!document.getElementById('resultsView').classList.contains('hidden')) {
+        renderPastResultsPage();
+      } else {
+        renderWorkspace();
+      }
+      showToast(demoRole === 'admin' ? 'Switched to User 1' : 'Switched to User 2');
+    };
+
+    window.handleLogout = async () => {
+      closeDrawer();
+      if (!IS_DEMO_MODE && auth) await signOut(auth);
+      currentUser = null;
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    };
+
+    window.resetToLogin = () => {
+      document.getElementById('deniedScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    };
+
+    function isAdmin() {
+      return currentUser && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    }
+
+    function canManageContent() {
+      return isAdmin() || (portalData.settings && portalData.settings.collaborativeMode);
+    }
+
+    // ---------------- PROGRESS & ATTEMPT HELPERS ----------------
+    function hasUserAttemptedTest(testId) {
+      if (!currentUser || !portalData.results) return false;
+      return portalData.results.some(r =>
+        r.testId === testId &&
+        Array.isArray(r.scores) &&
+        r.scores.some(s => s.email.toLowerCase() === currentUser.email.toLowerCase())
+      );
+    }
+
+    function getFolderSubtreeIds(folderId) {
+      const ids = [folderId];
+      const children = portalData.folders.filter(f => f.parentId === folderId);
+      children.forEach(c => {
+        ids.push(...getFolderSubtreeIds(c.id));
+      });
+      return ids;
+    }
+
+    function getFolderProgress(folderId) {
+      const treeIds = getFolderSubtreeIds(folderId);
+      const folderTests = portalData.tests.filter(t => treeIds.includes(t.folderId));
+      const total = folderTests.length;
+      if (total === 0) return { total: 0, done: 0, pct: 0 };
+      const done = folderTests.filter(t => hasUserAttemptedTest(t.id)).length;
+      return { total, done, pct: Math.round((done / total) * 100) };
+    }
+
+    // ---------------- VIEW SWITCHING ----------------
+    window.showHomeView = () => {
+      document.getElementById('resultsView').classList.add('hidden');
+      document.getElementById('homeView').classList.remove('hidden');
+      document.getElementById('searchToggleBtn').classList.remove('hidden');
+      document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
+      renderExamCountdownsStrip();
+      renderWorkspace();
+    };
+
+    window.openPastResultsPage = () => {
+      closeDrawer();
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      document.getElementById('searchToggleBtn').classList.add('hidden');
+      document.getElementById('fabContainer').classList.add('hidden');
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('resultsView').classList.remove('hidden');
+      resultsVisibleLimit = 10;
+      renderPastResultsPage();
+    };
+
+    // ---------------- NAVIGATION & SEARCH ----------------
+    window.toggleSearchPanel = () => {
+      const panel = document.getElementById('searchFilterDrawer');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        document.getElementById('globalSearchInput').focus();
+      }
+    };
+
+    window.goHomeRoot = () => {
+      folderPath = [];
+      document.getElementById('filterDomainSelect').value = 'all';
+      document.getElementById('filterTestTypeSelect').value = 'all';
+      document.getElementById('globalSearchInput').value = '';
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      showHomeView();
+    };
+
+    window.goBackOneLevel = () => {
+      if (folderPath.length > 0) {
+        folderPath.pop();
+      } else {
+        document.getElementById('filterDomainSelect').value = 'all';
+        document.getElementById('filterTestTypeSelect').value = 'all';
+        document.getElementById('globalSearchInput').value = '';
+      }
+      renderWorkspace();
+    };
+
+    window.openFolder = (folderId) => {
+      const f = portalData.folders.find(x => x.id === folderId);
+      if (!f) return;
+      folderPath.push({ id: f.id, name: f.name, domain: f.domain });
+      localStorage.setItem(LAST_ACTIVITY_KEY, JSON.stringify({ folderId: f.id, timestamp: Date.now() }));
+      document.getElementById('globalSearchInput').value = '';
+      document.getElementById('filterTestTypeSelect').value = 'all';
+      renderWorkspace();
+    };
+
+    window.onFilterChange = () => {
+      const domainVal = document.getElementById('filterDomainSelect').value;
+      if (folderPath.length === 0 && domainVal !== 'all') {
+        const rootF = portalData.folders.find(f => f.parentId === null && f.domain === domainVal);
+        if (rootF) folderPath = [{ id: rootF.id, name: rootF.name, domain: rootF.domain }];
+      } else if (domainVal === 'all' && folderPath.length === 1 && folderPath[0].id.startsWith('root_')) {
+        folderPath = [];
+      }
+      renderWorkspace();
+    };
+
+    function getCurrentFolderId() {
+      return folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
+    }
+
+    function getCurrentDomain() {
+      if (folderPath.length > 0) return folderPath[0].domain || 'technical';
+      const d = document.getElementById('filterDomainSelect').value;
+      return d !== 'all' ? d : 'technical';
+    }
+
+    // ---------------- RENDER HOME WORKSPACE ----------------
+    const TYPE_NAMES = {
+      topic: 'Topic-wise',
+      chapter: 'Chapter-wise',
+      subject: 'Subject-wise',
+      multi: 'Multi-Subject',
+      fulllength: 'Full-Length'
+    };
+
+    window.renderWorkspace = () => {
+      const searchQ = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
+      const domainFilter = document.getElementById('filterDomainSelect').value;
+      const typeFilter = document.getElementById('filterTestTypeSelect').value;
+      const currentParentId = getCurrentFolderId();
+
+      document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
+
+      const navHeader = document.getElementById('navHeaderBar');
+      const isFiltering = searchQ !== '' || typeFilter !== 'all';
+      const isHomeRoot = folderPath.length === 0 && !isFiltering;
+
+      // Toggle Root Home Dashboard Widgets vs Sub-folder Navigation
+      document.getElementById('pinnedNoteBar').classList.toggle('hidden', !isHomeRoot);
+      document.getElementById('homeDashboardWidgets').classList.toggle('hidden', !isHomeRoot);
+
+      if (isHomeRoot) {
+        navHeader.classList.add('hidden');
+        renderHomeDashboardWidgets();
+      } else {
+        navHeader.classList.remove('hidden');
+        const currentTitle = folderPath.length > 0 ? folderPath[folderPath.length - 1].name : (TYPE_NAMES[typeFilter] || 'Search');
+        document.getElementById('currentFolderTitle').textContent = currentTitle;
+        document.getElementById('breadcrumbsBar').textContent = folderPath.map(x => x.name).join(' › ');
+      }
+
+      let folders = [];
+      if (typeFilter === 'all') {
+        if (searchQ) {
+          folders = portalData.folders.filter(f =>
+            (domainFilter === 'all' || f.domain === domainFilter) &&
+            f.name.toLowerCase().includes(searchQ)
+          );
+        } else {
+          folders = portalData.folders.filter(f => (f.parentId || null) === currentParentId);
+          if (domainFilter !== 'all' && currentParentId === null) {
+            folders = folders.filter(f => f.domain === domainFilter);
+          }
+        }
+      }
+
+      let tests = portalData.tests.filter(t => {
+        if (domainFilter !== 'all' && t.domain !== domainFilter) return false;
+        if (typeFilter !== 'all' && t.testType !== typeFilter) return false;
+        if (searchQ) return t.title.toLowerCase().includes(searchQ);
+        if (typeFilter !== 'all') return true;
+        return (t.folderId || null) === currentParentId;
+      });
+
+      const canEdit = canManageContent();
+
+      const foldersGrid = document.getElementById('foldersGrid');
+      foldersGrid.innerHTML = folders.map(f => {
+        const isTech = f.domain === 'technical';
+        const icon = f.isRootDomain ? (isTech ? '🏗️' : '🧠') : '📁';
+        const prog = getFolderProgress(f.id);
+
+        return `
+          <div onclick="openFolder('${f.id}')"
+            class="relative group bg-white ${isHomeRoot ? 'p-5 sm:p-6' : 'p-4'} rounded-2xl border border-slate-200/90 hover:border-navy shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-4 min-w-0">
+                <div class="${isHomeRoot ? 'w-14 h-14 text-3xl' : 'w-11 h-11 text-xl'} rounded-2xl ${isTech ? 'bg-navy-light text-navy group-hover:bg-navy group-hover:text-white' : 'bg-brandOrange-light text-brandOrange-deep group-hover:bg-brandOrange group-hover:text-white'} flex items-center justify-center shrink-0 transition-colors">
+                  ${icon}
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-extrabold text-slate-900 ${isHomeRoot ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} truncate group-hover:text-navy transition">${escapeHtml(f.name)}</h3>
+                  ${f.desc ? `<p class="text-xs text-slate-400 truncate mt-0.5">${escapeHtml(f.desc)}</p>` : ''}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1 shrink-0">
+                ${(canEdit && !f.isRootDomain) ? `
+                  <button onclick="toggleItemMenu(event, 'menu_${f.id}')" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-navy flex items-center justify-center font-bold">⋮</button>
+                  <div id="menu_${f.id}" onclick="event.stopPropagation()" class="hidden absolute right-4 top-12 z-20 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 w-32 text-xs font-bold">
+                    <button onclick="editFolder('${f.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Rename</button>
+                    <button onclick="deleteFolder('${f.id}')" class="w-full px-3.5 py-2 text-left hover:bg-red-50 text-red-600">Delete</button>
+                  </div>
+                ` : `<span class="text-slate-300 group-hover:text-navy text-lg font-bold">›</span>`}
+              </div>
+            </div>
+
+            ${prog.total > 0 ? `
+              <div class="pt-1">
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                  <span>${prog.done}/${prog.total} Completed</span>
+                  <span>${prog.pct}%</span>
+                </div>
+                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: ${prog.pct}%"></div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const testsGrid = document.getElementById('testsGrid');
+      const now = Date.now();
+      testsGrid.innerHTML = tests.map(t => {
+        const startMs = new Date(t.startTime).getTime();
+        const keyMs = new Date(t.keyReleaseTime).getTime();
+        const typeLabel = TYPE_NAMES[t.testType] || 'Test';
+        const attempted = hasUserAttemptedTest(t.id);
+
+        const attemptTag = attempted
+          ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">✓ Attempted</span>`
+          : `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Not Attempted</span>`;
+
+        let statusPill = '', actionHtml = '';
+        if (now < startMs) {
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
+          actionHtml = `<button disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed">Starts ${formatNiceDate(t.startTime)}</button>`;
+        } else if (now >= startMs && now < keyMs) {
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">LIVE</span>`;
+          actionHtml = `
+            <button onclick="launchExam('${t.id}', 'attempt')" class="w-full py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
+              ${attempted ? 'Re-open Test' : 'Start Test'}
+            </button>`;
+        } else {
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full">KEY OUT</span>`;
+          actionHtml = `
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="launchExam('${t.id}', 'report')" class="py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs transition">
+                View Key
+              </button>
+              <button onclick="openReattemptChoiceModal('${t.id}')" class="py-2.5 rounded-xl bg-brandOrange-light hover:bg-brandOrange text-brandOrange-deep hover:text-white font-bold text-xs transition">
+                Re-attempt
+              </button>
+            </div>`;
+        }
+
+        return `
+          <div class="relative bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between gap-4">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="flex items-center flex-wrap gap-1.5">
+                  <span class="px-2 py-0.5 text-[10px] font-extrabold rounded bg-navy-light text-navy">${typeLabel}</span>
+                  ${statusPill}
+                  ${attemptTag}
+                </div>
+                <div class="relative shrink-0">
+                  <button onclick="toggleItemMenu(event, 'menu_${t.id}')" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-navy flex items-center justify-center font-bold">⋮</button>
+                  <div id="menu_${t.id}" onclick="event.stopPropagation()" class="hidden absolute right-0 top-9 z-20 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 w-36 text-xs font-bold">
+                    <button onclick="downloadOriginalJson('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Download JSON</button>
+                    ${canEdit ? `
+                      <button onclick="editTest('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Edit</button>
+                      <button onclick="deleteTest('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-red-50 text-red-600">Delete</button>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+              <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">${escapeHtml(t.title)}</h3>
+              <div class="text-xs font-semibold text-slate-400 mt-1.5">
+                ${t.qCount || 50} Qs • ${t.duration || 60} Mins • Key: ${formatNiceDate(t.keyReleaseTime)}
+              </div>
+            </div>
+            <div>${actionHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('emptyWorkspaceState').classList.toggle('hidden', folders.length > 0 || tests.length > 0);
+    };
+
+    // ---------------- RENDER FULL-SCREEN PAST RESULTS ----------------
+    window.resetResultsLimitAndRender = () => {
+      resultsVisibleLimit = 10;
+      renderPastResultsPage();
+    };
+
+    window.loadMoreResults = () => {
+      resultsVisibleLimit += 10;
+      renderPastResultsPage();
+    };
+
+    window.toggleResultExpand = (testId) => {
+      if (expandedResultIds.has(testId)) {
+        expandedResultIds.delete(testId);
+      } else {
+        expandedResultIds.add(testId);
+      }
+      renderPastResultsPage();
+    };
+
+    function renderPastResultsPage() {
+      const allResults = portalData.results || [];
+      const searchQ = (document.getElementById('resSearchInput').value || '').trim().toLowerCase();
+      const domainF = document.getElementById('resDomainFilter').value;
+      const typeF = document.getElementById('resTypeFilter').value;
+
+      let u1Wins = 0, u2Wins = 0, myAccSum = 0, myCount = 0;
+      allResults.forEach(r => {
+        const sorted = [...r.scores].sort((a, b) => b.marks - a.marks);
+        if (sorted[0]) {
+          if (sorted[0].email.toLowerCase() === ALLOWED_EMAILS[0].toLowerCase()) u1Wins++;
+          else u2Wins++;
+        }
+        const mine = r.scores.find(s => s.email.toLowerCase() === currentUser.email.toLowerCase());
+        if (mine) {
+          myAccSum += Number(mine.accuracy || 0);
+          myCount++;
+        }
+      });
+      document.getElementById('resTotalCount').textContent = allResults.length;
+      document.getElementById('resWinsCompare').textContent = `${u1Wins} - ${u2Wins}`;
+      document.getElementById('resMyAvgAcc').textContent = myCount ? `${Math.round(myAccSum / myCount)}%` : '0%';
+
+      const filtered = allResults.filter(r => {
+        if (domainF !== 'all' && (r.domain || 'technical') !== domainF) return false;
+        if (typeF !== 'all' && (r.testType || 'topic') !== typeF) return false;
+        if (searchQ && !r.testTitle.toLowerCase().includes(searchQ)) return false;
+        return true;
+      });
+
+      const visible = filtered.slice(0, resultsVisibleLimit);
+      const container = document.getElementById('resultsListContainer');
+
+      if (visible.length === 0) {
+        container.innerHTML = `<div class="py-14 text-center text-sm font-bold text-slate-400">No results found</div>`;
+      } else {
+        container.innerHTML = visible.map(r => {
+          const sorted = [...r.scores].sort((a, b) => b.marks - a.marks);
+          const myRankIdx = sorted.findIndex(s => s.email.toLowerCase() === currentUser.email.toLowerCase());
+          const myScoreObj = myRankIdx >= 0 ? sorted[myRankIdx] : sorted[0];
+          const isExpanded = expandedResultIds.has(r.testId);
+
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden transition">
+              <div onclick="toggleResultExpand('${r.testId}')" class="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-extrabold ${myRankIdx === 0 ? 'text-brandOrange-deep' : 'text-slate-400'}">
+                      ${myRankIdx === 0 ? '🥇 #1' : '🥈 #2'}
+                    </span>
+                    <h3 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(r.testTitle)}</h3>
+                  </div>
+                  <div class="text-[11px] font-semibold text-slate-400 mt-1">
+                    ${r.date || ''} • ${TYPE_NAMES[r.testType] || 'Test'}
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <div class="text-right">
+                    <div class="text-sm sm:text-base font-extrabold text-navy">${myScoreObj ? myScoreObj.marks : '-'} <span class="text-xs text-slate-400 font-semibold">/ ${r.maxMarks}</span></div>
+                  </div>
+                  <span class="text-slate-400 text-sm font-bold transition-transform ${isExpanded ? 'rotate-90' : ''}">›</span>
+                </div>
+              </div>
+
+              ${isExpanded ? `
+                <div class="px-4 pb-4 pt-2 bg-paper border-t border-slate-100 space-y-2.5 animate-pop">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${sorted.map((s, idx) => `
+                      <div class="bg-white p-3 rounded-xl border ${idx === 0 ? 'border-brandOrange' : 'border-slate-200'} flex items-center justify-between">
+                        <div>
+                          <div class="text-xs font-extrabold ${idx === 0 ? 'text-brandOrange-deep' : 'text-slate-500'}">
+                            ${idx === 0 ? '🥇 #1' : '🥈 #2'} • <span class="text-slate-800">${escapeHtml(s.name)}</span>
+                          </div>
+                          <div class="text-[11px] text-slate-400 mt-0.5">${s.accuracy}% Accuracy • ${s.timeMins} Mins</div>
+                        </div>
+                        <div class="text-base font-extrabold text-navy">${s.marks}/${r.maxMarks}</div>
+                      </div>
+                    `).join('')}
+                  </div>
+                  <div class="flex justify-end">
+                    <button onclick="launchExam('${r.testId}', 'report')" class="px-4 py-2 rounded-xl bg-navy text-white font-bold text-xs">
+                      View Key &amp; Solutions
+                    </button>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('loadMoreResultsWrap').classList.toggle('hidden', filtered.length <= resultsVisibleLimit);
+    }
+
+    // ---------------- ITEM MENUS ----------------
+    window.toggleItemMenu = (e, menuId) => {
+      e.stopPropagation();
+      const target = document.getElementById(menuId);
+      const wasHidden = target.classList.contains('hidden');
+      closeAllMenus();
+      if (wasHidden) target.classList.remove('hidden');
+    };
+
+    function closeAllMenus() {
+      document.querySelectorAll('[id^="menu_"]').forEach(el => el.classList.add('hidden'));
+    }
+    document.addEventListener('click', closeAllMenus);
+
+    // ---------------- FLOATING '+' MENU ----------------
+    window.toggleFabMenu = () => document.getElementById('fabMenu').classList.toggle('hidden');
+    window.closeFabMenu = () => document.getElementById('fabMenu').classList.add('hidden');
+
+
+    // ---------------- SYNC PENDING RESULT FROM exam.html ----------------
+    async function ingestPendingExamResult() {
+      try {
+        const raw = localStorage.getItem('CIVTREK_PENDING_RESULT');
+        if (!raw) return;
+        const res = JSON.parse(raw);
+        localStorage.removeItem('CIVTREK_PENDING_RESULT');
+        if (!res || !res.testId || !res.userEmail) return;
+
+        if (!portalData.results) portalData.results = [];
+        let entry = portalData.results.find(r => r.testId === res.testId);
+        const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        if (!entry) {
+          entry = {
+            testId: res.testId,
+            testTitle: res.testTitle || 'Practice Test',
+            domain: res.domain || 'technical',
+            testType: res.testType || 'topic',
+            date: dateStr,
+            timestamp: Date.now(),
+            maxMarks: res.maxMarks || 100,
+            scores: []
+          };
+          portalData.results.unshift(entry);
+        }
+
+        const existingIdx = entry.scores.findIndex(s => s.email.toLowerCase() === res.userEmail.toLowerCase());
+        const scoreObj = {
+          email: res.userEmail,
+          name: res.userName || res.userEmail,
+          marks: Number(res.marks) || 0,
+          accuracy: Number(res.accuracy) || 0,
+          timeMins: Number(res.timeMins) || 1
+        };
+
+        if (existingIdx >= 0) {
+          entry.scores[existingIdx] = scoreObj;
+        } else {
+          entry.scores.push(scoreObj);
+        }
+
+        await persistPortalData();
+        showToast("Test result synced!");
+      } catch (e) {
+        console.warn("Result sync error:", e);
+      }
+    }
+
+    let pendingReattemptTestId = null;
+    window.openReattemptChoiceModal = (testId) => {
+      const t = portalData.tests.find(x => x.id === testId);
+      if (!t) return;
+      pendingReattemptTestId = testId;
+      document.getElementById('reattemptTestNameLabel').textContent = t.title;
+      document.getElementById('reattemptChoiceModal').classList.remove('hidden');
+    };
+
+    window.confirmReattemptMode = (chosenMode) => {
+      closeModal('reattemptChoiceModal');
+      if (!pendingReattemptTestId) return;
+      if (chosenMode === 'attempt_full') {
+        launchExam(pendingReattemptTestId, 'attempt', true);
+      } else {
+        launchExam(pendingReattemptTestId, 'reattempt_wrong', true);
+      }
+    };
+
+    // ---------------- LAUNCH EXAM ----------------
+    window.launchExam = async (testId, mode, isReattempt = false) => {
+      const test = portalData.tests.find(t => t.id === testId);
+      if (!test) {
+        showToast("Test file not found");
+        return;
+      }
+
+      const prof = portalData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
+      let resolvedJson = null;
+
+      if (test.githubFilePath) {
+        try {
+          showToast("Loading test...");
+          resolvedJson = await fetchJsonFromGithubRepo(test.githubFilePath);
+        } catch (err) {
+          showToast(err.message);
+          return;
+        }
+      }
+
+      localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
+        testId: test.id,
+        title: test.title,
+        domain: test.domain || 'technical',
+        testType: test.testType || 'topic',
+        duration: test.duration,
+        keyReleaseTime: test.keyReleaseTime,
+        mode,
+        isReattempt: Boolean(isReattempt),
+        userEmail: currentUser.email,
+        userName: prof.name || currentUser.displayName,
+        defaultLang: prof.lang || 'eng',
+        questionsJson: resolvedJson
+      }));
+
+      if (IS_DEMO_MODE && !resolvedJson) {
+        showToast(`Ready: ${test.title}`);
+      } else {
+        window.location.href = "exam.html";
+      }
+    };
+
+    // ---------------- FOLDER CRUD ----------------
+    window.openFolderModal = () => {
+      document.getElementById('folderModalTitle').textContent = "New Folder";
+      document.getElementById('editFolderId').value = '';
+      document.getElementById('newFolderName').value = '';
+      document.getElementById('newFolderDesc').value = '';
+      document.getElementById('folderModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('newFolderName').focus(), 80);
+    };
+
+    window.editFolder = (id) => {
+      closeAllMenus();
+      const f = portalData.folders.find(x => x.id === id);
+      if (!f) return;
+      document.getElementById('folderModalTitle').textContent = "Rename Folder";
+      document.getElementById('editFolderId').value = f.id;
+      document.getElementById('newFolderName').value = f.name;
+      document.getElementById('newFolderDesc').value = f.desc || '';
+      document.getElementById('folderModal').classList.remove('hidden');
+    };
+
+    window.saveFolderForm = async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('editFolderId').value;
+      const name = document.getElementById('newFolderName').value.trim();
+      const desc = document.getElementById('newFolderDesc').value.trim();
+      if (!name) return;
+
+      if (editId) {
+        const f = portalData.folders.find(x => x.id === editId);
+        if (f) { f.name = name; f.desc = desc; }
+      } else {
+        portalData.folders.push({
+          id: 'f_' + Date.now(),
+          parentId: getCurrentFolderId(),
+          domain: getCurrentDomain(),
+          name,
+          desc
+        });
+      }
+      await persistPortalData();
+      closeModal('folderModal');
+      renderWorkspace();
+      showToast("Saved");
+    };
+
+    window.deleteFolder = async (id) => {
+      closeAllMenus();
+      if (!confirm("Delete this folder?")) return;
+      const subIds = getFolderSubtreeIds(id);
+      portalData.folders = portalData.folders.filter(f => !subIds.includes(f.id));
+      await persistPortalData();
+      renderWorkspace();
+      showToast("Deleted");
+    };
+
+    // ---------------- TEST CRUD ----------------
+    window.openTestModal = () => {
+      document.getElementById('testModalTitle').textContent = "Schedule Test";
+      document.getElementById('editTestId').value = '';
+      document.getElementById('newTestTitle').value = '';
+      document.getElementById('newTestJsonFile').value = '';
+      document.getElementById('jsonAutoDetectTag').classList.add('hidden');
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const toLocal = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      document.getElementById('newTestStart').value = toLocal(now);
+      document.getElementById('newTestKeyTime').value = toLocal(new Date(now.getTime() + 120 * 60000));
+
+      document.getElementById('testModal').classList.remove('hidden');
+    };
+
+    window.editTest = (id) => {
+      closeAllMenus();
+      const t = portalData.tests.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('testModalTitle').textContent = "Edit Test";
+      document.getElementById('editTestId').value = t.id;
+      document.getElementById('newTestTitle').value = t.title;
+      document.getElementById('newTestType').value = t.testType || 'topic';
+      document.getElementById('newTestStart').value = t.startTime;
+      document.getElementById('newTestKeyTime').value = t.keyReleaseTime;
+      document.getElementById('newTestJsonFile').value = '';
+      document.getElementById('jsonAutoDetectTag').classList.add('hidden');
+      document.getElementById('testModal').classList.remove('hidden');
+    };
+
+    window.saveTestForm = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('saveTestSubmitBtn');
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      try {
+        const editId = document.getElementById('editTestId').value;
+        const title = document.getElementById('newTestTitle').value.trim();
+        const testType = document.getElementById('newTestType').value;
+        const startTime = document.getElementById('newTestStart').value;
+        const keyReleaseTime = document.getElementById('newTestKeyTime').value;
+        const file = document.getElementById('newTestJsonFile').files[0];
+
+        let githubFilePath = null;
+        let autoMeta = { qCount: 50, duration: 60 };
+
+        if (file) {
+          if (!isGithubReady()) {
+            showToast("Connect GitHub first");
+            btn.disabled = false;
+            btn.textContent = "Save Test";
+            return;
+          }
+          const rawText = await file.text();
+          let parsed;
+          try { parsed = JSON.parse(rawText); } catch (err) {
+            showToast("Invalid JSON file");
+            btn.disabled = false;
+            btn.textContent = "Save Test";
+            return;
+          }
+          autoMeta = extractMetaFromExamJson(parsed);
+          const safeName = `test_${Date.now()}_${file.name.replace(/[^a-z0-9._-]/gi, '_')}`;
+          githubFilePath = await uploadJsonToGithubRepo(safeName, rawText);
+        }
+
+        if (editId) {
+          const t = portalData.tests.find(x => x.id === editId);
+          if (t) {
+            t.title = title;
+            t.testType = testType;
+            t.startTime = startTime;
+            t.keyReleaseTime = keyReleaseTime;
+            if (githubFilePath) {
+              if (t.githubFilePath) await deleteJsonFromGithubRepo(t.githubFilePath);
+              t.githubFilePath = githubFilePath;
+              t.qCount = autoMeta.qCount;
+              t.duration = autoMeta.duration;
+            }
+          }
+        } else {
+          portalData.tests.unshift({
+            id: 't_' + Date.now(),
+            folderId: getCurrentFolderId(),
+            domain: getCurrentDomain(),
+            testType,
+            title,
+            duration: autoMeta.duration,
+            qCount: autoMeta.qCount,
+            startTime,
+            keyReleaseTime,
+            githubFilePath
+          });
+        }
+
+        await persistPortalData();
+        closeModal('testModal');
+        renderWorkspace();
+        showToast("Saved");
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save Test";
+      }
+    };
+
+    window.deleteTest = async (id) => {
+      closeAllMenus();
+      if (!confirm("Delete this test and its JSON file?")) return;
+      const target = portalData.tests.find(t => t.id === id);
+      if (target && target.githubFilePath) {
+        showToast("Cleaning up GitHub...");
+        await deleteJsonFromGithubRepo(target.githubFilePath);
+      }
+      portalData.tests = portalData.tests.filter(t => t.id !== id);
+      await persistPortalData();
+      renderWorkspace();
+      showToast("Deleted");
+    };
+
+    // ---------------- SIDEBAR DRAWER & PROFILE ----------------
+    window.openDrawer = () => {
+      const c = document.getElementById('drawerContainer');
+      c.classList.remove('drawer-closed');
+      c.classList.add('drawer-open');
+    };
+
+    window.closeDrawer = () => {
+      const c = document.getElementById('drawerContainer');
+      c.classList.remove('drawer-open');
+      c.classList.add('drawer-closed');
+    };
+
+    function updateProfileUI() {
+      if (!currentUser) return;
+      const prof = portalData.profiles[currentUser.email] || { name: currentUser.displayName || 'Candidate', targetExam: 'APPSC AEE', lang: 'eng' };
+      document.getElementById('drawerUserName').textContent = prof.name;
+      document.getElementById('drawerUserEmail').textContent = currentUser.email;
+      document.getElementById('drawerTargetExam').textContent = prof.targetExam || 'APPSC AEE';
+
+      const initials = (prof.name || 'CT').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('drawerUserInitials').textContent = initials;
+      if (currentUser.photoURL) {
+        const av = document.getElementById('drawerUserAvatar');
+        av.src = currentUser.photoURL;
+        av.classList.remove('hidden');
+        document.getElementById('drawerUserInitials').classList.add('hidden');
+      } else {
+        document.getElementById('drawerUserAvatar').classList.add('hidden');
+        document.getElementById('drawerUserInitials').classList.remove('hidden');
+      }
+    }
+
+    window.openProfileSettingsModal = () => {
+      closeDrawer();
+      updateGithubIndicator();
+      const prof = portalData.profiles[currentUser.email] || { name: currentUser.displayName, targetExam: 'APPSC AEE', lang: 'eng' };
+      document.getElementById('profNameInput').value = prof.name || '';
+      document.getElementById('profTargetInput').value = prof.targetExam || '';
+      document.getElementById('profLangInput').value = prof.lang || 'eng';
+      document.getElementById('profCollabToggle').checked = !!(portalData.settings && portalData.settings.collaborativeMode);
+      document.getElementById('collabToggleBox').classList.toggle('hidden', !isAdmin());
+      document.getElementById('profileModal').classList.remove('hidden');
+    };
+
+    window.saveProfileSettings = async (e) => {
+      e.preventDefault();
+      portalData.profiles[currentUser.email] = {
+        name: document.getElementById('profNameInput').value.trim(),
+        targetExam: document.getElementById('profTargetInput').value.trim(),
+        lang: document.getElementById('profLangInput').value
+      };
+      if (isAdmin()) {
+        portalData.settings.collaborativeMode = document.getElementById('profCollabToggle').checked;
+      }
+      await persistPortalData();
+      updateProfileUI();
+      renderWorkspace();
+      closeModal('profileModal');
+      showToast("Saved");
+    };
+
+    // ---------------- HELPERS ----------------
+    window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+    function formatNiceDate(str) {
+      if (!str) return '-';
+      const d = new Date(str);
+      return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastBox');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      t.classList.add('opacity-100');
+      setTimeout(() => {
+        t.classList.remove('opacity-100');
+        t.classList.add('opacity-0');
+      }, 2200);
+    }
+  </script>
+</body>
+</html>
