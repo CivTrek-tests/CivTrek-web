@@ -368,7 +368,10 @@
                 <p id="scheduleSubHint" class="text-[10px] font-semibold text-slate-400">Today's live, upcoming &amp; pending tests</p>
               </div>
             </div>
-            <button onclick="openCalendarModal()" class="text-xs font-bold text-navy hover:text-brandOrange transition">Calendar ›</button>
+            <button type="button" id="schedulePendingPill" onclick="switchScheduleTab('pending')"
+              class="hidden px-2.5 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-extrabold transition shrink-0">
+              0 Pending
+            </button>
           </div>
 
           <!-- 3-Tab Pill Switcher -->
@@ -498,6 +501,13 @@
         <select id="analysisTestSelect" onchange="renderTestAnalysisPage(this.value)"
           class="w-full sm:w-72 py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-navy shadow-sm">
         </select>
+      </div>
+
+      <!-- Subject-wise Domain Filter Pills -->
+      <div class="sched-pill-track max-w-md" role="tablist" aria-label="Filter analysis by subject">
+        <button type="button" id="anDomainAll" onclick="setAnalysisDomain('all')" class="sched-pill-btn active">All Subjects</button>
+        <button type="button" id="anDomainTechnical" onclick="setAnalysisDomain('technical')" class="sched-pill-btn">Technical</button>
+        <button type="button" id="anDomainNontechnical" onclick="setAnalysisDomain('nontechnical')" class="sched-pill-btn">Non-Technical</button>
       </div>
 
       <div id="analysisContentArea" class="space-y-4"></div>
@@ -894,7 +904,8 @@
     let currentUser = null;
     let folderPath = [];
     let currentView = 'home';
-    let currentAnalysisTestId = null;
+    let currentAnalysisTestId = '__OVERALL__';
+    let analysisDomainFilter = 'all';
     let activeScheduleTab = 'today';
     let resultsVisibleLimit = 10;
     let expandedResultIds = new Set();
@@ -906,6 +917,7 @@
           view: currentView,
           folderPath: folderPath,
           analysisTestId: currentAnalysisTestId,
+          analysisDomain: analysisDomainFilter,
           scheduleTab: activeScheduleTab
         }));
       } catch (e) {}
@@ -919,6 +931,9 @@
         if (!st) return false;
         if (st.scheduleTab && ['today', 'upcoming', 'pending'].includes(st.scheduleTab)) {
           activeScheduleTab = st.scheduleTab;
+        }
+        if (st.analysisDomain && ['all', 'technical', 'nontechnical'].includes(st.analysisDomain)) {
+          analysisDomainFilter = st.analysisDomain;
         }
         if (Array.isArray(st.folderPath)) {
           const validPath = [];
@@ -1357,6 +1372,21 @@
         cPend.classList.toggle('has-pending', pendingTests.length > 0);
       }
       if (liveDot) liveDot.classList.toggle('hidden', liveTodayUnattempted === 0);
+
+      const pendPill = document.getElementById('schedulePendingPill');
+      if (pendPill) {
+        pendPill.textContent = `${pendingTests.length} Pending`;
+        pendPill.classList.toggle('hidden', pendingTests.length === 0);
+      }
+
+      const subHint = document.getElementById('scheduleSubHint');
+      if (subHint) {
+        subHint.textContent = activeScheduleTab === 'today'
+          ? "Today's scheduled & live tests"
+          : (activeScheduleTab === 'upcoming'
+              ? 'Future scheduled tests'
+              : 'Unattempted tests waiting for you');
+      }
 
       const items = activeScheduleTab === 'today' ? todayTests : (activeScheduleTab === 'upcoming' ? upcomingTests : pendingTests);
 
@@ -2021,10 +2051,11 @@
       });
     };
 
-    window.openTestAnalysisPage = (testId = null) => {
+    window.openTestAnalysisPage = (testId = '__OVERALL__') => {
       closeDrawer();
       currentView = 'analysis';
-      if (testId) currentAnalysisTestId = testId;
+      currentAnalysisTestId = testId || '__OVERALL__';
+      if (testId && testId !== '__OVERALL__') analysisDomainFilter = 'all';
       document.getElementById('searchFilterDrawer').classList.add('hidden');
       document.getElementById('searchToggleBtn').classList.add('hidden');
       document.getElementById('fabContainer').classList.add('hidden');
@@ -2043,27 +2074,49 @@
       return `${m}m ${s < 10 ? '0' : ''}${s}s`;
     }
 
+    window.setAnalysisDomain = (dom) => {
+      if (!['all', 'technical', 'nontechnical'].includes(dom)) return;
+      analysisDomainFilter = dom;
+      saveNavState();
+      renderTestAnalysisPage('__OVERALL__');
+    };
+
     window.renderTestAnalysisPage = (selectedTestId) => {
       const sel = document.getElementById('analysisTestSelect');
       const area = document.getElementById('analysisContentArea');
       const myEmail = (currentUser?.email || '').toLowerCase();
-      const myRes = (getMyUserData().results || [])
+
+      // Sync domain filter pills UI
+      const domMap = { all: 'anDomainAll', technical: 'anDomainTechnical', nontechnical: 'anDomainNontechnical' };
+      Object.entries(domMap).forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', analysisDomainFilter === k);
+      });
+
+      const allMyRes = (getMyUserData().results || [])
         .filter(r => !window.__ctSharedLoaded || sharedData.tests.some(t => t.id === r.testId))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
+      const myRes = analysisDomainFilter === 'all'
+        ? allMyRes
+        : allMyRes.filter(r => (r.domain || 'technical') === analysisDomainFilter);
+
       if (myRes.length === 0) {
-        if (sel) sel.innerHTML = `<option value="">No tests attempted yet</option>`;
-        if (area) area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📊</div><p class="text-sm font-bold text-slate-600">No Test Analysis Available Yet</p><p class="text-xs text-slate-400 mt-1">Complete a test to view detailed marks, negative impact, partner comparison, and topic analysis here.</p></div>`;
+        const domLbl = analysisDomainFilter === 'technical' ? 'Technical' : (analysisDomainFilter === 'nontechnical' ? 'Non-Technical' : '');
+        if (sel) sel.innerHTML = `<option value="">No ${domLbl} tests attempted yet</option>`;
+        if (area) area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📊</div><p class="text-sm font-bold text-slate-600">No ${domLbl} Test Analysis Available Yet</p><p class="text-xs text-slate-400 mt-1">Complete a ${domLbl ? domLbl.toLowerCase() + ' ' : ''}test to view detailed marks, negative impact, partner comparison, and topic analysis here.</p></div>`;
         return;
       }
 
-      const isOverall = selectedTestId === '__OVERALL__';
-      const activeRec = isOverall ? null : (myRes.find(r => r.testId === selectedTestId) || myRes[0]);
+      const targetId = selectedTestId || '__OVERALL__';
+      const isOverall = targetId === '__OVERALL__' || !myRes.some(r => r.testId === targetId);
+      const activeRec = isOverall ? null : myRes.find(r => r.testId === targetId);
       currentAnalysisTestId = isOverall ? '__OVERALL__' : activeRec.testId;
       saveNavState();
 
+      const domPrefix = analysisDomainFilter === 'technical' ? 'Technical' : (analysisDomainFilter === 'nontechnical' ? 'Non-Technical' : 'All');
       if (sel) {
-        sel.innerHTML = `<option value="__OVERALL__" ${isOverall ? 'selected' : ''}>📊 Overall Summary (All ${myRes.length} Tests)</option>` +
+        sel.innerHTML = `<option value="__OVERALL__" ${isOverall ? 'selected' : ''}>📊 Overall Summary (${domPrefix} • ${myRes.length} Tests)</option>` +
           myRes.map(r => `<option value="${r.testId}" ${(!isOverall && r.testId === activeRec.testId) ? 'selected' : ''}>${escapeHtml(r.testTitle)} (${r.date || ''})</option>`).join('');
       }
 
@@ -2101,6 +2154,7 @@
         // Overall Head-to-Head
         let myWins = 0, partnerWins = 0, sharedCount = 0;
         combinedAll.forEach(c => {
+          if (analysisDomainFilter !== 'all' && (c.domain || 'technical') !== analysisDomainFilter) return;
           if ((c.scores || []).length >= 2) {
             sharedCount++;
             const sorted = [...c.scores].sort((a, b) => b.marks - a.marks);
