@@ -9969,7 +9969,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         nav.id = 'ctInlineReportNav';
         nav.className = 'ct-inline-report-nav';
         nav.innerHTML =
-            '<button type="button" class="ct-back-portal-btn" onclick="ctGoBackToPortal()">← Portal</button>' +
+            '<button type="button" class="ct-back-portal-btn" onclick="this.disabled=true;this.textContent=\'Returning...\';ctGoBackToPortal()">← Portal</button>' +
             '<div class="ct-inline-tabs-pill" role="tablist">' +
                 '<button type="button" class="ct-inline-tab-btn active" id="ctInlineResTab" onclick="ctSwitchCleanTab(\'results\')">Results</button>' +
                 '<button type="button" class="ct-inline-tab-btn" id="ctInlineSolTab" onclick="ctSwitchCleanTab(\'solutions\')">Solutions</button>' +
@@ -10364,14 +10364,16 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
     // Always wait until DOMContentLoaded has finished setting up window.__ctInitExamDOM
     window.addEventListener('DOMContentLoaded', function () {
         try { if (window.ctShowEvalOverlay) ctShowEvalOverlay('Loading test...'); } catch (e) {}
-        setTimeout(function () {
-            try { bootFromPortal(); }
-            finally {
-                setTimeout(function () {
-                    try { if (!(typeof ctEvalStarted !== 'undefined' && ctEvalStarted) && window.ctHideEvalOverlay) ctHideEvalOverlay(); } catch (e) {}
-                }, 250);
-            }
-        }, 50);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                try { bootFromPortal(); }
+                finally {
+                    setTimeout(function () {
+                        try { if (!(typeof ctEvalStarted !== 'undefined' && ctEvalStarted) && window.ctHideEvalOverlay) ctHideEvalOverlay(); } catch (e) {}
+                    }, 120);
+                }
+            });
+        });
     });
 })();
 </script>
