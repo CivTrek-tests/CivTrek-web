@@ -4003,19 +4003,22 @@
 
 
 <style id="civtrek-portal-bridge-css">
-/* 1. Hide Login Layer completely (Portal handles Google Auth) */
+/* Hide Login Layer completely (Portal handles Google Auth) */
 #titleLayer { display: none !important; }
 
-/* 2. Remove Post-Exam Top Header & Sidebar Drawer (☰) to prevent confusion with Portal header */
+/* Remove Post-Exam Top Header, Hamburger Drawer, Comparison Tab & Repeated Mistakes Pill */
 body.exam-workspace-root.evaluation-completed #globalTestHeader,
 body.exam-workspace-root.evaluation-completed #reportActionDrawer,
 body.exam-workspace-root.evaluation-completed #reportDrawerBackdrop,
 body.exam-workspace-root.evaluation-completed #comparisonTabHeaderBtn,
-body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
+body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel,
+body.exam-workspace-root.evaluation-completed #solRepeatedMistakesBtn,
+body.exam-workspace-root.evaluation-completed #dashboard > .report-actions-header,
+body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs {
     display: none !important;
 }
 
-/* 3. Clean Inline Navigation Strip inside Solution Report */
+/* Clean Inline Navigation Strip at Top of Solution Report */
 .ct-inline-report-nav {
     display: flex;
     align-items: center;
@@ -4026,7 +4029,7 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
     border: 1px solid #dbe4f0;
     border-radius: 14px;
     padding: 10px 14px;
-    margin: 12px auto 14px auto;
+    margin: 12px auto 12px auto;
     max-width: 1240px;
     width: calc(100% - 24px);
     box-sizing: border-box;
@@ -4083,7 +4086,7 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
     gap: 8px;
 }
 
-/* 4. Show ONLY 2 Clean Action Buttons (PDF & Score Card) inside Results Panel */
+/* Only 2 Clean Action Buttons inside Results Panel (PDF & Score Card) */
 .ct-clean-report-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4106,7 +4109,7 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
     transform: translateY(-1px);
 }
 
-/* 5. Adjust locked split viewport height since top header is removed */
+/* Clean full-height split layout without top header */
 @media screen and (min-width: 901px) {
     body.exam-workspace-root.evaluation-completed.sol-split-lock #dashboard {
         height: calc(100vh - 14px) !important;
@@ -4122,21 +4125,17 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
         height: 100dvh !important;
         margin: 0 !important;
     }
-    body.exam-workspace-root.evaluation-completed .sol-master-pane {
-        top: 0 !important;
-    }
-    body.exam-workspace-root.evaluation-completed.sol-drawer-open #solDrawerBackdrop {
-        top: 0 !important;
-    }
+    body.exam-workspace-root.evaluation-completed .sol-master-pane { top: 0 !important; }
+    body.exam-workspace-root.evaluation-completed.sol-drawer-open #solDrawerBackdrop { top: 0 !important; }
     .ct-inline-report-nav {
         width: calc(100% - 16px);
-        margin: 8px auto 10px auto;
+        margin: 8px auto 8px auto;
         padding: 8px 10px;
     }
 }
 
-/* 6. Early Submission Screen (When Key Release Time is in the future) */
-#ctEarlySubmitScreen {
+/* Early Submission / Key Locked Screen & No-Data Fallback Screen */
+#ctEarlySubmitScreen, #ctNoExamScreen {
     display: none;
     position: fixed;
     inset: 0;
@@ -4146,9 +4145,7 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
     justify-content: center;
     padding: 20px;
 }
-#ctEarlySubmitScreen.open {
-    display: flex;
-}
+#ctEarlySubmitScreen.open, #ctNoExamScreen.open { display: flex; }
 .ct-early-card {
     background: #ffffff;
     border-radius: 24px;
@@ -4161,7 +4158,7 @@ body.exam-workspace-root.evaluation-completed #comparisonReportSectionPanel {
 }
 
 @media print {
-    .ct-inline-report-nav, .ct-clean-report-actions, #ctEarlySubmitScreen {
+    .ct-inline-report-nav, .ct-clean-report-actions, #ctEarlySubmitScreen, #ctNoExamScreen {
         display: none !important;
     }
 }
@@ -10127,6 +10124,8 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         $('titleLayer').classList.add('ct-exam-loaded');
         setTimeout(function () { var f = $('examLoginId'); if (f) f.focus(); }, 60);
     }
+    window.__ctNormalizeExamJson = normalize;
+    window.__ctApplyNormalizedExam = apply;
 
     function handleFile(file) {
         if (!file) return;
@@ -11218,16 +11217,36 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
     </div>
 </div>
 
+<div id="ctNoExamScreen" role="dialog" aria-modal="true">
+    <div class="ct-early-card">
+        <div style="font-size: 2.8rem; line-height: 1; margin-bottom: 12px;">📝</div>
+        <h2 style="margin: 0 0 8px 0; font-size: 1.35rem; font-weight: 800; color: #0b3c70;">No Active Exam Loaded</h2>
+        <p id="ctNoExamMsg" style="margin: 0 0 22px 0; font-size: 0.9rem; line-height: 1.5; color: #475569;">
+            Please start a test from the CivTrek Portal.
+        </p>
+        <button type="button" onclick="window.location.href='index.html'"
+            style="width: 100%; padding: 14px 20px; border: none; border-radius: 14px; background: #0b3c70; color: #ffffff; font-size: 0.95rem; font-weight: 800; cursor: pointer;">
+            ← Go to Portal
+        </button>
+    </div>
+</div>
+
 
 <script id="civtrek-portal-bridge-js">
 (function () {
     'use strict';
     var $ = function (id) { return document.getElementById(id); };
 
-    function goBackToPortal() {
+    window.ctGoBackToPortal = function () {
         window.location.href = 'index.html';
+    };
+
+    function showNoExam(msg) {
+        var m = $('ctNoExamMsg');
+        if (m && msg) m.textContent = msg;
+        var s = $('ctNoExamScreen');
+        if (s) s.classList.add('open');
     }
-    window.ctGoBackToPortal = goBackToPortal;
 
     function injectCleanReportNav() {
         var dash = $('dashboard');
@@ -11277,9 +11296,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         var rBtn = $('ctInlineResTab'), sBtn = $('ctInlineSolTab');
         if (rBtn) rBtn.classList.toggle('active', tab === 'results');
         if (sBtn) sBtn.classList.toggle('active', tab === 'solutions');
-        if (typeof switchReportSection === 'function') {
-            switchReportSection(tab);
-        }
+        if (typeof switchReportSection === 'function') switchReportSection(tab);
     };
 
     function syncRevisionItemsToPortal(activeMeta) {
@@ -11319,9 +11336,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             if (items.length > 0) {
                 localStorage.setItem('CIVTREK_REVISION_ITEMS', JSON.stringify(items));
             }
-        } catch (e) {
-            console.warn('Revision sync error:', e);
-        }
+        } catch (e) {}
     }
 
     function saveTestAttemptSnapshot(activeMeta) {
@@ -11348,6 +11363,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         } catch (e) {}
     }
 
+    // Hook toggleBookmark for instant Revision Bank sync
     var origToggleBm = window.toggleBookmark;
     if (typeof origToggleBm === 'function') {
         window.toggleBookmark = function (btn) {
@@ -11360,10 +11376,12 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         };
     }
 
+    // Hook switchReportSection so inline tabs stay synced
     var origSwitchSec = window.switchReportSection;
     if (typeof origSwitchSec === 'function') {
         window.switchReportSection = function (tab) {
-            var out = origSwitchSec.apply(this, arguments);
+            if (tab === 'comparison') tab = 'results';
+            var out = origSwitchSec.apply(this, [tab]);
             var rBtn = $('ctInlineResTab'), sBtn = $('ctInlineSolTab');
             if (rBtn) rBtn.classList.toggle('active', tab === 'results');
             if (sBtn) sBtn.classList.toggle('active', tab === 'solutions');
@@ -11371,6 +11389,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         };
     }
 
+    // Hook executeFinalEvaluation for Portal sync + Key Release lock + Clean Report Nav
     var origFinalEval = window.executeFinalEvaluation;
     if (typeof origFinalEval === 'function') {
         window.executeFinalEvaluation = function () {
@@ -11408,6 +11427,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                         }));
                     }
 
+                    // Key Release Time Lock
                     if (activeMeta.mode === 'attempt' && !activeMeta.isCustomPractice && !activeMeta.isReattempt && activeMeta.keyReleaseTime) {
                         var keyTimeMs = new Date(activeMeta.keyReleaseTime).getTime();
                         if (!isNaN(keyTimeMs) && Date.now() < keyTimeMs) {
@@ -11423,18 +11443,54 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 } catch (err) {
                     console.error('Portal post-eval sync error:', err);
                 }
-            }, 120);
+            }, 150);
             return out;
         };
+    }
+
+    function applyParsedJsonUsingEngine(parsed, active, showInstructions) {
+        if (typeof window.__ctNormalizeExamJson !== 'function' || typeof window.__ctApplyNormalizedExam !== 'function') {
+            showNoExam('Exam engine did not initialize. Please reload.');
+            return false;
+        }
+        var c = window.__ctNormalizeExamJson(parsed);
+        if (!c || !c.flat || !c.flat.length) {
+            showNoExam('This test file has 0 questions.');
+            return false;
+        }
+        if (active.title) c.name = active.title;
+        if (active.duration && Number(active.duration) > 0) c.duration = Number(active.duration);
+        c.instrSec = 0; // Instant ready on Instructions screen (no 30s wait)
+
+        window.__ctApplyNormalizedExam(c);
+
+        var prefLang = active.defaultLang || 'eng';
+        if (typeof adjustLanguagePerspective === 'function') adjustLanguagePerspective(prefLang);
+        var langSel = $('instrDefaultLanguageSelect');
+        if (langSel) langSel.value = prefLang;
+
+        if (showInstructions) {
+            var il = $('instructionsLayer');
+            if (il) il.style.display = 'flex';
+            if (typeof renderDynamicInstructions === 'function') renderDynamicInstructions();
+            if (typeof goToInstructionStage === 'function') goToInstructionStage(1);
+            if (typeof startInstrWaitTimer === 'function') startInstrWaitTimer();
+        }
+        return true;
     }
 
     function bootFromPortal() {
         var activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA');
         if (!activeRaw) {
-            goBackToPortal();
+            showNoExam('No active test selected. Please open a test from the CivTrek Portal.');
             return;
         }
-        var active = JSON.parse(activeRaw);
+        var active;
+        try { active = JSON.parse(activeRaw); } catch (e) {
+            showNoExam('Invalid test session data.');
+            return;
+        }
+
         var candName = (active.userName || 'STUDENT').toUpperCase();
         document.querySelectorAll('.display-user-fullname').forEach(function (el) {
             el.textContent = candName;
@@ -11443,7 +11499,8 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         var mode = active.mode || 'attempt';
 
         if (mode === 'report' || mode === 'reattempt_wrong') {
-            var allSaved = JSON.parse(localStorage.getItem('CIVTREK_TEST_ATTEMPTS_V1') || '{}');
+            var allSaved = {};
+            try { allSaved = JSON.parse(localStorage.getItem('CIVTREK_TEST_ATTEMPTS_V1') || '{}'); } catch (e) {}
             var savedSnap = allSaved[active.testId];
 
             if (mode === 'report') {
@@ -11459,176 +11516,96 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                     totalTimeInSeconds = savedSnap.remainingTimeSec || 0;
 
                     Object.keys(quizMetadata).forEach(function (k) { delete quizMetadata[k]; });
-                    for (var k in savedSnap.quizMetadata) {
-                        quizMetadata[k] = savedSnap.quizMetadata[k];
-                    }
-                    document.querySelectorAll('.header-exam-name-block').forEach(function (b) {
-                        var n = b.querySelector('.header-exam-name-text');
-                        if (n) n.textContent = examNameValue;
-                        b.style.display = examNameValue ? 'block' : 'none';
-                    });
+                    for (var k in savedSnap.quizMetadata) quizMetadata[k] = savedSnap.quizMetadata[k];
+
                     ctEvalStarted = false;
                     window.executeFinalEvaluation();
                     return;
                 } else if (active.questionsJson) {
-                    loadJsonIntoEngine(JSON.parse(active.questionsJson), active, false);
-                    ctEvalStarted = false;
-                    window.executeFinalEvaluation();
+                    var parsedKey = typeof active.questionsJson === 'string' ? JSON.parse(active.questionsJson) : active.questionsJson;
+                    if (applyParsedJsonUsingEngine(parsedKey, active, false)) {
+                        ctEvalStarted = false;
+                        window.executeFinalEvaluation();
+                    }
                     return;
                 }
             }
 
-            if (mode === 'reattempt_wrong') {
-                if (savedSnap && savedSnap.quizMetadata) {
-                    var wrongQs = [];
-                    var usedSecs = {};
-                    for (var idx = 1; idx <= savedSnap.totalSteps; idx++) {
-                        var qm = savedSnap.quizMetadata[idx];
-                        if (!qm) continue;
-                        var isRight = false;
-                        if (qm.selection && qm.selection !== '') {
-                            if (qm.isNumerical) {
-                                var nv = parseFloat(qm.selection);
-                                isRight = !isNaN(nv) && nv >= parseFloat(qm.correct.min) && nv <= parseFloat(qm.correct.max);
-                            } else if (qm.isMultiSelect) {
-                                isRight = Array.isArray(qm.correct) && Array.isArray(qm.selection) &&
-                                    qm.selection.length === qm.correct.length && qm.selection.every(function (v) { return qm.correct.indexOf(v) !== -1; });
-                            } else {
-                                isRight = (qm.selection === qm.correct);
-                            }
-                        }
-                        if (!isRight) {
-                            wrongQs.push({
-                                section: qm.section,
-                                topic: qm.topic,
-                                subTopic: qm.subTopic,
-                                text: qm.text,
-                                options: qm.options,
-                                correct: qm.correct,
-                                explanation: qm.sol,
-                                markingSchemeId: qm.markingSchemeId,
-                                isMatching: qm.isMatching,
-                                isMultiSelect: qm.isMultiSelect,
-                                isNumerical: qm.isNumerical,
-                                headerLeft: qm.headerLeft,
-                                headerRight: qm.headerRight,
-                                leftItems: qm.leftItems,
-                                rightItems: qm.rightItems
-                            });
-                            usedSecs[qm.section] = true;
+            if (mode === 'reattempt_wrong' && savedSnap && savedSnap.quizMetadata) {
+                var wrongQs = [];
+                var usedSecs = {};
+                for (var idx = 1; idx <= savedSnap.totalSteps; idx++) {
+                    var qm = savedSnap.quizMetadata[idx];
+                    if (!qm) continue;
+                    var isRight = false;
+                    if (qm.selection && qm.selection !== '') {
+                        if (qm.isNumerical) {
+                            var nv = parseFloat(qm.selection);
+                            isRight = !isNaN(nv) && nv >= parseFloat(qm.correct.min) && nv <= parseFloat(qm.correct.max);
+                        } else if (qm.isMultiSelect) {
+                            isRight = Array.isArray(qm.correct) && Array.isArray(qm.selection) &&
+                                qm.selection.length === qm.correct.length && qm.selection.every(function (v) { return qm.correct.indexOf(v) !== -1; });
+                        } else {
+                            isRight = (qm.selection === qm.correct);
                         }
                     }
-                    if (wrongQs.length === 0) {
-                        alert('You answered all questions correctly in this test! Starting full test re-attempt instead.');
-                    } else {
-                        var secs = (savedSnap.examSectionsArray || []).filter(function (s) { return usedSecs[s]; });
-                        if (!secs.length) secs = ['Section 1'];
-                        var propMins = Math.max(5, Math.round(wrongQs.length * 1.2));
-                        active.isReattempt = true;
-                        localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(active));
-                        loadJsonIntoEngine({
-                            examName: (active.title || 'Test') + ' (Mistakes Re-attempt)',
-                            examSections: secs,
-                            markingSchemes: savedSnap.markingSchemesArray,
-                            duration: propMins,
-                            questions: wrongQs
-                        }, active, true);
-                        return;
+                    if (!isRight) {
+                        wrongQs.push({
+                            section: qm.section,
+                            topic: qm.topic,
+                            subTopic: qm.subTopic,
+                            text: qm.text,
+                            options: qm.options,
+                            correct: qm.correct,
+                            explanation: qm.sol,
+                            markingSchemeId: qm.markingSchemeId,
+                            isMatching: qm.isMatching,
+                            isMultiSelect: qm.isMultiSelect,
+                            isNumerical: qm.isNumerical,
+                            headerLeft: qm.headerLeft,
+                            headerRight: qm.headerRight,
+                            leftItems: qm.leftItems,
+                            rightItems: qm.rightItems
+                        });
+                        usedSecs[qm.section] = true;
                     }
                 }
-                active.isReattempt = true;
-                localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(active));
+                if (wrongQs.length > 0) {
+                    var secs = (savedSnap.examSectionsArray || []).filter(function (s) { return usedSecs[s]; });
+                    if (!secs.length) secs = ['Section 1'];
+                    active.isReattempt = true;
+                    active.duration = Math.max(5, Math.round(wrongQs.length * 1.2));
+                    active.title = (active.title || 'Test') + ' (Mistakes Re-attempt)';
+                    localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(active));
+                    applyParsedJsonUsingEngine({
+                        examName: active.title,
+                        examSections: secs,
+                        markingSchemes: savedSnap.markingSchemesArray,
+                        duration: active.duration,
+                        questions: wrongQs
+                    }, active, true);
+                    return;
+                }
             }
         }
 
+        // Standard Attempt / Full Re-attempt / Custom Practice
         if (active.questionsJson) {
-            var parsed = typeof active.questionsJson === 'string' ? JSON.parse(active.questionsJson) : active.questionsJson;
-            loadJsonIntoEngine(parsed, active, true);
+            try {
+                var parsed = typeof active.questionsJson === 'string' ? JSON.parse(active.questionsJson) : active.questionsJson;
+                applyParsedJsonUsingEngine(parsed, active, true);
+            } catch (err) {
+                showNoExam('Could not parse test JSON file: ' + err.message);
+            }
         } else {
-            alert('No question file attached to this test.');
-            goBackToPortal();
+            showNoExam('No question JSON file is attached to this test.');
         }
     }
 
-    function loadJsonIntoEngine(parsed, active, showInstructions) {
-        var cfg = Array.isArray(parsed) ? { questions: parsed } : parsed;
-        var secs = [];
-        var rawSecs = cfg.examSections || cfg.sections;
-        if (Array.isArray(rawSecs)) {
-            rawSecs.forEach(function (s, i) {
-                var name = typeof s === 'string' ? s.trim() : (s && (s.name || s.title || s.section)) || ('Section ' + (i + 1));
-                if (secs.indexOf(name) < 0) secs.push(name);
-            });
-        }
-        var rawQs = Array.isArray(cfg.baseQuestions) ? cfg.baseQuestions : (Array.isArray(cfg.questions) ? cfg.questions : []);
-        if (!rawQs.length && cfg.allQuestions && typeof cfg.allQuestions === 'object') {
-            Object.keys(cfg.allQuestions).forEach(function (k) {
-                if (secs.indexOf(k) < 0) secs.push(k);
-                (cfg.allQuestions[k] || []).forEach(function (q) {
-                    q.section = k;
-                    rawQs.push(q);
-                });
-            });
-        }
-        if (!secs.length) {
-            rawQs.forEach(function (q) {
-                var s = (q.section && String(q.section).trim()) || 'Section 1';
-                if (secs.indexOf(s) < 0) secs.push(s);
-            });
-        }
-        if (!secs.length) secs = ['Section 1'];
-
-        var flat = rawQs.map(function (q) {
-            var copy = JSON.parse(JSON.stringify(q));
-            copy.section = (copy.section && String(copy.section).trim()) || secs[0];
-            if (copy.explanation == null) copy.explanation = copy.sol || '';
-            return copy;
-        });
-
-        examSectionsArray = secs;
-        markingSchemesArray = (Array.isArray(cfg.markingSchemes) && cfg.markingSchemes.length) ? cfg.markingSchemes : [{ id: 'default', pos: 1, neg: 0 }];
-        baseSourceQuestions = flat;
-        totalSteps = flat.length;
-        examNameValue = active.title || cfg.examName || 'CivTrek Mock Test';
-        var durMins = Number(active.duration) || Number(cfg.duration) || 60;
-        totalTimeInSeconds = durMins * 60;
-        window.__examTotalDurationSec = totalTimeInSeconds;
-        activeSection = secs[0];
-        currentSolSection = secs[0];
-        currentStep = 1;
-        currentLanguageState = active.defaultLang || 'eng';
-
-        window.__ctInstrWaitSec = 5;
-
-        document.querySelectorAll('.header-exam-name-block').forEach(function (b) {
-            var n = b.querySelector('.header-exam-name-text');
-            if (n) n.textContent = examNameValue;
-            b.style.display = 'block';
-        });
-        document.title = examNameValue + ' | CivTrek';
-
-        var cb = $('calcToggleBtn'), kp = $('keyPad');
-        var enableCalc = !!(cfg.enableCalculator === true || cfg.enableCalculator === 'true' || cfg.enableCalculator === 1);
-        if (cb) cb.style.display = enableCalc ? 'inline-flex' : 'none';
-        if (kp) { kp.classList.toggle('hide', !enableCalc); kp.style.display = 'none'; }
-
-        __ctBuildMeta();
-        if (typeof window.__ctInitExamDOM === 'function') window.__ctInitExamDOM();
-        adjustLanguagePerspective(currentLanguageState);
-
-        if (showInstructions) {
-            $('instructionsLayer').style.display = 'flex';
-            if (typeof renderDynamicInstructions === 'function') renderDynamicInstructions();
-            if (typeof goToInstructionStage === 'function') goToInstructionStage(1);
-            if (typeof startInstrWaitTimer === 'function') startInstrWaitTimer();
-        }
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootFromPortal);
-    } else {
-        setTimeout(bootFromPortal, 20);
-    }
+    // Always wait until DOMContentLoaded has finished setting up window.__ctInitExamDOM
+    window.addEventListener('DOMContentLoaded', function () {
+        setTimeout(bootFromPortal, 50);
+    });
 })();
 </script>
 

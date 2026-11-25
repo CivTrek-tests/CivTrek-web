@@ -82,7 +82,12 @@
   <!-- =========================================================
        1. LOGIN SCREEN (Pure White Card • Large Logo • Simple)
   ========================================================== -->
-  <section id="loginScreen" class="login-bg min-h-screen flex items-center justify-center p-4">
+  <div id="authSplash" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;gap:14px;">
+    <div style="width:38px;height:38px;border:4px solid #e2e8f0;border-top-color:#f97316;border-radius:50%;animation:ctspin .8s linear infinite;"></div>
+    <div style="font:600 13px system-ui,sans-serif;color:#64748b;">Loading…</div>
+  </div>
+  <style>@keyframes ctspin{to{transform:rotate(360deg)}}</style>
+  <section id="loginScreen" class="hidden login-bg min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden animate-pop">
       <div class="h-1.5 w-full bg-gradient-to-r from-navy via-[#1e5694] to-brandOrange"></div>
 
@@ -1809,7 +1814,21 @@
       }
     };
 
+    function hideAuthSplash() {
+      const sp = document.getElementById('authSplash');
+      if (sp) sp.style.display = 'none';
+    }
+
     if (!IS_DEMO_MODE && auth) {
+      // Failsafe: if Firebase never answers, show the login screen after 8s
+      setTimeout(() => {
+        const sp = document.getElementById('authSplash');
+        if (sp && sp.style.display !== 'none') {
+          document.getElementById('loginScreen').classList.remove('hidden');
+          hideAuthSplash();
+        }
+      }, 8000);
+
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           if (ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
@@ -1827,7 +1846,11 @@
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('appShell').classList.add('hidden');
         }
+        hideAuthSplash();
       });
+    } else {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      hideAuthSplash();
     }
 
     function enterAuthenticatedApp(user) {
