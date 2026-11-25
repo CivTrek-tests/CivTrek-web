@@ -259,12 +259,24 @@
         <p id="emptyWorkspaceHint" class="text-xs text-slate-400 mt-1">Nothing here yet</p>
       </div>
 
-      <!-- HOME DASHBOARD WIDGETS (3-Box Quick Stats Only) -->
+      <!-- HOME DASHBOARD WIDGETS (Upcoming Schedule + 4-Box Quick Stats) -->
       <div id="homeDashboardWidgets" class="space-y-4 pt-1">
 
-        <!-- 3-Box Quick Stats -->
+        <!-- Upcoming Schedule Widget -->
+        <div id="upcomingScheduleCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-xl bg-brandOrange-light text-brandOrange-deep flex items-center justify-center text-sm">🗓️</span>
+              <h2 class="text-sm sm:text-base font-extrabold text-navy">Upcoming Schedule</h2>
+            </div>
+            <button onclick="openCalendarModal()" class="text-xs font-bold text-navy hover:text-brandOrange transition">Calendar ›</button>
+          </div>
+          <div id="upcomingScheduleList" class="space-y-2"></div>
+        </div>
+
+        <!-- 4-Box Quick Stats -->
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
-          <div class="grid grid-cols-3 gap-2.5 text-center">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
             <div class="bg-paper rounded-xl p-3">
               <div id="statTestsTaken" class="text-lg sm:text-xl font-extrabold text-navy">0</div>
               <div class="text-[11px] font-bold text-slate-400 mt-0.5">Tests Taken</div>
@@ -276,6 +288,11 @@
             <div class="bg-paper rounded-xl p-3">
               <div id="statRankWins" class="text-lg sm:text-xl font-extrabold text-brandOrange-deep">0</div>
               <div class="text-[11px] font-bold text-slate-400 mt-0.5">Rank #1 Wins</div>
+            </div>
+            <div class="bg-red-50/70 border border-red-100 rounded-xl p-3">
+              <div id="statNegMarksLost" class="text-lg sm:text-xl font-extrabold text-red-600">0</div>
+              <div class="text-[11px] font-bold text-red-400 mt-0.5">Neg. Marks Lost</div>
+              <div id="statNegSubLabel" class="text-[10px] font-semibold text-slate-400 mt-0.5">0 wrong / 0 att.</div>
             </div>
           </div>
         </div>
@@ -350,6 +367,24 @@
       </div>
     </main>
 
+    <!-- VIEW C: FULL-SCREEN TEST ANALYSIS PAGE -->
+    <main id="analysisView" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-20 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button onclick="showHomeView()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm">
+            ←
+          </button>
+          <h1 class="text-lg sm:text-xl font-extrabold text-navy">Test Analysis</h1>
+        </div>
+        <select id="analysisTestSelect" onchange="renderTestAnalysisPage(this.value)"
+          class="w-full sm:w-72 py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-navy shadow-sm">
+        </select>
+      </div>
+
+      <div id="analysisContentArea" class="space-y-4"></div>
+    </main>
+
     <!-- Single Floating '+' Action Button -->
     <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
       <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
@@ -400,6 +435,14 @@
           <div class="flex items-center gap-3">
             <span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-base">🏆</span>
             <span class="font-bold text-sm text-slate-800">Past Results</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="openTestAnalysisPage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-amber-50 text-brandOrange-deep flex items-center justify-center text-base">📊</span>
+            <span class="font-bold text-sm text-slate-800">Test Analysis</span>
           </div>
           <span class="text-slate-400">›</span>
         </button>
@@ -732,8 +775,51 @@
 
     let currentUser = null;
     let folderPath = [];
+    let currentView = 'home';
+    let currentAnalysisTestId = null;
     let resultsVisibleLimit = 10;
     let expandedResultIds = new Set();
+    const NAV_STATE_KEY = 'CIVTREK_NAV_STATE_V1';
+
+    function saveNavState() {
+      try {
+        sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify({
+          view: currentView,
+          folderPath: folderPath,
+          analysisTestId: currentAnalysisTestId
+        }));
+      } catch (e) {}
+    }
+
+    function restoreNavState() {
+      try {
+        const raw = sessionStorage.getItem(NAV_STATE_KEY);
+        if (!raw) return false;
+        const st = JSON.parse(raw);
+        if (!st) return false;
+        if (Array.isArray(st.folderPath)) {
+          const validPath = [];
+          for (const item of st.folderPath) {
+            const f = sharedData.folders.find(x => x.id === item.id);
+            if (!f) break;
+            validPath.push({ id: f.id, name: f.name, domain: f.domain });
+          }
+          folderPath = validPath;
+        }
+        if (st.view === 'results') {
+          openPastResultsPage();
+          return true;
+        }
+        if (st.view === 'analysis') {
+          openTestAnalysisPage(st.analysisTestId || null);
+          return true;
+        }
+        showHomeView();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
 
     // IST-safe local YYYY-MM-DD helper
     function getLocalIsoDate(dateObj = new Date()) {
@@ -1037,8 +1123,75 @@
     }
 
     // ---------------- HOME DASHBOARD WIDGETS ----------------
+    function getFolderPathTo(folderId) {
+      const path = [];
+      let cur = sharedData.folders.find(f => f.id === folderId);
+      let guard = 0;
+      while (cur && guard++ < 10) {
+        path.unshift({ id: cur.id, name: cur.name, domain: cur.domain });
+        cur = cur.parentId ? sharedData.folders.find(f => f.id === cur.parentId) : null;
+      }
+      return path;
+    }
+
+    window.jumpToScheduledTest = (folderId) => {
+      const p = getFolderPathTo(folderId);
+      if (p.length) {
+        folderPath = p;
+        showHomeView();
+      }
+    };
+
+    function formatTimeUntil(ms) {
+      const diff = ms - Date.now();
+      if (diff <= 0) return 'Starting now';
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const days = Math.floor(hrs / 24);
+      if (days > 0) return `In ${days}d ${hrs % 24}h`;
+      if (hrs > 0) return `In ${hrs}h ${mins % 60}m`;
+      return `In ${Math.max(1, mins)}m`;
+    }
+
+    function renderUpcomingScheduleWidget() {
+      const listEl = document.getElementById('upcomingScheduleList');
+      if (!listEl) return;
+      const now = Date.now();
+      const upcoming = (sharedData.tests || [])
+        .filter(t => t.startTime && new Date(t.startTime).getTime() > now)
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+        .slice(0, 5);
+
+      if (upcoming.length === 0) {
+        listEl.innerHTML = `<div class="text-xs font-semibold text-slate-400 bg-paper rounded-xl p-3 text-center">No upcoming tests scheduled yet.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = upcoming.map(t => {
+        const startMs = new Date(t.startTime).getTime();
+        const typeLabel = TYPE_NAMES[t.testType] || 'Test';
+        return `
+          <div onclick="jumpToScheduledTest('${t.folderId}')"
+            class="cursor-pointer flex items-center justify-between gap-3 p-3 rounded-xl bg-paper hover:bg-navy-light/60 border border-slate-200/70 transition">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-white text-navy border border-slate-200">${typeLabel}</span>
+                <span class="text-[11px] font-bold text-slate-500">${formatNiceDate(t.startTime)}</span>
+              </div>
+              <div class="font-extrabold text-xs sm:text-sm text-slate-900 truncate">${escapeHtml(t.title)}</div>
+            </div>
+            <span class="shrink-0 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-extrabold">
+              ${formatTimeUntil(startMs)}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderHomeDashboardWidgets() {
+      renderUpcomingScheduleWidget();
       const allResults = getCombinedResults();
+      const myRes = getMyUserData().results || [];
       let myTestsCount = 0, myAccSum = 0, myRank1Count = 0;
 
       allResults.forEach(r => {
@@ -1051,9 +1204,22 @@
         }
       });
 
+      let totalNegLost = 0, totalAttempted = 0, totalWrong = 0;
+      myRes.forEach(r => {
+        if (window.__ctSharedLoaded && !sharedData.tests.some(t => t.id === r.testId)) return;
+        totalNegLost += Number(r.negativeMarksLost || 0);
+        totalAttempted += Number(r.attemptedCount || 0);
+        totalWrong += Number(r.wrongCount || 0);
+      });
+      totalNegLost = Math.round(totalNegLost * 100) / 100;
+
       document.getElementById('statTestsTaken').textContent = myTestsCount;
       document.getElementById('statAvgAccuracy').textContent = myTestsCount ? `${Math.round(myAccSum / myTestsCount)}%` : '0%';
       document.getElementById('statRankWins').textContent = myRank1Count;
+      const negEl = document.getElementById('statNegMarksLost');
+      const negSub = document.getElementById('statNegSubLabel');
+      if (negEl) negEl.textContent = totalNegLost > 0 ? `-${fmtMarks(totalNegLost)}` : '0';
+      if (negSub) negSub.textContent = `${totalWrong} wrong / ${totalAttempted} att.`;
     }
 
     // ---------------- MULTI-EXAM COUNTDOWN STRIP ----------------
@@ -1531,7 +1697,7 @@
       updateProfileUI();
       updateGithubIndicator();
       renderExamCountdownsStrip();
-      showHomeView();
+      if (!restoreNavState()) showHomeView();
     }
 
     window.handleLogout = async () => {
@@ -1563,6 +1729,18 @@
       return myRes.some(r => r.testId === testId);
     }
 
+    function getResumeSnapshot(testId) {
+      if (!currentUser || !testId) return null;
+      try {
+        const key = 'CIVTREK_RESUME_V1_' + currentUser.email.toLowerCase() + '_' + testId;
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const snap = JSON.parse(raw);
+        if (snap && snap.q && Number(snap.timeLeft) > 0) return snap;
+      } catch (e) {}
+      return null;
+    }
+
     function getFolderSubtreeIds(folderId) {
       const ids = [folderId];
       const children = sharedData.folders.filter(f => f.parentId === folderId);
@@ -1581,27 +1759,192 @@
 
     // ---------------- VIEW SWITCHING ----------------
     window.showHomeView = () => {
+      currentView = 'home';
       document.getElementById('resultsView').classList.add('hidden');
+      document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('homeView').classList.remove('hidden');
       document.getElementById('searchToggleBtn').classList.remove('hidden');
       document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
+      saveNavState();
       renderExamCountdownsStrip();
       renderWorkspace();
     };
 
     window.openPastResultsPage = () => {
       closeDrawer();
+      currentView = 'results';
       document.getElementById('searchFilterDrawer').classList.add('hidden');
       document.getElementById('searchToggleBtn').classList.add('hidden');
       document.getElementById('fabContainer').classList.add('hidden');
       document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('resultsView').classList.remove('hidden');
+      saveNavState();
       resultsVisibleLimit = 10;
       renderPastResultsPage();
-      // Pull the latest copy of both users' results (read-only for the partner's doc)
       loadAllUsersData().then(() => {
         if (!document.getElementById('resultsView').classList.contains('hidden')) renderPastResultsPage();
       });
+    };
+
+    window.openTestAnalysisPage = (testId = null) => {
+      closeDrawer();
+      currentView = 'analysis';
+      if (testId) currentAnalysisTestId = testId;
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      document.getElementById('searchToggleBtn').classList.add('hidden');
+      document.getElementById('fabContainer').classList.add('hidden');
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('resultsView').classList.add('hidden');
+      document.getElementById('analysisView').classList.remove('hidden');
+      saveNavState();
+      renderTestAnalysisPage(currentAnalysisTestId);
+    };
+
+    window.renderTestAnalysisPage = (selectedTestId) => {
+      const sel = document.getElementById('analysisTestSelect');
+      const area = document.getElementById('analysisContentArea');
+      const myRes = (getMyUserData().results || [])
+        .filter(r => !window.__ctSharedLoaded || sharedData.tests.some(t => t.id === r.testId))
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      if (myRes.length === 0) {
+        if (sel) sel.innerHTML = `<option value="">No tests attempted yet</option>`;
+        if (area) area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📊</div><p class="text-sm font-bold text-slate-600">No Test Analysis Available Yet</p><p class="text-xs text-slate-400 mt-1">Complete a test to view detailed marks, negative impact, and section analysis here.</p></div>`;
+        return;
+      }
+
+      const activeRec = myRes.find(r => r.testId === selectedTestId) || myRes[0];
+      currentAnalysisTestId = activeRec.testId;
+      saveNavState();
+
+      if (sel) {
+        sel.innerHTML = myRes.map(r => `<option value="${r.testId}" ${r.testId === activeRec.testId ? 'selected' : ''}>${escapeHtml(r.testTitle)} (${r.date || ''})</option>`).join('');
+      }
+
+      const totalQ = Number(activeRec.totalQuestions || 0);
+      const att = Number(activeRec.attemptedCount || 0);
+      const corr = Number(activeRec.correctCount || 0);
+      const wrong = Number(activeRec.wrongCount || 0);
+      const skip = Number(activeRec.skippedCount || (totalQ ? Math.max(0, totalQ - att) : 0));
+      const posMarks = Number(activeRec.positiveMarks || 0);
+      const negLost = Number(activeRec.negativeMarksLost || 0);
+      const wrongRate = att > 0 ? Math.round((wrong / att) * 100) : 0;
+      const avgNegPerAtt = att > 0 ? (negLost / att).toFixed(2) : '0.00';
+
+      const secHtml = (Array.isArray(activeRec.sectionsSummary) && activeRec.sectionsSummary.length) ? `
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Section-wise Breakdown</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px]">
+                  <th class="py-2 pr-3">Section</th>
+                  <th class="py-2 px-2 text-center">Att / Total</th>
+                  <th class="py-2 px-2 text-center text-emerald-600">Correct</th>
+                  <th class="py-2 px-2 text-center text-red-600">Wrong</th>
+                  <th class="py-2 px-2 text-center text-red-600">Neg Lost</th>
+                  <th class="py-2 pl-2 text-right">Score</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-semibold">
+                ${activeRec.sectionsSummary.map(s => `
+                  <tr>
+                    <td class="py-2.5 pr-3 font-bold text-slate-800">${escapeHtml(s.name)}</td>
+                    <td class="py-2.5 px-2 text-center">${s.attempted}/${s.total}</td>
+                    <td class="py-2.5 px-2 text-center text-emerald-600">${s.correct}</td>
+                    <td class="py-2.5 px-2 text-center text-red-600">${s.wrong}</td>
+                    <td class="py-2.5 px-2 text-center text-red-600">${s.negLost > 0 ? '-' + fmtMarks(s.negLost) : '0'}</td>
+                    <td class="py-2.5 pl-2 text-right font-extrabold text-navy">${fmtMarks(s.score)} / ${fmtMarks(s.max)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>` : '';
+
+      const topicHtml = (Array.isArray(activeRec.topicsSummary) && activeRec.topicsSummary.length) ? `
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Topic-wise Proficiency</h3>
+          <div class="space-y-2.5">
+            ${activeRec.topicsSummary.map(tp => {
+              const badgeCls = tp.acc >= 75 ? 'bg-emerald-100 text-emerald-700' : (tp.acc >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700');
+              const badgeTxt = tp.acc >= 75 ? 'Strong' : (tp.acc >= 50 ? 'Practice' : 'Weak');
+              return `
+                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-paper">
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(tp.name)}</div>
+                    <div class="text-[11px] text-slate-400 font-semibold">${tp.correct}/${tp.total} Correct • ${tp.attempted} Attempted</div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-extrabold text-navy">${tp.acc}%</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${badgeCls}">${badgeTxt}</span>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>` : '';
+
+      area.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+            <div class="text-xl sm:text-2xl font-extrabold text-navy">${fmtMarks(activeRec.marks)} <span class="text-xs text-slate-400 font-semibold">/ ${fmtMarks(activeRec.maxMarks)}</span></div>
+            <div class="text-[11px] font-bold text-slate-400 mt-0.5">Net Score</div>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+            <div class="text-xl sm:text-2xl font-extrabold text-emerald-600">${activeRec.accuracy}%</div>
+            <div class="text-[11px] font-bold text-slate-400 mt-0.5">Accuracy</div>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+            <div class="text-xl sm:text-2xl font-extrabold text-navy">${att}${totalQ ? '/' + totalQ : ''}</div>
+            <div class="text-[11px] font-bold text-slate-400 mt-0.5">Attempted Qs</div>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+            <div class="text-xl sm:text-2xl font-extrabold text-brandOrange-deep">${activeRec.timeMins}m</div>
+            <div class="text-[11px] font-bold text-slate-400 mt-0.5">Time Taken</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Negative Marks &amp; Attempt Breakdown</h3>
+            <span class="text-[11px] font-bold text-slate-400">${activeRec.date || ''}</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+              <div class="text-lg font-extrabold text-emerald-700">+${fmtMarks(posMarks)}</div>
+              <div class="text-[10px] font-bold text-emerald-600 mt-0.5">Positive Marks (${corr} Qs)</div>
+            </div>
+            <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+              <div class="text-lg font-extrabold text-red-600">${negLost > 0 ? '-' + fmtMarks(negLost) : '0'}</div>
+              <div class="text-[10px] font-bold text-red-500 mt-0.5">Negative Lost (${wrong} Wrong)</div>
+            </div>
+            <div class="bg-paper rounded-xl p-3">
+              <div class="text-lg font-extrabold text-slate-700">${wrongRate}%</div>
+              <div class="text-[10px] font-bold text-slate-400 mt-0.5">Wrong / Attempted</div>
+            </div>
+            <div class="bg-paper rounded-xl p-3">
+              <div class="text-lg font-extrabold text-slate-700">${skip}</div>
+              <div class="text-[10px] font-bold text-slate-400 mt-0.5">Skipped Qs</div>
+            </div>
+          </div>
+          <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-900">
+            ${att > 0
+              ? `Out of <b>${att}</b> attempted questions, <b>${wrong}</b> were wrong — losing <b>-${fmtMarks(negLost)}</b> marks (avg <b>${avgNegPerAtt}</b> negative marks lost per attempted question).`
+              : `Detailed question-level negative breakdown will appear for tests submitted after this update.`}
+          </div>
+        </div>
+
+        ${secHtml}
+        ${topicHtml}
+
+        <div class="flex justify-end">
+          <button onclick="launchExam('${activeRec.testId}', 'report')"
+            class="px-5 py-3 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
+            View Full Key &amp; Solutions →
+          </button>
+        </div>
+      `;
     };
 
     // ---------------- NAVIGATION & SEARCH ----------------
@@ -1630,6 +1973,7 @@
         document.getElementById('filterTestTypeSelect').value = 'all';
         document.getElementById('globalSearchInput').value = '';
       }
+      saveNavState();
       renderWorkspace();
     };
 
@@ -1639,6 +1983,7 @@
       folderPath.push({ id: f.id, name: f.name, domain: f.domain });
       document.getElementById('globalSearchInput').value = '';
       document.getElementById('filterTestTypeSelect').value = 'all';
+      saveNavState();
       renderWorkspace();
     };
 
@@ -1829,12 +2174,16 @@
         const hasSyllabus = Boolean((t.syllabus || '').trim());
 
         let statusPill = '', actionHtml = '';
+        const resumeSnap = !attempted ? getResumeSnapshot(t.id) : null;
         if (attempted) {
           statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full">COMPLETED</span>`;
           actionHtml = `
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <button onclick="launchExam('${t.id}', 'report')" class="py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs transition">
                 View Key
+              </button>
+              <button onclick="openTestAnalysisPage('${t.id}')" class="py-2.5 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white font-bold text-xs transition">
+                Analysis
               </button>
               <button onclick="openReattemptChoiceModal('${t.id}')" class="py-2.5 rounded-xl bg-brandOrange-light hover:bg-brandOrange text-brandOrange-deep hover:text-white font-bold text-xs transition">
                 Re-attempt
@@ -1843,6 +2192,18 @@
         } else if (isUpcoming) {
           statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
           actionHtml = `<button disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed">Starts ${formatNiceDate(t.startTime)}</button>`;
+        } else if (resumeSnap) {
+          const minsLeft = Math.max(1, Math.ceil(Number(resumeSnap.timeLeft || 0) / 60));
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-sky-100 text-sky-800 rounded-full">IN PROGRESS • ${resumeSnap.answeredCount || 0}/${resumeSnap.totalSteps || t.qCount || 0} • ${minsLeft}m left</span>`;
+          actionHtml = `
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="launchExam('${t.id}', 'attempt', false, { resume: true })" class="col-span-2 py-2.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white font-extrabold text-xs shadow-sm transition">
+                Resume Test
+              </button>
+              <button onclick="if(confirm('Discard saved progress and start fresh?')) launchExam('${t.id}', 'attempt', false, { restart: true })" class="py-2.5 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 font-bold text-xs transition">
+                Restart
+              </button>
+            </div>`;
         } else {
           statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">READY</span>`;
           actionHtml = `
@@ -1985,7 +2346,10 @@
                       </div>
                     `).join('')}
                   </div>
-                  <div class="flex justify-end">
+                  <div class="flex justify-end gap-2">
+                    <button onclick="openTestAnalysisPage('${r.testId}')" class="px-4 py-2 rounded-xl bg-navy-light text-navy hover:bg-navy hover:text-white font-bold text-xs transition">
+                      Test Analysis
+                    </button>
                     <button onclick="launchExam('${r.testId}', 'report')" class="px-4 py-2 rounded-xl bg-navy text-white font-bold text-xs">
                       View Key &amp; Solutions
                     </button>
@@ -2055,7 +2419,16 @@
           userName: res.userName || res.userEmail,
           marks: Number(res.marks) || 0,
           accuracy: Number(res.accuracy) || 0,
-          timeMins: Number(res.timeMins) || 1
+          timeMins: Number(res.timeMins) || 1,
+          totalQuestions: Number(res.totalQuestions) || 0,
+          attemptedCount: Number(res.attemptedCount) || 0,
+          correctCount: Number(res.correctCount) || 0,
+          wrongCount: Number(res.wrongCount) || 0,
+          skippedCount: Number(res.skippedCount) || 0,
+          positiveMarks: Number(res.positiveMarks) || 0,
+          negativeMarksLost: Number(res.negativeMarksLost) || 0,
+          sectionsSummary: Array.isArray(res.sectionsSummary) ? res.sectionsSummary : [],
+          topicsSummary: Array.isArray(res.topicsSummary) ? res.topicsSummary : []
         };
         if (res.answers && res.answers.q) { try { record.answersJson = JSON.stringify(res.answers); } catch (e) {} }
 
@@ -2107,7 +2480,7 @@
       else launchExam(pendingReattemptTestId, 'reattempt_wrong', true);
     };
 
-    window.launchExam = async (testId, mode, isReattempt = false) => {
+    window.launchExam = async (testId, mode, isReattempt = false, opts = {}) => {
       const test = sharedData.tests.find(t => t.id === testId);
       if (!test) {
         showToast("Test not found");
@@ -2156,6 +2529,8 @@
           duration: test.duration,
           mode,
           isReattempt: Boolean(isReattempt),
+          resume: Boolean(opts && opts.resume),
+          restart: Boolean(opts && opts.restart),
           wantFullscreen: mode !== 'report',
           userEmail: currentUser.email,
           userName: prof.name || currentUser.displayName,

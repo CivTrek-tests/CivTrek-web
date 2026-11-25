@@ -10114,11 +10114,31 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 marks: m.score,
                 accuracy: m.accuracy,
                 timeMins: minsTaken,
+                totalQuestions: m.total || 0,
+                attemptedCount: m.attempted || 0,
+                correctCount: m.correct || 0,
+                wrongCount: m.wrong || 0,
+                skippedCount: m.skipped || 0,
+                positiveMarks: m.gross || 0,
+                negativeMarksLost: m.penalty || 0,
+                sectionsSummary: Array.isArray(m.sections) ? m.sections.map(function (sc) {
+                    var qs = (m.perQ || []).filter(function (q) { return q.sec === sc.name; });
+                    var neg = Math.round(qs.reduce(function (a, q) { return a + (q.marks < 0 ? -q.marks : 0); }, 0) * 100) / 100;
+                    return { name: sc.name, total: sc.total, attempted: sc.attempted, correct: sc.correct, wrong: sc.wrong, skipped: sc.skipped, score: sc.score, max: sc.max, negLost: neg, time: Math.round(sc.time || 0) };
+                }) : [],
+                topicsSummary: Array.isArray(m.topics) ? m.topics.map(function (tp) {
+                    return { name: tp.name, total: tp.total, attempted: tp.attempted, correct: tp.correct, acc: tp.acc, time: Math.round(tp.time || 0) };
+                }) : [],
                 submittedAt: Date.now(),
                 answers: __ans
             });
             try { localStorage.setItem('CIVTREK_PENDING_RESULT', JSON.stringify(__pend)); }
             catch (qe) { delete __pend.answers; localStorage.setItem('CIVTREK_PENDING_RESULT', JSON.stringify(__pend)); }
+            try {
+                if (activeMeta.userEmail && activeMeta.testId) {
+                    localStorage.removeItem('CIVTREK_RESUME_V1_' + String(activeMeta.userEmail).toLowerCase() + '_' + activeMeta.testId);
+                }
+            } catch (re) {}
             window.__ctPortalPersisted = true;
         } catch (err) {
             console.error('Portal result write error:', err);
@@ -10244,11 +10264,95 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             return;
         }
 
+        // Resume / Auto-save helpers
+        function ctResumeKey(act) {
+            if (!act || !act.userEmail || !act.testId) return null;
+            return 'CIVTREK_RESUME_V1_' + String(act.userEmail).toLowerCase() + '_' + act.testId;
+        }
+        function ctSaveResumeProgress() {
+            try {
+                var act = readActiveMeta();
+                if (!act || act.mode !== 'attempt' || act.isReattempt || act.isCustomPractice) return;
+                if (typeof ctEvalStarted !== 'undefined' && ctEvalStarted) return;
+                var il = document.getElementById('instructionsLayer');
+                if (il && il.style.display !== 'none') return;
+                var key = ctResumeKey(act);
+                if (!key || !totalSteps) return;
+                if (typeof accrueQuestionTime === 'function') accrueQuestionTime();
+                var qMap = {};
+                var ansCnt = 0;
+                for (var i = 1; i <= totalSteps; i++) {
+                    var meta = quizMetadata[i];
+                    if (!meta) continue;
+                    if (meta.state === 'answered' || meta.state === 'answered-review') ansCnt++;
+                    qMap[i] = [meta.state, meta.selection, Math.round(meta.timeSpent || 0)];
+                }
+                var snap = {
+                    testId: act.testId,
+                    userEmail: String(act.userEmail).toLowerCase(),
+                    totalSteps: totalSteps,
+                    answeredCount: ansCnt,
+                    timeLeft: totalTimeInSeconds,
+                    totalDuration: window.__examTotalDurationSec || totalTimeInSeconds,
+                    currentStep: currentStep || 1,
+                    activeSection: activeSection,
+                    savedAt: Date.now(),
+                    q: qMap
+                };
+                localStorage.setItem(key, JSON.stringify(snap));
+            } catch (e) {}
+        }
+        function ctStartResumeAutosave() {
+            if (window.__ctResumeTimer) clearInterval(window.__ctResumeTimer);
+            window.__ctResumeTimer = setInterval(ctSaveResumeProgress, 5000);
+            window.addEventListener('beforeunload', ctSaveResumeProgress);
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) ctSaveResumeProgress();
+            });
+        }
+
         // Standard Attempt / Full Re-attempt / Custom Practice
         if (active.questionsJson) {
             try {
                 var parsed = typeof active.questionsJson === 'string' ? JSON.parse(active.questionsJson) : active.questionsJson;
-                applyParsedJsonUsingEngine(parsed, active, true);
+                var rKey = ctResumeKey(active);
+                if (active.restart && rKey) {
+                    try { localStorage.removeItem(rKey); } catch (e) {}
+                }
+                var rSnap = null;
+                if (active.resume && rKey && !active.isReattempt && !active.isCustomPractice) {
+                    try { rSnap = JSON.parse(localStorage.getItem(rKey) || 'null'); } catch (e) { rSnap = null; }
+                }
+
+                if (rSnap && rSnap.q && Number(rSnap.totalSteps) > 0) {
+                    if (applyParsedJsonUsingEngine(parsed, active, false)) {
+                        if (Number(rSnap.totalSteps) === totalSteps) {
+                            for (var ri = 1; ri <= totalSteps; ri++) {
+                                var rec = rSnap.q[ri];
+                                if (rec && quizMetadata[ri]) {
+                                    quizMetadata[ri].state = rec[0] || 'unvisited';
+                                    quizMetadata[ri].selection = rec[1] !== undefined ? rec[1] : null;
+                                    quizMetadata[ri].timeSpent = Number(rec[2]) || 0;
+                                    stagedSelections[ri] = Array.isArray(quizMetadata[ri].selection) ? quizMetadata[ri].selection.slice() : quizMetadata[ri].selection;
+                                }
+                            }
+                            if (Number(rSnap.totalDuration) > 0) window.__examTotalDurationSec = Number(rSnap.totalDuration);
+                            if (Number(rSnap.timeLeft) > 0) totalTimeInSeconds = Number(rSnap.timeLeft);
+                            var il = document.getElementById('instructionsLayer');
+                            if (il) il.style.display = 'none';
+                            if (typeof jumpToSpecificQuestion === 'function') jumpToSpecificQuestion(Number(rSnap.currentStep) || 1);
+                            if (typeof updateGridDisplayStates === 'function') updateGridDisplayStates();
+                            if (typeof startQuizTimer === 'function') startQuizTimer();
+                            ctStartResumeAutosave();
+                        } else {
+                            applyParsedJsonUsingEngine(parsed, active, true);
+                            ctStartResumeAutosave();
+                        }
+                    }
+                } else {
+                    applyParsedJsonUsingEngine(parsed, active, true);
+                    ctStartResumeAutosave();
+                }
             } catch (err) {
                 showNoExam('Could not parse test JSON file: ' + err.message);
             }
