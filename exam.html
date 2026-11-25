@@ -10235,9 +10235,27 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             }
 
             // reattempt_wrong: only wrong + skipped questions
+            function ctAlertAndReturnToPortal(msg) {
+                if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+                var modal = document.getElementById('customAlertModal');
+                var bodyEl = document.getElementById('customAlertBody');
+                if (modal && bodyEl) {
+                    bodyEl.innerText = msg;
+                    modal.style.display = 'flex';
+                    var okBtn = modal.querySelector('.btn-confirm-modal');
+                    if (okBtn) {
+                        okBtn.onclick = function () {
+                            modal.style.display = 'none';
+                            location.href = 'index.html';
+                        };
+                    }
+                } else {
+                    location.href = 'index.html';
+                }
+            }
             if (!ansOk) {
-                alert('Your answers for this attempt were not saved, so wrong/skipped questions cannot be picked. Please use "Re-attempt Full Test".');
-                location.href = 'index.html'; return;
+                ctAlertAndReturnToPortal('Your answers for this attempt were not saved, so wrong/skipped questions cannot be picked. Please use "Re-attempt Full Test".');
+                return;
             }
             var wrongQs = [], usedSecs = {};
             cN.flat.forEach(function (q, idx) {
@@ -10245,8 +10263,8 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 if (!ctIsRight(q, r ? r[1] : null)) { wrongQs.push(q); usedSecs[q.section] = true; }
             });
             if (!wrongQs.length) {
-                alert('Great! There are no wrong or skipped questions in this attempt.');
-                location.href = 'index.html'; return;
+                ctAlertAndReturnToPortal('Great! There are no wrong or skipped questions in this attempt.');
+                return;
             }
             var secs = cN.sections.filter(function (x) { return usedSecs[x]; });
             if (!secs.length) secs = ['Section 1'];
