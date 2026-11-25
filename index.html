@@ -879,6 +879,31 @@
     }
 
     // Merge both users' individual results into combined leaderboard list (sorted newest first)
+    window.__ctSharedLoaded = false;
+    async function removeResultsForTests(ids) {
+      if (!currentUser || !ids || !ids.length) return;
+      const gone = new Set(ids);
+      const me = currentUser.email.toLowerCase();
+      const my = getMyUserData();
+      my.results = (my.results || []).filter(r => !gone.has(r.testId));
+      ALLOWED_EMAILS.forEach(em => {
+        const k = em.toLowerCase(), u = usersDataMap[k];
+        if (k !== me && u && Array.isArray(u.results)) u.results = u.results.filter(r => !gone.has(r.testId));
+      });
+      try {
+        ids.forEach(id => localStorage.removeItem('CIVTREK_ANS_V2_' + me + '_' + id));
+        localStorage.removeItem('CIVTREK_TEST_ATTEMPTS_V1');
+      } catch (e) {}
+      await persistMyUserData(true);
+    }
+    // Drops this user's own results whose test no longer exists (only when the shared test list really loaded)
+    async function pruneOwnOrphanResults() {
+      if (!window.__ctSharedLoaded || !currentUser || !Array.isArray(sharedData.tests) || !sharedData.tests.length) return;
+      const live = new Set(sharedData.tests.map(t => t.id));
+      const orphans = (getMyUserData().results || []).filter(r => r && r.testId && !live.has(r.testId)).map(r => r.testId);
+      if (orphans.length) await removeResultsForTests(orphans);
+    }
+
     function getCombinedResults() {
       const byTest = new Map();
       ALLOWED_EMAILS.forEach(em => {
@@ -887,6 +912,7 @@
         if (!uData || !Array.isArray(uData.results)) return;
         uData.results.forEach(r => {
           if (!r || !r.testId) return;
+          if (window.__ctSharedLoaded && !sharedData.tests.some(t => t.id === r.testId)) return; // test was deleted
           let entry = byTest.get(r.testId);
           if (!entry) {
             entry = {
@@ -935,7 +961,7 @@
 
     // Persist ONLY the current user's own results doc (never touches the partner's doc).
     // Re-reads the remote copy first and merges by testId so nothing already saved is lost.
-    async function persistMyUserData() {
+    async function persistMyUserData(replace = false) {
       if (!currentUser) return;
       const key = currentUser.email.toLowerCase();
       const myData = getMyUserData();
@@ -945,7 +971,7 @@
       try {
         const ref = doc(db, "civtrek_portal", "user_" + emailDocKey(key));
         const snap = await getDoc(ref);
-        if (snap.exists()) myData.results = mergeResultLists(snap.data().results, myData.results);
+        if (snap.exists() && !replace) myData.results = mergeResultLists(snap.data().results, myData.results);
         await setDoc(ref, { results: myData.results }, { merge: true });
       } catch (e) {
         console.warn("Firestore user save error:", e);
@@ -972,6 +998,7 @@
         const sharedSnap = await getDoc(doc(db, "civtrek_portal", "shared_state_v12"));
         if (sharedSnap.exists()) {
           const d = sharedSnap.data();
+          window.__ctSharedLoaded = true;
           sharedData = { ...getDefaultSharedData(), ...d };
           // Ensure root folders always exist
           if (!Array.isArray(sharedData.folders) || sharedData.folders.length === 0) {
@@ -1378,7 +1405,7 @@
     }
 
     async function deleteJsonFromGithubRepo(filePath) {
-      if (!filePath || !isGithubReady()) return;
+      if (!filePath || !isGithubReady()) return false;
       const gh = getGithubConfig();
       const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${filePath}`;
       try {
@@ -1389,11 +1416,11 @@
             'Accept': 'application/vnd.github+json'
           }
         });
-        if (!metaRes.ok) return;
+        if (!metaRes.ok) return metaRes.status === 404;
         const metaData = await metaRes.json();
-        if (!metaData.sha) return;
+        if (!metaData.sha) return false;
 
-        await fetch(url, {
+        const delRes = await fetch(url, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${gh.token}`,
@@ -1405,7 +1432,8 @@
             sha: metaData.sha
           })
         });
-      } catch (e) {}
+        return delRes.ok;
+      } catch (e) { return false; }
     }
 
     window.downloadOriginalJson = async (testId) => {
@@ -1477,6 +1505,7 @@
           await syncAllFromFirestore();
           await loadGithubFromFirestore(user.email);
           await ingestPendingExamResult();
+          await pruneOwnOrphanResults();
           enterAuthenticatedApp(user);
           startSharedListener();
         } else {
@@ -2205,14 +2234,16 @@
       if (!confirm("Delete this folder and all tests inside it?")) return;
       const subIds = getFolderSubtreeIds(id);
       const testsToDelete = sharedData.tests.filter(t => subIds.includes(t.folderId));
+      let ghFail = 0;
       for (const t of testsToDelete) {
-        if (t.githubFilePath) await deleteJsonFromGithubRepo(t.githubFilePath);
+        if (t.githubFilePath && !(await deleteJsonFromGithubRepo(t.githubFilePath))) ghFail++;
       }
       sharedData.tests = sharedData.tests.filter(t => !subIds.includes(t.folderId));
       sharedData.folders = sharedData.folders.filter(f => !subIds.includes(f.id));
       await persistSharedFields({ folders: sharedData.folders, tests: sharedData.tests });
+      await removeResultsForTests(testsToDelete.map(t => t.id));
       renderWorkspace();
-      showToast("Deleted");
+      showToast(ghFail ? `Deleted, but ${ghFail} JSON file(s) could not be removed from GitHub` : "Deleted");
     };
 
     // ---------------- TEST CRUD ----------------
@@ -2353,14 +2384,16 @@
       closeAllMenus();
       if (!confirm("Delete this test and its JSON file?")) return;
       const target = sharedData.tests.find(t => t.id === id);
+      let ghOk = true;
       if (target && target.githubFilePath) {
         showToast("Cleaning up GitHub...");
-        await deleteJsonFromGithubRepo(target.githubFilePath);
+        ghOk = await deleteJsonFromGithubRepo(target.githubFilePath);
       }
       sharedData.tests = sharedData.tests.filter(t => t.id !== id);
       await persistSharedFields({ tests: sharedData.tests });
+      await removeResultsForTests([id]);
       renderWorkspace();
-      showToast("Deleted");
+      showToast(ghOk ? "Deleted (test, JSON & results)" : "Test & results deleted, but the JSON file could not be removed from GitHub (token may be read-only)");
     };
 
     // ---------------- SYLLABUS VIEW & PRINT ----------------
