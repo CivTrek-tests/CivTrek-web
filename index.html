@@ -78,6 +78,102 @@
     .animate-pop { animation: popIn 0.18s ease-out forwards; }
     @keyframes ctspin { to { transform: rotate(360deg); } }
 
+    @keyframes ctLivePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); opacity: 1; }
+      50% { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); opacity: 0.85; }
+    }
+    @keyframes ctDotBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(0.75); }
+    }
+    @keyframes ctSoonPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(229, 142, 38, 0.35); }
+      50% { box-shadow: 0 0 0 4px rgba(229, 142, 38, 0); }
+    }
+    .live-blink-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+      animation: ctLivePulse 1.5s ease-in-out infinite;
+    }
+    .live-blink-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #dc2626;
+      display: inline-block;
+      animation: ctDotBlink 1s ease-in-out infinite;
+    }
+    .soon-pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff4e6;
+      color: #b45309;
+      border: 1px solid #fcd34d;
+      animation: ctSoonPulse 2s ease-in-out infinite;
+    }
+    .pending-highlight-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff1f2;
+      color: #be123c;
+      border: 1px solid #fecdd3;
+    }
+    .sched-pill-track {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
+      background: #eef3f9;
+      border-radius: 14px;
+    }
+    .sched-pill-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #5b6b80;
+      transition: all 0.16s ease;
+      white-space: nowrap;
+    }
+    @media (min-width: 640px) {
+      .sched-pill-btn { font-size: 12px; padding: 8px 12px; }
+    }
+    .sched-pill-btn.active {
+      background: #0b3c70;
+      color: #ffffff;
+      box-shadow: 0 4px 10px -4px rgba(11, 60, 112, 0.55);
+    }
+    .sched-pill-count {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: rgba(11, 60, 112, 0.1);
+      color: #0b3c70;
+    }
+    .sched-pill-btn.active .sched-pill-count {
+      background: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+    }
+    .sched-pill-count.has-pending {
+      background: #ffe4e6;
+      color: #be123c;
+    }
+    .sched-pill-btn.active .sched-pill-count.has-pending {
+      background: #e58e26;
+      color: #ffffff;
+    }
+
     /* Syllabus print area (hidden on screen, only visible when printing) */
     #syllabusPrintArea { display: none; }
     @media print {
@@ -262,16 +358,38 @@
       <!-- HOME DASHBOARD WIDGETS (Upcoming Schedule + 4-Box Quick Stats) -->
       <div id="homeDashboardWidgets" class="space-y-4 pt-1">
 
-        <!-- Upcoming Schedule Widget -->
-        <div id="upcomingScheduleCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
-          <div class="flex items-center justify-between gap-2 mb-3">
+        <!-- 3-Tab Schedule & Pending Tests Window -->
+        <div id="upcomingScheduleCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="w-8 h-8 rounded-xl bg-brandOrange-light text-brandOrange-deep flex items-center justify-center text-sm">🗓️</span>
-              <h2 class="text-sm sm:text-base font-extrabold text-navy">Upcoming Schedule</h2>
+              <div>
+                <h2 class="text-sm sm:text-base font-extrabold text-navy leading-tight">Test Schedule</h2>
+                <p id="scheduleSubHint" class="text-[10px] font-semibold text-slate-400">Today's live, upcoming &amp; pending tests</p>
+              </div>
             </div>
             <button onclick="openCalendarModal()" class="text-xs font-bold text-navy hover:text-brandOrange transition">Calendar ›</button>
           </div>
-          <div id="upcomingScheduleList" class="space-y-2"></div>
+
+          <!-- 3-Tab Pill Switcher -->
+          <div class="sched-pill-track" role="tablist">
+            <button type="button" id="schedTabToday" onclick="switchScheduleTab('today')" class="sched-pill-btn active">
+              <span id="schedTodayLiveDot" class="hidden live-blink-dot"></span>
+              <span>Today's</span>
+              <span id="schedCountToday" class="sched-pill-count">0</span>
+            </button>
+            <button type="button" id="schedTabUpcoming" onclick="switchScheduleTab('upcoming')" class="sched-pill-btn">
+              <span>Upcoming</span>
+              <span id="schedCountUpcoming" class="sched-pill-count">0</span>
+            </button>
+            <button type="button" id="schedTabPending" onclick="switchScheduleTab('pending')" class="sched-pill-btn">
+              <span>Pending</span>
+              <span id="schedCountPending" class="sched-pill-count">0</span>
+            </button>
+          </div>
+
+          <!-- Scrollable List Container (~5 items max height before internal scroll) -->
+          <div id="scheduleTabList" class="max-h-[345px] overflow-y-auto pr-1 space-y-2"></div>
         </div>
 
         <!-- 4-Box Quick Stats -->
@@ -777,6 +895,7 @@
     let folderPath = [];
     let currentView = 'home';
     let currentAnalysisTestId = null;
+    let activeScheduleTab = 'today';
     let resultsVisibleLimit = 10;
     let expandedResultIds = new Set();
     const NAV_STATE_KEY = 'CIVTREK_NAV_STATE_V1';
@@ -786,7 +905,8 @@
         sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify({
           view: currentView,
           folderPath: folderPath,
-          analysisTestId: currentAnalysisTestId
+          analysisTestId: currentAnalysisTestId,
+          scheduleTab: activeScheduleTab
         }));
       } catch (e) {}
     }
@@ -797,6 +917,9 @@
         if (!raw) return false;
         const st = JSON.parse(raw);
         if (!st) return false;
+        if (st.scheduleTab && ['today', 'upcoming', 'pending'].includes(st.scheduleTab)) {
+          activeScheduleTab = st.scheduleTab;
+        }
         if (Array.isArray(st.folderPath)) {
           const validPath = [];
           for (const item of st.folderPath) {
@@ -1023,7 +1146,11 @@
             name: r.userName || sharedData.profiles?.[key]?.name || key,
             marks: Number(r.marks) || 0,
             accuracy: Number(r.accuracy) || 0,
-            timeMins: Number(r.timeMins) || 1
+            timeMins: Number(r.timeMins) || 1,
+            attemptedCount: Number(r.attemptedCount) || 0,
+            correctCount: Number(r.correctCount) || 0,
+            wrongCount: Number(r.wrongCount) || 0,
+            negativeMarksLost: Number(r.negativeMarksLost) || 0
           };
           if (idx >= 0) entry.scores[idx] = sc;
           else entry.scores.push(sc);
@@ -1153,36 +1280,143 @@
       return `In ${Math.max(1, mins)}m`;
     }
 
+    function getTestTimeState(t, now = Date.now()) {
+      const todayIso = getLocalIsoDate(new Date(now));
+      const startIso = (t.startTime || '').slice(0, 10);
+      const startMs = t.startTime ? new Date(t.startTime).getTime() : 0;
+      const hasStart = Boolean(t.startTime && isFinite(startMs) && startMs > 0);
+      const isToday = hasStart && startIso === todayIso;
+      const isFutureDay = hasStart && startIso > todayIso;
+      const isPastDay = hasStart && startIso < todayIso;
+      const isUpcoming = hasStart && startMs > now;
+      const isLiveToday = isToday && startMs <= now;
+      return { hasStart, startMs, startIso, todayIso, isToday, isFutureDay, isPastDay, isUpcoming, isLiveToday };
+    }
+
+    window.switchScheduleTab = (tab) => {
+      if (!['today', 'upcoming', 'pending'].includes(tab)) return;
+      activeScheduleTab = tab;
+      saveNavState();
+      renderUpcomingScheduleWidget();
+    };
+
     function renderUpcomingScheduleWidget() {
-      const listEl = document.getElementById('upcomingScheduleList');
+      const listEl = document.getElementById('scheduleTabList');
       if (!listEl) return;
       const now = Date.now();
-      const upcoming = (sharedData.tests || [])
-        .filter(t => t.startTime && new Date(t.startTime).getTime() > now)
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-        .slice(0, 5);
+      const allTests = sharedData.tests || [];
 
-      if (upcoming.length === 0) {
-        listEl.innerHTML = `<div class="text-xs font-semibold text-slate-400 bg-paper rounded-xl p-3 text-center">No upcoming tests scheduled yet.</div>`;
+      const todayTests = [];
+      const upcomingTests = [];
+      const pendingTests = [];
+      let liveTodayUnattempted = 0;
+
+      allTests.forEach(t => {
+        const st = getTestTimeState(t, now);
+        const attempted = hasUserAttemptedTest(t.id);
+
+        if (st.isToday) {
+          todayTests.push({ t, st, attempted });
+          if (st.isLiveToday && !attempted) liveTodayUnattempted++;
+        } else if (st.isFutureDay) {
+          upcomingTests.push({ t, st, attempted });
+        }
+
+        // Pending / Unattempted: already started (or anytime) & not attempted yet
+        if (!attempted && !st.isUpcoming) {
+          pendingTests.push({ t, st, attempted });
+        }
+      });
+
+      // Sort Today's: LIVE unattempted first -> upcoming today -> completed today
+      todayTests.sort((a, b) => {
+        const rank = x => (x.st.isLiveToday && !x.attempted) ? 0 : (!x.attempted ? 1 : 2);
+        return (rank(a) - rank(b)) || (a.st.startMs - b.st.startMs);
+      });
+      // Sort Upcoming: nearest date first
+      upcomingTests.sort((a, b) => a.st.startMs - b.st.startMs);
+      // Sort Pending: LIVE today first -> missed past scheduled tests (newest missed first) -> anytime unattempted
+      pendingTests.sort((a, b) => {
+        const rank = x => x.st.isLiveToday ? 0 : (x.st.isPastDay ? 1 : 2);
+        return (rank(a) - rank(b)) || ((b.st.startMs || 0) - (a.st.startMs || 0));
+      });
+
+      // Update pill buttons & counters
+      ['today', 'upcoming', 'pending'].forEach(k => {
+        const btn = document.getElementById('schedTab' + k.charAt(0).toUpperCase() + k.slice(1));
+        if (btn) btn.classList.toggle('active', activeScheduleTab === k);
+      });
+      const cToday = document.getElementById('schedCountToday');
+      const cUp = document.getElementById('schedCountUpcoming');
+      const cPend = document.getElementById('schedCountPending');
+      const liveDot = document.getElementById('schedTodayLiveDot');
+      if (cToday) cToday.textContent = todayTests.length;
+      if (cUp) cUp.textContent = upcomingTests.length;
+      if (cPend) {
+        cPend.textContent = pendingTests.length;
+        cPend.classList.toggle('has-pending', pendingTests.length > 0);
+      }
+      if (liveDot) liveDot.classList.toggle('hidden', liveTodayUnattempted === 0);
+
+      const items = activeScheduleTab === 'today' ? todayTests : (activeScheduleTab === 'upcoming' ? upcomingTests : pendingTests);
+
+      if (items.length === 0) {
+        const emptyMsg = activeScheduleTab === 'today'
+          ? 'No tests scheduled for today.'
+          : (activeScheduleTab === 'upcoming' ? 'No upcoming tests scheduled.' : 'All caught up! No pending unattempted tests.');
+        listEl.innerHTML = `<div class="text-xs font-semibold text-slate-400 bg-paper rounded-xl p-5 text-center">${emptyMsg}</div>`;
         return;
       }
 
-      listEl.innerHTML = upcoming.map(t => {
-        const startMs = new Date(t.startTime).getTime();
+      listEl.innerHTML = items.map(({ t, st, attempted }) => {
         const typeLabel = TYPE_NAMES[t.testType] || 'Test';
+        const resumeSnap = !attempted ? getResumeSnapshot(t.id) : null;
+        const hasSyllabus = Boolean((t.syllabus || '').trim());
+
+        let badgeHtml = '';
+        let rightActionHtml = '';
+
+        if (attempted) {
+          badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800">DONE</span>`;
+          rightActionHtml = `<button onclick="event.stopPropagation(); openTestAnalysisPage('${t.id}')" class="px-3 py-1.5 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition shrink-0">Analysis</button>`;
+        } else if (st.isLiveToday) {
+          badgeHtml = `<span class="live-blink-badge px-2 py-0.5 rounded-full text-[10px] font-extrabold"><span class="live-blink-dot"></span>LIVE</span>`;
+          rightActionHtml = resumeSnap
+            ? `<button onclick="event.stopPropagation(); launchExam('${t.id}', 'attempt', false, { resume: true })" class="px-3 py-1.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white text-[11px] font-extrabold shadow-sm transition shrink-0">Resume</button>`
+            : `<button onclick="event.stopPropagation(); launchExam('${t.id}', 'attempt')" class="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-extrabold shadow-sm transition shrink-0">Start Now</button>`;
+        } else if (st.isUpcoming && st.isToday) {
+          badgeHtml = `<span class="soon-pulse-badge px-2 py-0.5 rounded-full text-[10px] font-extrabold">STARTING ${formatTimeUntil(st.startMs).toUpperCase()}</span>`;
+          rightActionHtml = hasSyllabus
+            ? `<button onclick="event.stopPropagation(); openSyllabusModal('${t.id}')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-navy-light text-navy border border-slate-200 text-[11px] font-bold transition shrink-0">Syllabus</button>`
+            : `<span class="text-[11px] font-extrabold text-amber-700 shrink-0">${formatTimeUntil(st.startMs)}</span>`;
+        } else if (st.isUpcoming) {
+          badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">UPCOMING</span>`;
+          rightActionHtml = hasSyllabus
+            ? `<button onclick="event.stopPropagation(); openSyllabusModal('${t.id}')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-navy-light text-navy border border-slate-200 text-[11px] font-bold transition shrink-0">Syllabus</button>`
+            : `<span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-800 text-[10px] font-extrabold shrink-0">${formatTimeUntil(st.startMs)}</span>`;
+        } else {
+          badgeHtml = st.isPastDay
+            ? `<span class="pending-highlight-badge px-2 py-0.5 rounded-full text-[10px] font-extrabold">PENDING</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">READY</span>`;
+          rightActionHtml = resumeSnap
+            ? `<button onclick="event.stopPropagation(); launchExam('${t.id}', 'attempt', false, { resume: true })" class="px-3 py-1.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white text-[11px] font-extrabold shadow-sm transition shrink-0">Resume</button>`
+            : `<button onclick="event.stopPropagation(); launchExam('${t.id}', 'attempt')" class="px-3 py-1.5 rounded-xl bg-navy hover:bg-navy-deep text-white text-[11px] font-extrabold shadow-sm transition shrink-0">Start</button>`;
+        }
+
+        const timeSub = st.hasStart ? formatNiceDate(t.startTime) : `${t.qCount || 0} Qs • ${t.duration || 60}m`;
+
         return `
           <div onclick="jumpToScheduledTest('${t.folderId}')"
-            class="cursor-pointer flex items-center justify-between gap-3 p-3 rounded-xl bg-paper hover:bg-navy-light/60 border border-slate-200/70 transition">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 mb-0.5">
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-white text-navy border border-slate-200">${typeLabel}</span>
-                <span class="text-[11px] font-bold text-slate-500">${formatNiceDate(t.startTime)}</span>
+            class="cursor-pointer flex items-center justify-between gap-2.5 p-3 rounded-xl bg-paper hover:bg-navy-light/50 border ${st.isLiveToday && !attempted ? 'border-red-200 bg-red-50/40' : 'border-slate-200/70'} transition">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
+                ${badgeHtml}
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white text-navy border border-slate-200">${typeLabel}</span>
+                <span class="text-[10px] font-semibold text-slate-400 truncate">${timeSub}</span>
               </div>
               <div class="font-extrabold text-xs sm:text-sm text-slate-900 truncate">${escapeHtml(t.title)}</div>
             </div>
-            <span class="shrink-0 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-extrabold">
-              ${formatTimeUntil(startMs)}
-            </span>
+            ${rightActionHtml}
           </div>
         `;
       }).join('');
@@ -1801,27 +2035,180 @@
       renderTestAnalysisPage(currentAnalysisTestId);
     };
 
+    function fmtSecShort(sec) {
+      sec = Math.max(0, Math.round(Number(sec) || 0));
+      if (!sec) return '—';
+      if (sec < 60) return `${sec}s`;
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return `${m}m ${s < 10 ? '0' : ''}${s}s`;
+    }
+
     window.renderTestAnalysisPage = (selectedTestId) => {
       const sel = document.getElementById('analysisTestSelect');
       const area = document.getElementById('analysisContentArea');
+      const myEmail = (currentUser?.email || '').toLowerCase();
       const myRes = (getMyUserData().results || [])
         .filter(r => !window.__ctSharedLoaded || sharedData.tests.some(t => t.id === r.testId))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
       if (myRes.length === 0) {
         if (sel) sel.innerHTML = `<option value="">No tests attempted yet</option>`;
-        if (area) area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📊</div><p class="text-sm font-bold text-slate-600">No Test Analysis Available Yet</p><p class="text-xs text-slate-400 mt-1">Complete a test to view detailed marks, negative impact, and section analysis here.</p></div>`;
+        if (area) area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📊</div><p class="text-sm font-bold text-slate-600">No Test Analysis Available Yet</p><p class="text-xs text-slate-400 mt-1">Complete a test to view detailed marks, negative impact, partner comparison, and topic analysis here.</p></div>`;
         return;
       }
 
-      const activeRec = myRes.find(r => r.testId === selectedTestId) || myRes[0];
-      currentAnalysisTestId = activeRec.testId;
+      const isOverall = selectedTestId === '__OVERALL__';
+      const activeRec = isOverall ? null : (myRes.find(r => r.testId === selectedTestId) || myRes[0]);
+      currentAnalysisTestId = isOverall ? '__OVERALL__' : activeRec.testId;
       saveNavState();
 
       if (sel) {
-        sel.innerHTML = myRes.map(r => `<option value="${r.testId}" ${r.testId === activeRec.testId ? 'selected' : ''}>${escapeHtml(r.testTitle)} (${r.date || ''})</option>`).join('');
+        sel.innerHTML = `<option value="__OVERALL__" ${isOverall ? 'selected' : ''}>📊 Overall Summary (All ${myRes.length} Tests)</option>` +
+          myRes.map(r => `<option value="${r.testId}" ${(!isOverall && r.testId === activeRec.testId) ? 'selected' : ''}>${escapeHtml(r.testTitle)} (${r.date || ''})</option>`).join('');
       }
 
+      const combinedAll = getCombinedResults();
+
+      // ---------- OVERALL SUMMARY MODE ----------
+      if (isOverall) {
+        let totScore = 0, totMax = 0, totAcc = 0, totAtt = 0, totCorr = 0, totWrong = 0, totSkip = 0, totNeg = 0, totPos = 0;
+        const topicMap = new Map();
+
+        myRes.forEach(r => {
+          totScore += Number(r.marks || 0);
+          totMax += Number(r.maxMarks || 0);
+          totAcc += Number(r.accuracy || 0);
+          totAtt += Number(r.attemptedCount || 0);
+          totCorr += Number(r.correctCount || 0);
+          totWrong += Number(r.wrongCount || 0);
+          totSkip += Number(r.skippedCount || 0);
+          totNeg += Number(r.negativeMarksLost || 0);
+          totPos += Number(r.positiveMarks || 0);
+          (r.topicsSummary || []).forEach(tp => {
+            const prev = topicMap.get(tp.name) || { name: tp.name, total: 0, attempted: 0, correct: 0, time: 0 };
+            prev.total += Number(tp.total || 0);
+            prev.attempted += Number(tp.attempted || 0);
+            prev.correct += Number(tp.correct || 0);
+            prev.time += Number(tp.time || 0);
+            topicMap.set(tp.name, prev);
+          });
+        });
+
+        const avgAcc = Math.round(totAcc / myRes.length);
+        const avgNegPerAtt = totAtt > 0 ? (totNeg / totAtt).toFixed(2) : '0.00';
+        const overallPct = totMax > 0 ? Math.round((totScore / totMax) * 100) : 0;
+
+        // Overall Head-to-Head
+        let myWins = 0, partnerWins = 0, sharedCount = 0;
+        combinedAll.forEach(c => {
+          if ((c.scores || []).length >= 2) {
+            sharedCount++;
+            const sorted = [...c.scores].sort((a, b) => b.marks - a.marks);
+            if (sorted[0].email.toLowerCase() === myEmail) myWins++;
+            else partnerWins++;
+          }
+        });
+
+        const aggTopics = Array.from(topicMap.values())
+          .map(t => ({ ...t, acc: t.total > 0 ? Math.round((t.correct / t.total) * 100) : 0 }))
+          .sort((a, b) => a.acc - b.acc);
+
+        const aggTopicsHtml = aggTopics.length ? `
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Cumulative Topic Strength (Weakest First)</h3>
+              <span class="text-[10px] font-bold text-slate-400">${aggTopics.length} Topics</span>
+            </div>
+            <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+              ${aggTopics.map(tp => {
+                const badgeCls = tp.acc >= 75 ? 'bg-emerald-100 text-emerald-700' : (tp.acc >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700');
+                const badgeTxt = tp.acc >= 75 ? 'Strong' : (tp.acc >= 50 ? 'Practice' : 'Weak');
+                const avgSec = tp.total > 0 && tp.time > 0 ? `${Math.round(tp.time / tp.total)}s/Q` : '—';
+                return `
+                  <div class="p-2.5 rounded-xl bg-paper flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(tp.name)}</div>
+                      <div class="text-[10px] text-slate-400 font-semibold">${tp.correct}/${tp.total} Correct • ${tp.attempted} Att • ${avgSec}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-xs font-extrabold text-navy">${tp.acc}%</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${badgeCls}">${badgeTxt}</span>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>` : '';
+
+        area.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-navy">${myRes.length}</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Tests Analyzed</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-emerald-600">${avgAcc}%</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Avg Accuracy</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm text-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-navy">${overallPct}%</div>
+              <div class="text-[11px] font-bold text-slate-400 mt-0.5">Overall Score %</div>
+            </div>
+            <div class="bg-red-50/70 p-4 rounded-2xl border border-red-100 shadow-sm text-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-red-600">${totNeg > 0 ? '-' + fmtMarks(totNeg) : '0'}</div>
+              <div class="text-[11px] font-bold text-red-400 mt-0.5">Total Neg. Lost</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Overall Negative Impact &amp; Head-to-Head</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-950 leading-relaxed">
+                Across <b>${totAtt}</b> attempted questions, <b>${totWrong}</b> were wrong — costing <b>-${fmtMarks(totNeg)}</b> marks (avg <b>${avgNegPerAtt}</b> neg marks/attempt). Without negative marking, your cumulative score rises from <b>${fmtMarks(totScore)}</b> to <b>${fmtMarks(totScore + totNeg)}</b>.
+              </div>
+              <div class="p-3.5 rounded-xl bg-paper border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-[11px] font-extrabold uppercase text-slate-400">Head-to-Head (${sharedCount} Shared)</div>
+                  <div class="text-sm font-extrabold text-navy mt-0.5">You ${myWins} — ${partnerWins} Partner</div>
+                </div>
+                <span class="text-2xl">⚔️</span>
+              </div>
+            </div>
+          </div>
+
+          ${aggTopicsHtml}
+
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Test-by-Test Negative &amp; Score Trend</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px]">
+                    <th class="py-2 pr-3">Test</th>
+                    <th class="py-2 px-2 text-center">Score</th>
+                    <th class="py-2 px-2 text-center">Acc</th>
+                    <th class="py-2 px-2 text-center">Wrong/Att</th>
+                    <th class="py-2 pl-2 text-right text-red-600">Neg Lost</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-semibold">
+                  ${myRes.map(r => `
+                    <tr onclick="renderTestAnalysisPage('${r.testId}')" class="cursor-pointer hover:bg-paper transition">
+                      <td class="py-2.5 pr-3 font-bold text-navy max-w-[180px] truncate">${escapeHtml(r.testTitle)}</td>
+                      <td class="py-2.5 px-2 text-center font-extrabold">${fmtMarks(r.marks)}/${fmtMarks(r.maxMarks)}</td>
+                      <td class="py-2.5 px-2 text-center text-emerald-600">${r.accuracy}%</td>
+                      <td class="py-2.5 px-2 text-center text-slate-500">${r.wrongCount || 0}/${r.attemptedCount || 0}</td>
+                      <td class="py-2.5 pl-2 text-right text-red-600 font-extrabold">${Number(r.negativeMarksLost || 0) > 0 ? '-' + fmtMarks(r.negativeMarksLost) : '0'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // ---------- INDIVIDUAL TEST ANALYSIS MODE ----------
       const totalQ = Number(activeRec.totalQuestions || 0);
       const att = Number(activeRec.attemptedCount || 0);
       const corr = Number(activeRec.correctCount || 0);
@@ -1831,10 +2218,58 @@
       const negLost = Number(activeRec.negativeMarksLost || 0);
       const wrongRate = att > 0 ? Math.round((wrong / att) * 100) : 0;
       const avgNegPerAtt = att > 0 ? (negLost / att).toFixed(2) : '0.00';
+      const potentialScore = Math.round((Number(activeRec.marks || 0) + negLost) * 100) / 100;
+
+      const barTotal = Math.max(1, corr + wrong + skip);
+      const cPct = Math.round((corr / barTotal) * 100);
+      const wPct = Math.round((wrong / barTotal) * 100);
+      const sPct = Math.max(0, 100 - cPct - wPct);
+
+      // Partner Comparison
+      const combEntry = combinedAll.find(c => c.testId === activeRec.testId);
+      const sortedScores = combEntry ? [...(combEntry.scores || [])].sort((a, b) => b.marks - a.marks) : [];
+      const partnerScore = sortedScores.find(s => s.email.toLowerCase() !== myEmail);
+      const myScoreRec = sortedScores.find(s => s.email.toLowerCase() === myEmail);
+
+      let partnerHtml = '';
+      if (partnerScore && myScoreRec) {
+        const diff = Math.round((myScoreRec.marks - partnerScore.marks) * 100) / 100;
+        const statusTxt = diff > 0 ? `You lead by +${fmtMarks(diff)} marks` : (diff < 0 ? `Partner leads by +${fmtMarks(-diff)} marks` : 'Exact tie!');
+        const statusCls = diff >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+        partnerHtml = `
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">⚔️ Head-to-Head Comparison</h3>
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${statusCls}">${statusTxt}</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${sortedScores.map((s, idx) => {
+                const isMe = s.email.toLowerCase() === myEmail;
+                return `
+                  <div class="p-3.5 rounded-xl border ${idx === 0 ? 'border-brandOrange bg-brandOrange-light/30' : 'border-slate-200 bg-paper'} flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs font-extrabold ${idx === 0 ? 'text-brandOrange-deep' : 'text-slate-500'}">
+                        ${idx === 0 ? '🥇 #1' : '🥈 #2'} • <span class="text-slate-900">${escapeHtml(s.name)}${isMe ? ' (You)' : ''}</span>
+                      </div>
+                      <div class="text-[11px] font-semibold text-slate-500 mt-1">
+                        ${s.accuracy}% Acc • ${s.timeMins}m • Neg: <span class="text-red-600 font-bold">${s.negativeMarksLost > 0 ? '-' + fmtMarks(s.negativeMarksLost) : '0'}</span>
+                      </div>
+                    </div>
+                    <div class="text-lg font-extrabold text-navy shrink-0">${fmtMarks(s.marks)}<span class="text-xs text-slate-400 font-semibold">/${fmtMarks(activeRec.maxMarks)}</span></div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      } else {
+        partnerHtml = `
+          <div class="bg-white rounded-2xl p-4 border border-dashed border-slate-300 text-xs font-semibold text-slate-400 text-center">
+            ⚔️ Partner hasn't attempted this test yet — head-to-head comparison will appear once both complete it.
+          </div>`;
+      }
 
       const secHtml = (Array.isArray(activeRec.sectionsSummary) && activeRec.sectionsSummary.length) ? `
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Section-wise Breakdown</h3>
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Section-wise Breakdown &amp; Speed</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-xs text-left border-collapse">
               <thead>
@@ -1844,20 +2279,24 @@
                   <th class="py-2 px-2 text-center text-emerald-600">Correct</th>
                   <th class="py-2 px-2 text-center text-red-600">Wrong</th>
                   <th class="py-2 px-2 text-center text-red-600">Neg Lost</th>
+                  <th class="py-2 px-2 text-center">Time (Avg)</th>
                   <th class="py-2 pl-2 text-right">Score</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 font-semibold">
-                ${activeRec.sectionsSummary.map(s => `
-                  <tr>
-                    <td class="py-2.5 pr-3 font-bold text-slate-800">${escapeHtml(s.name)}</td>
-                    <td class="py-2.5 px-2 text-center">${s.attempted}/${s.total}</td>
-                    <td class="py-2.5 px-2 text-center text-emerald-600">${s.correct}</td>
-                    <td class="py-2.5 px-2 text-center text-red-600">${s.wrong}</td>
-                    <td class="py-2.5 px-2 text-center text-red-600">${s.negLost > 0 ? '-' + fmtMarks(s.negLost) : '0'}</td>
-                    <td class="py-2.5 pl-2 text-right font-extrabold text-navy">${fmtMarks(s.score)} / ${fmtMarks(s.max)}</td>
-                  </tr>
-                `).join('')}
+                ${activeRec.sectionsSummary.map(s => {
+                  const avgS = s.total > 0 && s.time > 0 ? `${Math.round(s.time / s.total)}s/Q` : '';
+                  return `
+                    <tr>
+                      <td class="py-2.5 pr-3 font-bold text-slate-800">${escapeHtml(s.name)}</td>
+                      <td class="py-2.5 px-2 text-center">${s.attempted}/${s.total}</td>
+                      <td class="py-2.5 px-2 text-center text-emerald-600">${s.correct}</td>
+                      <td class="py-2.5 px-2 text-center text-red-600">${s.wrong}</td>
+                      <td class="py-2.5 px-2 text-center text-red-600">${s.negLost > 0 ? '-' + fmtMarks(s.negLost) : '0'}</td>
+                      <td class="py-2.5 px-2 text-center text-slate-500">${fmtSecShort(s.time)}${avgS ? ` <span class="text-[10px] text-slate-400">(${avgS})</span>` : ''}</td>
+                      <td class="py-2.5 pl-2 text-right font-extrabold text-navy">${fmtMarks(s.score)} / ${fmtMarks(s.max)}</td>
+                    </tr>`;
+                }).join('')}
               </tbody>
             </table>
           </div>
@@ -1865,20 +2304,26 @@
 
       const topicHtml = (Array.isArray(activeRec.topicsSummary) && activeRec.topicsSummary.length) ? `
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Topic-wise Proficiency</h3>
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy mb-3">Topic-wise Proficiency &amp; Pace</h3>
           <div class="space-y-2.5">
             ${activeRec.topicsSummary.map(tp => {
               const badgeCls = tp.acc >= 75 ? 'bg-emerald-100 text-emerald-700' : (tp.acc >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700');
               const badgeTxt = tp.acc >= 75 ? 'Strong' : (tp.acc >= 50 ? 'Practice' : 'Weak');
+              const avgSec = tp.total > 0 && tp.time > 0 ? ` • ${Math.round(tp.time / tp.total)}s/Q` : '';
               return `
-                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-paper">
-                  <div class="min-w-0">
-                    <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(tp.name)}</div>
-                    <div class="text-[11px] text-slate-400 font-semibold">${tp.correct}/${tp.total} Correct • ${tp.attempted} Attempted</div>
+                <div class="p-3 rounded-xl bg-paper space-y-1.5">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(tp.name)}</div>
+                      <div class="text-[11px] text-slate-400 font-semibold">${tp.correct}/${tp.total} Correct • ${tp.attempted} Attempted${avgSec}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-xs font-extrabold text-navy">${tp.acc}%</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${badgeCls}">${badgeTxt}</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <span class="text-xs font-extrabold text-navy">${tp.acc}%</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${badgeCls}">${badgeTxt}</span>
+                  <div class="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                    <div class="h-full ${tp.acc >= 75 ? 'bg-emerald-500' : (tp.acc >= 50 ? 'bg-amber-500' : 'bg-red-500')} rounded-full" style="width:${tp.acc}%"></div>
                   </div>
                 </div>`;
             }).join('')}
@@ -1905,9 +2350,23 @@
           </div>
         </div>
 
+        ${(corr + wrong + skip > 0) ? `
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-bold">
+            <span class="text-emerald-700">✓ Correct: ${corr} (${cPct}%)</span>
+            <span class="text-red-600">✕ Wrong: ${wrong} (${wPct}%)</span>
+            <span class="text-slate-500">○ Skipped: ${skip} (${sPct}%)</span>
+          </div>
+          <div class="w-full h-3 rounded-full overflow-hidden flex bg-slate-200">
+            <div class="bg-emerald-500 h-full" style="width:${cPct}%"></div>
+            <div class="bg-red-500 h-full" style="width:${wPct}%"></div>
+            <div class="bg-slate-300 h-full" style="width:${sPct}%"></div>
+          </div>
+        </div>` : ''}
+
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Negative Marks &amp; Attempt Breakdown</h3>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Negative Marks &amp; Score Potential</h3>
             <span class="text-[11px] font-bold text-slate-400">${activeRec.date || ''}</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
@@ -1923,22 +2382,27 @@
               <div class="text-lg font-extrabold text-slate-700">${wrongRate}%</div>
               <div class="text-[10px] font-bold text-slate-400 mt-0.5">Wrong / Attempted</div>
             </div>
-            <div class="bg-paper rounded-xl p-3">
-              <div class="text-lg font-extrabold text-slate-700">${skip}</div>
-              <div class="text-[10px] font-bold text-slate-400 mt-0.5">Skipped Qs</div>
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+              <div class="text-lg font-extrabold text-indigo-700">${fmtMarks(potentialScore)}</div>
+              <div class="text-[10px] font-bold text-indigo-500 mt-0.5">Score Without Neg.</div>
             </div>
           </div>
-          <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-900">
+          <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-950 leading-relaxed">
             ${att > 0
-              ? `Out of <b>${att}</b> attempted questions, <b>${wrong}</b> were wrong — losing <b>-${fmtMarks(negLost)}</b> marks (avg <b>${avgNegPerAtt}</b> negative marks lost per attempted question).`
+              ? `Out of <b>${att}</b> attempted questions, <b>${wrong}</b> were wrong — losing <b>-${fmtMarks(negLost)}</b> marks (avg <b>${avgNegPerAtt}</b> neg marks/attempt). Skipping those wrong guesses would have lifted your score from <b>${fmtMarks(activeRec.marks)}</b> to <b>${fmtMarks(potentialScore)}</b>.`
               : `Detailed question-level negative breakdown will appear for tests submitted after this update.`}
           </div>
         </div>
 
+        ${partnerHtml}
         ${secHtml}
         ${topicHtml}
 
-        <div class="flex justify-end">
+        <div class="flex flex-wrap justify-end gap-2.5">
+          <button onclick="launchExam('${activeRec.testId}', 'reattempt_wrong', true)"
+            class="px-5 py-3 rounded-xl bg-brandOrange-light hover:bg-brandOrange text-brandOrange-deep hover:text-white border border-amber-200 font-extrabold text-xs shadow-sm transition">
+            🎯 Practice Wrong &amp; Skipped
+          </button>
           <button onclick="launchExam('${activeRec.testId}', 'report')"
             class="px-5 py-3 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
             View Full Key &amp; Solutions →
@@ -1946,6 +2410,13 @@
         </div>
       `;
     };
+
+    // Auto-refresh live schedule status every 30 seconds while on Home root
+    setInterval(() => {
+      if (currentUser && currentView === 'home' && folderPath.length === 0 && !document.getElementById('appShell').classList.contains('hidden')) {
+        renderUpcomingScheduleWidget();
+      }
+    }, 30000);
 
     // ---------------- NAVIGATION & SEARCH ----------------
     window.toggleSearchPanel = () => {
@@ -2162,8 +2633,7 @@
       const testsGrid = document.getElementById('testsGrid');
       const now = Date.now();
       testsGrid.innerHTML = tests.map(t => {
-        const startMs = t.startTime ? new Date(t.startTime).getTime() : 0;
-        const isUpcoming = startMs > now;
+        const st = getTestTimeState(t, now);
         const typeLabel = TYPE_NAMES[t.testType] || 'Test';
         const attempted = hasUserAttemptedTest(t.id);
         const marks = Number(t.totalMarks) > 0 ? Number(t.totalMarks) : Number(maxMarksByTest.get(t.id));
@@ -2189,12 +2659,15 @@
                 Re-attempt
               </button>
             </div>`;
-        } else if (isUpcoming) {
-          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
+        } else if (st.isUpcoming) {
+          statusPill = st.isToday
+            ? `<span class="soon-pulse-badge px-2 py-0.5 text-[10px] font-extrabold rounded-full">TODAY • ${formatTimeUntil(st.startMs)}</span>`
+            : `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
           actionHtml = `<button disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed">Starts ${formatNiceDate(t.startTime)}</button>`;
         } else if (resumeSnap) {
           const minsLeft = Math.max(1, Math.ceil(Number(resumeSnap.timeLeft || 0) / 60));
-          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-sky-100 text-sky-800 rounded-full">IN PROGRESS • ${resumeSnap.answeredCount || 0}/${resumeSnap.totalSteps || t.qCount || 0} • ${minsLeft}m left</span>`;
+          statusPill = (st.isLiveToday ? `<span class="live-blink-badge px-2 py-0.5 text-[10px] font-extrabold rounded-full"><span class="live-blink-dot"></span>LIVE</span>` : '') +
+            `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-sky-100 text-sky-800 rounded-full">IN PROGRESS • ${resumeSnap.answeredCount || 0}/${resumeSnap.totalSteps || t.qCount || 0} • ${minsLeft}m left</span>`;
           actionHtml = `
             <div class="grid grid-cols-3 gap-2">
               <button onclick="launchExam('${t.id}', 'attempt', false, { resume: true })" class="col-span-2 py-2.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white font-extrabold text-xs shadow-sm transition">
@@ -2204,8 +2677,16 @@
                 Restart
               </button>
             </div>`;
+        } else if (st.isLiveToday) {
+          statusPill = `<span class="live-blink-badge px-2 py-0.5 text-[10px] font-extrabold rounded-full"><span class="live-blink-dot"></span>LIVE NOW</span>`;
+          actionHtml = `
+            <button onclick="launchExam('${t.id}', 'attempt')" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-sm transition">
+              Start Live Test
+            </button>`;
         } else {
-          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">READY</span>`;
+          statusPill = st.isPastDay
+            ? `<span class="pending-highlight-badge px-2 py-0.5 text-[10px] font-extrabold rounded-full">PENDING</span>`
+            : `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">READY</span>`;
           actionHtml = `
             <button onclick="launchExam('${t.id}', 'attempt')" class="w-full py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
               Start Test
