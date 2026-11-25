@@ -77,6 +77,23 @@
     }
     .animate-pop { animation: popIn 0.18s ease-out forwards; }
     @keyframes ctspin { to { transform: rotate(360deg); } }
+
+    /* Syllabus print area (hidden on screen, only visible when printing) */
+    #syllabusPrintArea { display: none; }
+    @media print {
+      body.print-syllabus > *:not(#syllabusPrintArea) { display: none !important; }
+      body.print-syllabus #syllabusPrintArea {
+        display: block !important;
+        padding: 28px 32px;
+        color: #0e2742;
+        font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+        background: #fff;
+      }
+      #syllabusPrintArea .sp-brand { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: #c9731a; text-transform: uppercase; }
+      #syllabusPrintArea h1 { font-size: 22px; font-weight: 800; color: #0b3c70; margin: 6px 0 4px; }
+      #syllabusPrintArea .sp-meta { font-size: 12px; color: #64748b; font-weight: 600; padding-bottom: 12px; border-bottom: 2px solid #0b3c70; margin-bottom: 16px; }
+      #syllabusPrintArea .sp-body { font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; }
+    }
   </style>
 </head>
 <body class="font-sans min-h-screen antialiased selection:bg-navy selection:text-white">
@@ -239,29 +256,11 @@
       <div id="emptyWorkspaceState" class="hidden py-16 text-center">
         <div class="text-4xl mb-2">📂</div>
         <p class="text-sm font-bold text-slate-500">No items yet</p>
-        <p class="text-xs text-slate-400 mt-1">Tap the + button to add a folder or upload a test</p>
+        <p id="emptyWorkspaceHint" class="text-xs text-slate-400 mt-1">Nothing here yet</p>
       </div>
 
-      <!-- HOME DASHBOARD WIDGETS (Clean: Revision Bank + 3-Box Quick Stats Only) -->
+      <!-- HOME DASHBOARD WIDGETS (3-Box Quick Stats Only) -->
       <div id="homeDashboardWidgets" class="space-y-4 pt-1">
-
-        <!-- Revision Bank Card -->
-        <div onclick="openRevisionBankModal()"
-          class="cursor-pointer group bg-white hover:border-rose-400 rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center text-xl shrink-0 transition-colors">
-              🎯
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <h3 class="font-extrabold text-slate-900 text-sm sm:text-base truncate">Revision Bank</h3>
-                <span id="revisionBankBadge" class="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-100 text-rose-700">0 Qs</span>
-              </div>
-              <p class="text-xs text-slate-400 truncate mt-0.5">Mistakes + Bookmarked</p>
-            </div>
-          </div>
-          <span class="text-slate-300 group-hover:text-rose-600 text-lg font-bold">›</span>
-        </div>
 
         <!-- 3-Box Quick Stats -->
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
@@ -354,11 +353,11 @@
     <!-- Single Floating '+' Action Button -->
     <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
       <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
-        <button onclick="closeFabMenu(); openFolderModal();"
+        <button id="fabNewFolderBtn" onclick="closeFabMenu(); openFolderModal();"
           class="flex items-center gap-2.5 bg-white hover:bg-slate-50 text-navy font-bold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-lg border border-slate-200">
-          <span>📁</span> New Folder
+          <span>📁</span> <span id="fabNewFolderLabel">New Folder</span>
         </button>
-        <button onclick="closeFabMenu(); openTestModal();"
+        <button id="fabAddTestBtn" onclick="closeFabMenu(); openTestModal();"
           class="flex items-center gap-2.5 bg-white hover:bg-slate-50 text-navy font-bold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-lg border border-slate-200">
           <span>📝</span> Add Test
         </button>
@@ -405,13 +404,6 @@
           <span class="text-slate-400">›</span>
         </button>
 
-        <button onclick="closeDrawer(); openRevisionBankModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
-          <div class="flex items-center gap-3">
-            <span class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base">🎯</span>
-            <span class="font-bold text-sm text-slate-800">Revision Bank</span>
-          </div>
-          <span class="text-slate-400">›</span>
-        </button>
 
         <button onclick="closeDrawer(); openCalendarModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
           <div class="flex items-center gap-3">
@@ -479,51 +471,6 @@
     </div>
   </div>
 
-  <!-- Revision Bank Modal -->
-  <div id="revisionBankModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-rose-600 animate-pop">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-extrabold text-navy">Revision Bank</h3>
-        <button onclick="closeModal('revisionBankModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2 text-center mb-4">
-        <div class="bg-paper p-3 rounded-xl">
-          <div id="revAllCount" class="text-lg font-extrabold text-navy">0</div>
-          <div class="text-[11px] font-bold text-slate-400">Total Saved</div>
-        </div>
-        <div class="bg-rose-50/70 p-3 rounded-xl">
-          <div id="revMistakeCount" class="text-lg font-extrabold text-rose-600">0</div>
-          <div class="text-[11px] font-bold text-rose-500">Mistakes</div>
-        </div>
-        <div class="bg-amber-50/80 p-3 rounded-xl">
-          <div id="revBookmarkCount" class="text-lg font-extrabold text-brandOrange-deep">0</div>
-          <div class="text-[11px] font-bold text-amber-700">Bookmarked</div>
-        </div>
-      </div>
-
-      <div class="space-y-3 mb-5">
-        <label class="block text-xs font-bold text-slate-600">Select Questions Pool</label>
-        <select id="revPoolSelect" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none">
-          <option value="all">All (Mistakes + Bookmarked)</option>
-          <option value="mistakes">Mistakes Only</option>
-          <option value="bookmarked">Bookmarked Only (⭐)</option>
-        </select>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2.5">
-        <button onclick="launchRevisionSession('report')"
-          class="py-3 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs transition">
-          Review Solutions
-        </button>
-        <button onclick="launchRevisionSession('attempt')"
-          class="py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition">
-          Practice Test
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Calendar & Multi-Exam Countdown Manager Modal -->
   <div id="calendarModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-t-4 border-navy my-auto animate-pop">
@@ -581,7 +528,7 @@
       <form onsubmit="saveFolderForm(event)" class="space-y-3.5">
         <input type="hidden" id="editFolderId" />
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Folder Name</label>
+          <label id="folderNameLabel" class="block text-xs font-bold text-slate-600 mb-1">Folder Name</label>
           <input type="text" id="newFolderName" required placeholder="e.g., Strength of Materials"
             class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
         </div>
@@ -598,7 +545,7 @@
     </div>
   </div>
 
-  <!-- Add / Edit Test Modal (No End Time; Optional Start Time) -->
+  <!-- Add / Edit Test Modal (Type auto-set from folder; Optional Start Time; Optional Syllabus) -->
   <div id="testModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange my-auto animate-pop">
       <div class="flex justify-between items-center mb-4">
@@ -622,13 +569,9 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Test Type</label>
-          <select id="newTestType" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none focus:border-navy">
-            <option value="topic">Topic-wise</option>
-            <option value="chapter">Chapter-wise</option>
-            <option value="subject">Subject-wise</option>
-            <option value="multi">Multi-Subject</option>
-            <option value="fulllength">Full-Length</option>
-          </select>
+          <input type="hidden" id="newTestType" value="subject" />
+          <div id="newTestTypeLabel" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs sm:text-sm font-bold text-navy">Subject-wise</div>
+          <p class="text-[10px] text-slate-400 mt-1">Set automatically from the folder you are in.</p>
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -638,6 +581,11 @@
           <input type="datetime-local" id="newTestStart"
             class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy" />
           <p class="text-[10px] text-slate-400 mt-1">Leave blank to allow starting immediately. Key &amp; solutions unlock right after submission.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Syllabus (Optional)</label>
+          <textarea id="newTestSyllabus" rows="5" placeholder="Paste or type the syllabus / topics covered..."
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-navy resize-y"></textarea>
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('testModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
@@ -730,6 +678,27 @@
     </div>
   </div>
 
+  <!-- Syllabus View Modal -->
+  <div id="syllabusModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-navy animate-pop flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-start gap-3 mb-1">
+        <div class="min-w-0">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-brandOrange-deep">Syllabus</div>
+          <h3 id="syllabusModalTitle" class="text-base font-extrabold text-navy leading-snug"></h3>
+        </div>
+        <button onclick="closeModal('syllabusModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold shrink-0">✕</button>
+      </div>
+      <div id="syllabusModalBody" class="mt-3 flex-1 overflow-y-auto text-sm leading-relaxed text-slate-700 whitespace-pre-wrap break-words bg-paper rounded-2xl p-4"></div>
+      <div class="flex justify-end gap-2 pt-4">
+        <button type="button" onclick="closeModal('syllabusModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Close</button>
+        <button type="button" onclick="printSyllabus()" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Syllabus print area (only visible in print) -->
+  <div id="syllabusPrintArea"></div>
+
   <!-- Toast -->
   <div id="toastBox" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-navy-deep text-white text-xs font-bold px-5 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-all duration-200">
     Saved
@@ -782,6 +751,16 @@
     const USER_DATA_KEY_PREFIX = 'CIVTREK_USER_DATA_V12_';
     const GH_LOCAL_KEY = 'CIVTREK_GH_CONFIG_V1';
 
+    // Test-type categories that live inside each domain (Technical / Non-Technical)
+    const CATEGORY_DEFS = [
+      { type: 'topic',      name: 'Topic-wise',    icon: '🧩', desc: 'Subject › Chapter › Tests' },
+      { type: 'chapter',    name: 'Chapter-wise',  icon: '📘', desc: 'Subject › Tests' },
+      { type: 'subject',    name: 'Subject-wise',  icon: '📚', desc: 'Direct tests' },
+      { type: 'multi',      name: 'Multi-Subject', icon: '🗂️', desc: 'Direct tests' },
+      { type: 'fulllength', name: 'Full-Length',   icon: '🏁', desc: 'Direct tests' }
+    ];
+    function catFolderId(domain, type) { return `cat_${domain}_${type}`; }
+
     function emailDocKey(email) {
       return String(email || '').toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
@@ -803,8 +782,87 @@
     }
 
     let sharedData = loadSharedLocal();
-    // Per-user data map: { [emailLower]: { results: [...], revisionBank: [...] } }
+    ensureHierarchy(sharedData);
+    // Per-user data map: { [emailLower]: { results: [...] } }
     let usersDataMap = {};
+
+    // Makes sure every domain has its 5 category folders and moves legacy items into the new structure.
+    // Ids are deterministic, so both users compute exactly the same folders even before anything is saved.
+    function ensureHierarchy(data) {
+      const out = { foldersChanged: false, testsChanged: false };
+      if (!Array.isArray(data.folders)) { data.folders = []; out.foldersChanged = true; }
+      if (!Array.isArray(data.tests)) { data.tests = []; out.testsChanged = true; }
+
+      getDefaultSharedData().folders.forEach(d => {
+        if (!data.folders.some(f => f.id === d.id)) { data.folders.push(d); out.foldersChanged = true; }
+      });
+      const roots = data.folders.filter(f => f.isRootDomain);
+
+      roots.forEach(root => {
+        CATEGORY_DEFS.forEach((c, i) => {
+          const id = catFolderId(root.domain, c.type);
+          if (!data.folders.some(f => f.id === id)) {
+            data.folders.push({ id, parentId: root.id, domain: root.domain, name: c.name, desc: c.desc, isSystem: true, categoryType: c.type, order: i });
+            out.foldersChanged = true;
+          }
+        });
+      });
+
+      // Legacy: custom folders created directly under a domain become Subject folders under Topic-wise
+      data.folders.forEach(f => {
+        if (f.isRootDomain || f.isSystem) return;
+        const root = roots.find(r => r.id === f.parentId);
+        if (root) { f.parentId = catFolderId(root.domain, 'topic'); out.foldersChanged = true; }
+      });
+
+      // Legacy: tests that sit directly on a domain root move into the category matching their type
+      const addGeneral = (id, parentId, domain) => {
+        if (!data.folders.some(f => f.id === id)) {
+          data.folders.push({ id, parentId, domain, name: 'General', desc: '' });
+          out.foldersChanged = true;
+        }
+      };
+      data.tests.forEach(t => {
+        const root = roots.find(r => r.id === t.folderId) ||
+          (!t.folderId ? roots.find(r => r.domain === (t.domain || 'technical')) : null);
+        if (!root) return;
+        const type = CATEGORY_DEFS.some(c => c.type === t.testType) ? t.testType : 'subject';
+        let target = catFolderId(root.domain, type);
+        if (type === 'topic' || type === 'chapter') {
+          const subId = `gen_${root.domain}_${type}_s`;
+          addGeneral(subId, target, root.domain);
+          target = subId;
+          if (type === 'topic') {
+            const chId = `gen_${root.domain}_topic_c`;
+            addGeneral(chId, subId, root.domain);
+            target = chId;
+          }
+        }
+        t.folderId = target;
+        t.testType = type;
+        out.testsChanged = true;
+      });
+      return out;
+    }
+
+    // Merge two lists of result records by testId, newest timestamp wins
+    function mergeResultLists(a, b) {
+      const map = new Map();
+      [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach(r => {
+        if (!r || !r.testId) return;
+        const prev = map.get(r.testId);
+        if (!prev || (r.timestamp || 0) >= (prev.timestamp || 0)) map.set(r.testId, r);
+      });
+      return Array.from(map.values()).sort((x, y) => (y.timestamp || 0) - (x.timestamp || 0));
+    }
+
+    function readLocalUserResults(emailLower) {
+      try {
+        const raw = localStorage.getItem(USER_DATA_KEY_PREFIX + emailDocKey(emailLower));
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && Array.isArray(parsed.results) ? parsed.results : [];
+      } catch (e) { return []; }
+    }
 
     function loadSharedLocal() {
       try {
@@ -816,7 +874,7 @@
 
     function getMyUserData() {
       const key = (currentUser?.email || '').toLowerCase();
-      if (!usersDataMap[key]) usersDataMap[key] = { results: [], revisionBank: [] };
+      if (!usersDataMap[key]) usersDataMap[key] = { results: [] };
       return usersDataMap[key];
     }
 
@@ -873,19 +931,38 @@
       }
     }
 
-    // Persist ONLY current user's personal results & revision bank (100% isolated per user)
+    // Persist ONLY the current user's own results doc (never touches the partner's doc).
+    // Re-reads the remote copy first and merges by testId so nothing already saved is lost.
     async function persistMyUserData() {
       if (!currentUser) return;
       const key = currentUser.email.toLowerCase();
       const myData = getMyUserData();
       try {
-        localStorage.setItem(USER_DATA_KEY_PREFIX + emailDocKey(key), JSON.stringify(myData));
+        localStorage.setItem(USER_DATA_KEY_PREFIX + emailDocKey(key), JSON.stringify({ results: myData.results }));
       } catch (e) {}
       try {
-        await setDoc(doc(db, "civtrek_portal", "user_" + emailDocKey(key)), myData, { merge: true });
+        const ref = doc(db, "civtrek_portal", "user_" + emailDocKey(key));
+        const snap = await getDoc(ref);
+        if (snap.exists()) myData.results = mergeResultLists(snap.data().results, myData.results);
+        await setDoc(ref, { results: myData.results }, { merge: true });
       } catch (e) {
         console.warn("Firestore user save error:", e);
       }
+    }
+
+    async function loadAllUsersData() {
+      await Promise.all(ALLOWED_EMAILS.map(async (em) => {
+        const key = em.toLowerCase();
+        const localResults = readLocalUserResults(key);
+        const memResults = usersDataMap[key]?.results || [];
+        try {
+          const uSnap = await getDoc(doc(db, "civtrek_portal", "user_" + emailDocKey(key)));
+          const remote = uSnap.exists() ? uSnap.data().results : [];
+          usersDataMap[key] = { results: mergeResultLists(mergeResultLists(remote, localResults), memResults) };
+        } catch (e) {
+          usersDataMap[key] = { results: mergeResultLists(localResults, memResults) };
+        }
+      }));
     }
 
     async function syncAllFromFirestore() {
@@ -898,7 +975,14 @@
           if (!Array.isArray(sharedData.folders) || sharedData.folders.length === 0) {
             sharedData.folders = getDefaultSharedData().folders;
           }
+          const hier = ensureHierarchy(sharedData);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData));
+          if (isAdmin() && (hier.foldersChanged || hier.testsChanged)) {
+            const patch = {};
+            if (hier.foldersChanged) patch.folders = sharedData.folders;
+            if (hier.testsChanged) patch.tests = sharedData.tests;
+            await persistSharedFields(patch);
+          }
         } else {
           // One-time migration from legacy v11 doc if present (folders, tests, profiles, examTargets only)
           const oldSnap = await getDoc(doc(db, "civtrek_portal", "clean_state_v11"));
@@ -912,24 +996,12 @@
               tests: Array.isArray(old.tests) ? old.tests.filter(t => t.githubFilePath) : []
             };
           }
+          ensureHierarchy(sharedData);
           await persistSharedFields(sharedData);
         }
 
         // Load each whitelisted user's personal doc for combined comparison
-        await Promise.all(ALLOWED_EMAILS.map(async (em) => {
-          const key = em.toLowerCase();
-          try {
-            const uSnap = await getDoc(doc(db, "civtrek_portal", "user_" + emailDocKey(key)));
-            if (uSnap.exists()) {
-              usersDataMap[key] = { results: [], revisionBank: [], ...uSnap.data() };
-            } else {
-              const localU = localStorage.getItem(USER_DATA_KEY_PREFIX + emailDocKey(key));
-              usersDataMap[key] = localU ? JSON.parse(localU) : { results: [], revisionBank: [] };
-            }
-          } catch (e) {
-            usersDataMap[key] = { results: [], revisionBank: [] };
-          }
-        }));
+        await loadAllUsersData();
       } catch (e) {
         console.warn("Sync error:", e);
       }
@@ -937,9 +1009,6 @@
 
     // ---------------- HOME DASHBOARD WIDGETS ----------------
     function renderHomeDashboardWidgets() {
-      const userBank = getUserRevisionBank();
-      document.getElementById('revisionBankBadge').textContent = `${userBank.length} Qs`;
-
       const allResults = getCombinedResults();
       let myTestsCount = 0, myAccSum = 0, myRank1Count = 0;
 
@@ -957,93 +1026,6 @@
       document.getElementById('statAvgAccuracy').textContent = myTestsCount ? `${Math.round(myAccSum / myTestsCount)}%` : '0%';
       document.getElementById('statRankWins').textContent = myRank1Count;
     }
-
-    // ---------------- REVISION BANK ----------------
-    async function ingestPendingRevisionItems() {
-      if (!currentUser) return;
-      try {
-        const raw = localStorage.getItem("CIVTREK_REVISION_ITEMS");
-        if (!raw) return;
-        const examSaved = JSON.parse(raw);
-        localStorage.removeItem("CIVTREK_REVISION_ITEMS");
-        if (!Array.isArray(examSaved) || examSaved.length === 0) return;
-
-        const myData = getMyUserData();
-        const existing = myData.revisionBank || [];
-        const map = new Map(existing.map(q => [q.qKey || q.text || q.question, q]));
-        examSaved.forEach(item => {
-          const key = item.qKey || item.text || item.question;
-          const prev = map.get(key) || {};
-          map.set(key, {
-            ...prev,
-            ...item,
-            isMistake: Boolean(prev.isMistake || item.isMistake),
-            isBookmarked: Boolean(prev.isBookmarked || item.isBookmarked)
-          });
-        });
-        myData.revisionBank = Array.from(map.values());
-        await persistMyUserData();
-      } catch (e) {}
-    }
-
-    function getUserRevisionBank() {
-      if (!currentUser) return [];
-      return getMyUserData().revisionBank || [];
-    }
-
-    window.openRevisionBankModal = () => {
-      const bank = getUserRevisionBank();
-      const mistakes = bank.filter(q => q.isMistake).length;
-      const bookmarks = bank.filter(q => q.isBookmarked).length;
-
-      document.getElementById('revAllCount').textContent = bank.length;
-      document.getElementById('revMistakeCount').textContent = mistakes;
-      document.getElementById('revBookmarkCount').textContent = bookmarks;
-      document.getElementById('revisionBankModal').classList.remove('hidden');
-    };
-
-    window.launchRevisionSession = (mode) => {
-      const bank = getUserRevisionBank();
-      const poolType = document.getElementById('revPoolSelect').value;
-
-      let selectedQs = bank;
-      if (poolType === 'mistakes') selectedQs = bank.filter(q => q.isMistake);
-      if (poolType === 'bookmarked') selectedQs = bank.filter(q => q.isBookmarked);
-
-      if (selectedQs.length === 0) {
-        showToast("No saved questions in this pool yet");
-        return;
-      }
-
-      const prof = sharedData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
-      const customPayload = {
-        examName: `Revision Bank (${selectedQs.length} Qs)`,
-        duration: Math.max(10, Math.round(selectedQs.length * 1.2)),
-        instrDurationMin: 0,
-        instrDurationSec: 0,
-        questions: selectedQs
-      };
-
-      try {
-        localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
-          testId: 'rev_' + Date.now(),
-          title: customPayload.examName,
-          duration: customPayload.duration,
-          mode,
-          isRevisionSession: true,
-          userEmail: currentUser.email,
-          userName: prof.name || currentUser.displayName,
-          defaultLang: prof.lang || 'eng',
-          questionsJson: JSON.stringify(customPayload)
-        }));
-      } catch (e) {
-        showToast("Storage full. Please clear old browser cache.");
-        return;
-      }
-
-      closeModal('revisionBankModal');
-      window.location.href = "exam.html";
-    };
 
     // ---------------- MULTI-EXAM COUNTDOWN STRIP ----------------
     function renderExamCountdownsStrip() {
@@ -1209,25 +1191,40 @@
     }
 
     // ---------------- AUTO-EXTRACT METADATA FROM EDITOR JSON ----------------
+    function collectExamQuestions(parsedObj) {
+      let list = [];
+      if (Array.isArray(parsedObj)) return parsedObj.filter(q => q && typeof q === 'object');
+      if (!parsedObj || typeof parsedObj !== 'object') return list;
+      const rawSecs = parsedObj.examSections || parsedObj.sections;
+      if (Array.isArray(rawSecs)) {
+        rawSecs.forEach(sec => { if (sec && Array.isArray(sec.questions)) list = list.concat(sec.questions); });
+      }
+      if (parsedObj.allQuestions && typeof parsedObj.allQuestions === 'object' && !Array.isArray(parsedObj.allQuestions)) {
+        Object.values(parsedObj.allQuestions).forEach(arr => { if (Array.isArray(arr)) list = list.concat(arr); });
+      }
+      const flat = Array.isArray(parsedObj.baseQuestions) ? parsedObj.baseQuestions
+        : (Array.isArray(parsedObj.questions) ? parsedObj.questions : null);
+      if (flat) list = list.concat(flat);
+      return list.filter(q => q && typeof q === 'object');
+    }
+
     function extractMetaFromExamJson(parsedObj) {
-      let qCount = 0;
       let durationMins = 60;
       let examName = '';
+      const questions = collectExamQuestions(parsedObj);
+      const qCount = questions.length;
 
-      if (Array.isArray(parsedObj)) {
-        qCount = parsedObj.length;
-      } else if (parsedObj && typeof parsedObj === 'object') {
-        if (parsedObj.allQuestions && typeof parsedObj.allQuestions === 'object') {
-          Object.values(parsedObj.allQuestions).forEach(arr => {
-            if (Array.isArray(arr)) qCount += arr.length;
-          });
-        } else if (Array.isArray(parsedObj.questions)) {
-          qCount = parsedObj.questions.length;
-        } else if (Array.isArray(parsedObj.sections)) {
-          parsedObj.sections.forEach(sec => {
-            if (Array.isArray(sec.questions)) qCount += sec.questions.length;
-          });
-        }
+      // Total marks: same rule the exam engine uses (scheme.pos per question, default 1)
+      const schemes = (parsedObj && !Array.isArray(parsedObj) && Array.isArray(parsedObj.markingSchemes) && parsedObj.markingSchemes.length)
+        ? parsedObj.markingSchemes : [{ id: 'default', pos: 1, neg: 0 }];
+      let totalMarks = 0;
+      questions.forEach(q => {
+        const sch = schemes.find(x => x.id === q.markingSchemeId) || schemes[0];
+        totalMarks += parseFloat(sch.pos) || 1;
+      });
+      totalMarks = Math.round(totalMarks * 100) / 100;
+
+      if (parsedObj && typeof parsedObj === 'object' && !Array.isArray(parsedObj)) {
         const rawDur = parsedObj.duration || parsedObj.totalTime || parsedObj.timeInMinutes || parsedObj.examDuration;
         if (rawDur) {
           const num = Number(rawDur);
@@ -1239,7 +1236,7 @@
         }
         if (parsedObj.examName) examName = String(parsedObj.examName).trim();
       }
-      return { qCount: qCount || 0, duration: durationMins || 60, examName };
+      return { qCount: qCount || 0, duration: durationMins || 60, totalMarks, examName };
     }
 
     window.previewJsonStats = async (input) => {
@@ -1253,7 +1250,7 @@
         const text = await file.text();
         const parsed = JSON.parse(text);
         const meta = extractMetaFromExamJson(parsed);
-        tag.textContent = `${meta.qCount} Qs • ${meta.duration} Mins`;
+        tag.textContent = `${meta.qCount} Qs • ${meta.duration} Mins • ${fmtMarks(meta.totalMarks)} Marks`;
         tag.classList.remove('hidden');
         const titleInput = document.getElementById('newTestTitle');
         if (meta.examName && !titleInput.value.trim()) {
@@ -1455,7 +1452,6 @@
           await syncAllFromFirestore();
           await loadGithubFromFirestore(user.email);
           await ingestPendingExamResult();
-          await ingestPendingRevisionItems();
           enterAuthenticatedApp(user);
         } else {
           document.getElementById('deniedEmailText').textContent = user.email;
@@ -1473,6 +1469,7 @@
 
     function enterAuthenticatedApp(user) {
       currentUser = user;
+      try { localStorage.removeItem('CIVTREK_REVISION_ITEMS'); } catch (e) {}
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('deniedScreen').classList.add('hidden');
       document.getElementById('appShell').classList.remove('hidden');
@@ -1545,6 +1542,10 @@
       document.getElementById('resultsView').classList.remove('hidden');
       resultsVisibleLimit = 10;
       renderPastResultsPage();
+      // Pull the latest copy of both users' results (read-only for the partner's doc)
+      loadAllUsersData().then(() => {
+        if (!document.getElementById('resultsView').classList.contains('hidden')) renderPastResultsPage();
+      });
     };
 
     // ---------------- NAVIGATION & SEARCH ----------------
@@ -1615,17 +1616,59 @@
       fulllength: 'Full-Length'
     };
 
+    function fmtMarks(n) {
+      const v = Number(n);
+      if (!isFinite(v)) return '0';
+      return Number.isInteger(v) ? String(v) : String(Number(v.toFixed(2)));
+    }
+
+    // What can be created at the folder level the user is currently in
+    //   Home            -> nothing (only Technical / Non-Technical)
+    //   Domain          -> nothing (5 fixed categories)
+    //   Topic-wise      -> Subject folders -> Chapter folders -> Tests
+    //   Chapter-wise    -> Subject folders -> Tests
+    //   Subject/Multi/Full-Length -> Tests directly
+    function getLevelInfo() {
+      const info = { level: folderPath.length, categoryType: null, canAddFolder: false, canAddTest: false, folderLabel: '' };
+      if (folderPath.length >= 2) {
+        const catF = sharedData.folders.find(f => f.id === folderPath[1].id);
+        info.categoryType = catF ? (catF.categoryType || null) : null;
+      }
+      const L = folderPath.length;
+      const ct = info.categoryType;
+      if (L < 2 || !ct) return info;
+      if (ct === 'topic') {
+        if (L === 2) { info.canAddFolder = true; info.folderLabel = 'Subject'; }
+        else if (L === 3) { info.canAddFolder = true; info.folderLabel = 'Chapter'; }
+        else if (L === 4) { info.canAddTest = true; }
+      } else if (ct === 'chapter') {
+        if (L === 2) { info.canAddFolder = true; info.folderLabel = 'Subject'; }
+        else if (L === 3) { info.canAddTest = true; }
+      } else if (L === 2) {
+        info.canAddTest = true;
+      }
+      return info;
+    }
+
     window.renderWorkspace = () => {
       const searchQ = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
       const domainFilter = document.getElementById('filterDomainSelect').value;
       const typeFilter = document.getElementById('filterTestTypeSelect').value;
       const currentParentId = getCurrentFolderId();
 
-      document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
-
       const navHeader = document.getElementById('navHeaderBar');
       const isFiltering = searchQ !== '' || typeFilter !== 'all';
       const isHomeRoot = folderPath.length === 0 && !isFiltering;
+      const canEdit = canManageContent();
+      const info = getLevelInfo();
+
+      // Show / hide create actions per level (never on Home root, never while searching/filtering)
+      const showFab = canEdit && !isFiltering && (info.canAddFolder || info.canAddTest);
+      document.getElementById('fabContainer').classList.toggle('hidden', !showFab);
+      closeFabMenu();
+      document.getElementById('fabNewFolderBtn').classList.toggle('hidden', !info.canAddFolder);
+      document.getElementById('fabNewFolderLabel').textContent = `New ${info.folderLabel || ''} Folder`.replace('  ', ' ');
+      document.getElementById('fabAddTestBtn').classList.toggle('hidden', !info.canAddTest);
 
       document.getElementById('homeDashboardWidgets').classList.toggle('hidden', !isHomeRoot);
 
@@ -1652,6 +1695,7 @@
             folders = folders.filter(f => f.domain === domainFilter);
           }
         }
+        folders.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
       }
 
       let tests = sharedData.tests.filter(t => {
@@ -1662,12 +1706,12 @@
         return (t.folderId || null) === currentParentId;
       });
 
-      const canEdit = canManageContent();
-
       const foldersGrid = document.getElementById('foldersGrid');
       foldersGrid.innerHTML = folders.map(f => {
         const isTech = f.domain === 'technical';
-        const icon = f.isRootDomain ? (isTech ? '🏗️' : '🧠') : '📁';
+        const catDef = f.categoryType ? CATEGORY_DEFS.find(c => c.type === f.categoryType) : null;
+        const icon = f.isRootDomain ? (isTech ? '🏗️' : '🧠') : (catDef ? catDef.icon : '📁');
+        const isLocked = f.isRootDomain || f.isSystem;
         const prog = getFolderProgress(f.id);
 
         return `
@@ -1685,7 +1729,7 @@
               </div>
 
               <div class="flex items-center gap-1 shrink-0">
-                ${(canEdit && !f.isRootDomain) ? `
+                ${(canEdit && !isLocked) ? `
                   <button onclick="toggleItemMenu(event, 'menu_${f.id}')" class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-navy flex items-center justify-center font-bold">⋮</button>
                   <div id="menu_${f.id}" onclick="event.stopPropagation()" class="hidden absolute right-4 top-14 z-20 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 w-32 text-xs font-bold">
                     <button onclick="editFolder('${f.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Rename</button>
@@ -1710,6 +1754,10 @@
         `;
       }).join('');
 
+      // Max marks per test: from JSON-derived totalMarks, falling back to recorded results
+      const maxMarksByTest = new Map();
+      getCombinedResults().forEach(r => maxMarksByTest.set(r.testId, r.maxMarks));
+
       const testsGrid = document.getElementById('testsGrid');
       const now = Date.now();
       testsGrid.innerHTML = tests.map(t => {
@@ -1717,22 +1765,13 @@
         const isUpcoming = startMs > now;
         const typeLabel = TYPE_NAMES[t.testType] || 'Test';
         const attempted = hasUserAttemptedTest(t.id);
-
-        const attemptTag = attempted
-          ? `<span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">✓ Attempted</span>`
-          : `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Not Attempted</span>`;
+        const marks = Number(t.totalMarks) > 0 ? Number(t.totalMarks) : Number(maxMarksByTest.get(t.id));
+        const metaParts = [`${t.qCount || 0} Qs`, `${t.duration || 60} Mins`];
+        if (marks > 0) metaParts.push(`${fmtMarks(marks)} Marks`);
+        const hasSyllabus = Boolean((t.syllabus || '').trim());
 
         let statusPill = '', actionHtml = '';
-        if (isUpcoming) {
-          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
-          actionHtml = `<button disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed">Starts ${formatNiceDate(t.startTime)}</button>`;
-        } else if (!attempted) {
-          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">READY</span>`;
-          actionHtml = `
-            <button onclick="launchExam('${t.id}', 'attempt')" class="w-full py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
-              Start Test
-            </button>`;
-        } else {
+        if (attempted) {
           statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full">COMPLETED</span>`;
           actionHtml = `
             <div class="grid grid-cols-2 gap-2">
@@ -1743,6 +1782,15 @@
                 Re-attempt
               </button>
             </div>`;
+        } else if (isUpcoming) {
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">UPCOMING</span>`;
+          actionHtml = `<button disabled class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs cursor-not-allowed">Starts ${formatNiceDate(t.startTime)}</button>`;
+        } else {
+          statusPill = `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">READY</span>`;
+          actionHtml = `
+            <button onclick="launchExam('${t.id}', 'attempt')" class="w-full py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shadow-sm transition">
+              Start Test
+            </button>`;
         }
 
         return `
@@ -1752,11 +1800,11 @@
                 <div class="flex items-center flex-wrap gap-1.5">
                   <span class="px-2 py-0.5 text-[10px] font-extrabold rounded bg-navy-light text-navy">${typeLabel}</span>
                   ${statusPill}
-                  ${attemptTag}
                 </div>
                 <div class="relative shrink-0">
                   <button onclick="toggleItemMenu(event, 'menu_${t.id}')" class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-navy flex items-center justify-center font-bold">⋮</button>
-                  <div id="menu_${t.id}" onclick="event.stopPropagation()" class="hidden absolute right-0 top-10 z-20 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 w-36 text-xs font-bold">
+                  <div id="menu_${t.id}" onclick="event.stopPropagation()" class="hidden absolute right-0 top-10 z-20 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 w-40 text-xs font-bold">
+                    ${hasSyllabus ? `<button onclick="openSyllabusModal('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">View Syllabus</button>` : ''}
                     <button onclick="downloadOriginalJson('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Download JSON</button>
                     ${canEdit ? `
                       <button onclick="editTest('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Edit</button>
@@ -1766,16 +1814,22 @@
                 </div>
               </div>
               <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">${escapeHtml(t.title)}</h3>
-              <div class="text-xs font-semibold text-slate-400 mt-1.5">
-                ${t.qCount || 0} Qs • ${t.duration || 60} Mins${t.startTime ? ` • ${formatNiceDate(t.startTime)}` : ''}
-              </div>
+              <div class="text-xs font-semibold text-slate-400 mt-1.5">${metaParts.join(' • ')}</div>
             </div>
             <div>${actionHtml}</div>
           </div>
         `;
       }).join('');
 
-      document.getElementById('emptyWorkspaceState').classList.toggle('hidden', folders.length > 0 || tests.length > 0);
+      const isEmpty = folders.length === 0 && tests.length === 0;
+      document.getElementById('emptyWorkspaceState').classList.toggle('hidden', !isEmpty);
+      if (isEmpty) {
+        let hint = 'Nothing here yet';
+        if (isFiltering) hint = 'No matching items';
+        else if (canEdit && info.canAddFolder) hint = `Tap + to add a ${info.folderLabel} folder`;
+        else if (canEdit && info.canAddTest) hint = 'Tap + to upload a test';
+        document.getElementById('emptyWorkspaceHint').textContent = hint;
+      }
     };
 
     // ---------------- RENDER PAST RESULTS ----------------
@@ -1902,30 +1956,43 @@
     }
     document.addEventListener('click', closeAllMenus);
 
-    window.toggleFabMenu = () => document.getElementById('fabMenu').classList.toggle('hidden');
+    window.toggleFabMenu = () => {
+      const info = getLevelInfo();
+      if (info.canAddFolder && info.canAddTest) { document.getElementById('fabMenu').classList.toggle('hidden'); return; }
+      if (info.canAddFolder) openFolderModal();
+      else if (info.canAddTest) openTestModal();
+    };
     window.closeFabMenu = () => document.getElementById('fabMenu').classList.add('hidden');
 
     // ---------------- SYNC PENDING RESULT FROM exam.html ----------------
+    // Applies a freshly submitted result to memory + local cache immediately (so the test card flips to
+    // COMPLETED right away), then saves it to this user's own Firestore doc in the background.
     async function ingestPendingExamResult() {
+      if (!currentUser) return false;
       try {
         const raw = localStorage.getItem('CIVTREK_PENDING_RESULT');
-        if (!raw) return;
-        const res = JSON.parse(raw);
+        if (!raw) return false;
+        let res = null;
+        try { res = JSON.parse(raw); } catch (e) {}
+        if (!res || !res.testId || !res.userEmail) {
+          localStorage.removeItem('CIVTREK_PENDING_RESULT');
+          return false;
+        }
+        // Belongs to the other account on this browser: leave it for them
+        if (String(res.userEmail).toLowerCase() !== currentUser.email.toLowerCase()) return false;
         localStorage.removeItem('CIVTREK_PENDING_RESULT');
-        if (!res || !res.testId || !res.userEmail) return;
-        // Skip revision bank sessions from polluting main leaderboard
-        if (String(res.testId).startsWith('rev_')) return;
 
         const myData = getMyUserData();
         if (!Array.isArray(myData.results)) myData.results = [];
-        const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const stamp = Number(res.submittedAt) || Date.now();
+        const dateStr = new Date(stamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         const record = {
           testId: res.testId,
           testTitle: res.testTitle || 'Test',
           domain: res.domain || 'technical',
           testType: res.testType || 'topic',
           date: dateStr,
-          timestamp: Date.now(),
+          timestamp: stamp,
           maxMarks: Number(res.maxMarks) || 100,
           userName: res.userName || res.userEmail,
           marks: Number(res.marks) || 0,
@@ -1937,12 +2004,32 @@
         if (idx >= 0) myData.results[idx] = record;
         else myData.results.unshift(record);
 
-        await persistMyUserData();
-        showToast("Test result synced!");
+        try {
+          localStorage.setItem(USER_DATA_KEY_PREFIX + emailDocKey(currentUser.email), JSON.stringify({ results: myData.results }));
+        } catch (e) {}
+
+        // Cloud save in the background (own doc only, merged by testId)
+        persistMyUserData().then(() => showToast("Test result synced!"));
+        return true;
       } catch (e) {
         console.warn("Result sync error:", e);
+        return false;
       }
     }
+
+    async function refreshFromPendingResult() {
+      if (!currentUser) return;
+      const changed = await ingestPendingExamResult();
+      if (!changed) return;
+      const homeVisible = !document.getElementById('homeView').classList.contains('hidden');
+      if (homeVisible) renderWorkspace();
+      else renderPastResultsPage();
+    }
+
+    // Coming back from exam.html via bfcache / tab switch / another tab: pick up the result instantly
+    window.addEventListener('pageshow', (e) => { if (e.persisted) refreshFromPendingResult(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFromPendingResult(); });
+    window.addEventListener('storage', (e) => { if (e.key === 'CIVTREK_PENDING_RESULT' && e.newValue) refreshFromPendingResult(); });
 
     // ---------------- RE-ATTEMPT & LAUNCH EXAM ----------------
     let pendingReattemptTestId = null;
@@ -1983,6 +2070,17 @@
         return;
       }
 
+      // Backfill card meta (marks) for tests uploaded before it was tracked
+      try {
+        if (!(Number(test.totalMarks) > 0)) {
+          const meta = extractMetaFromExamJson(JSON.parse(resolvedJson));
+          if (meta.totalMarks > 0) {
+            test.totalMarks = meta.totalMarks;
+            if (canManageContent()) persistSharedFields({ tests: sharedData.tests });
+          }
+        }
+      } catch (e) {}
+
       try {
         localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
           testId: test.id,
@@ -2008,7 +2106,11 @@
 
     // ---------------- FOLDER CRUD ----------------
     window.openFolderModal = () => {
-      document.getElementById('folderModalTitle').textContent = "New Folder";
+      const info = getLevelInfo();
+      if (!info.canAddFolder) { showToast("Folders can't be created here"); return; }
+      document.getElementById('folderModalTitle').textContent = `New ${info.folderLabel} Folder`;
+      document.getElementById('folderNameLabel').textContent = `${info.folderLabel} Name`;
+      document.getElementById('newFolderName').placeholder = info.folderLabel === 'Chapter' ? 'e.g., Shear Force & Bending Moment' : 'e.g., Strength of Materials';
       document.getElementById('editFolderId').value = '';
       document.getElementById('newFolderName').value = '';
       document.getElementById('newFolderDesc').value = '';
@@ -2021,6 +2123,7 @@
       const f = sharedData.folders.find(x => x.id === id);
       if (!f) return;
       document.getElementById('folderModalTitle').textContent = "Rename Folder";
+      document.getElementById('folderNameLabel').textContent = "Folder Name";
       document.getElementById('editFolderId').value = f.id;
       document.getElementById('newFolderName').value = f.name;
       document.getElementById('newFolderDesc').value = f.desc || '';
@@ -2038,10 +2141,13 @@
         const f = sharedData.folders.find(x => x.id === editId);
         if (f) { f.name = name; f.desc = desc; }
       } else {
+        const info = getLevelInfo();
+        if (!info.canAddFolder) { showToast("Folders can't be created here"); return; }
         sharedData.folders.push({
           id: 'f_' + Date.now(),
           parentId: getCurrentFolderId(),
           domain: getCurrentDomain(),
+          kind: info.folderLabel.toLowerCase(),
           name,
           desc
         });
@@ -2054,6 +2160,8 @@
 
     window.deleteFolder = async (id) => {
       closeAllMenus();
+      const target = sharedData.folders.find(f => f.id === id);
+      if (!target || target.isRootDomain || target.isSystem) { showToast("This folder can't be deleted"); return; }
       if (!confirm("Delete this folder and all tests inside it?")) return;
       const subIds = getFolderSubtreeIds(id);
       const testsToDelete = sharedData.tests.filter(t => subIds.includes(t.folderId));
@@ -2068,11 +2176,20 @@
     };
 
     // ---------------- TEST CRUD ----------------
+    function setTestTypeDisplay(type) {
+      document.getElementById('newTestType').value = type;
+      document.getElementById('newTestTypeLabel').textContent = TYPE_NAMES[type] || 'Test';
+    }
+
     window.openTestModal = () => {
+      const info = getLevelInfo();
+      if (!info.canAddTest) { showToast("Tests can't be added here"); return; }
       document.getElementById('testModalTitle').textContent = "Add Test";
       document.getElementById('editTestId').value = '';
       document.getElementById('newTestTitle').value = '';
       document.getElementById('newTestStart').value = '';
+      document.getElementById('newTestSyllabus').value = '';
+      setTestTypeDisplay(info.categoryType);
       document.getElementById('newTestJsonFile').value = '';
       document.getElementById('jsonAutoDetectTag').classList.add('hidden');
       document.getElementById('testModal').classList.remove('hidden');
@@ -2085,8 +2202,9 @@
       document.getElementById('testModalTitle').textContent = "Edit Test";
       document.getElementById('editTestId').value = t.id;
       document.getElementById('newTestTitle').value = t.title;
-      document.getElementById('newTestType').value = t.testType || 'topic';
+      setTestTypeDisplay(t.testType || 'topic');
       document.getElementById('newTestStart').value = t.startTime || '';
+      document.getElementById('newTestSyllabus').value = t.syllabus || '';
       document.getElementById('newTestJsonFile').value = '';
       document.getElementById('jsonAutoDetectTag').classList.add('hidden');
       document.getElementById('testModal').classList.remove('hidden');
@@ -2101,8 +2219,16 @@
       try {
         const editId = document.getElementById('editTestId').value;
         const title = document.getElementById('newTestTitle').value.trim();
-        const testType = document.getElementById('newTestType').value;
         const startTime = document.getElementById('newTestStart').value || '';
+        const syllabus = document.getElementById('newTestSyllabus').value.trim();
+        const info = getLevelInfo();
+        const existing = editId ? sharedData.tests.find(x => x.id === editId) : null;
+        // Test type always comes from the category folder (kept as-is when editing)
+        const testType = existing ? (existing.testType || 'topic') : info.categoryType;
+        if (!editId && !info.canAddTest) {
+          showToast("Tests can't be added here");
+          return;
+        }
         const file = document.getElementById('newTestJsonFile').files[0];
 
         if (!editId && !file) {
@@ -2113,7 +2239,7 @@
         }
 
         let githubFilePath = null;
-        let autoMeta = { qCount: 0, duration: 60 };
+        let autoMeta = { qCount: 0, duration: 60, totalMarks: 0 };
 
         if (file) {
           if (!isGithubReady()) {
@@ -2141,11 +2267,14 @@
             t.title = title;
             t.testType = testType;
             t.startTime = startTime;
+            t.syllabus = syllabus;
+            delete t.endTime;
             if (githubFilePath) {
               if (t.githubFilePath) await deleteJsonFromGithubRepo(t.githubFilePath);
               t.githubFilePath = githubFilePath;
               t.qCount = autoMeta.qCount;
               t.duration = autoMeta.duration;
+              t.totalMarks = autoMeta.totalMarks;
             }
           }
         } else {
@@ -2157,7 +2286,9 @@
             title,
             duration: autoMeta.duration,
             qCount: autoMeta.qCount,
+            totalMarks: autoMeta.totalMarks,
             startTime,
+            syllabus,
             githubFilePath
           });
         }
@@ -2186,6 +2317,39 @@
       await persistSharedFields({ tests: sharedData.tests });
       renderWorkspace();
       showToast("Deleted");
+    };
+
+    // ---------------- SYLLABUS VIEW & PRINT ----------------
+    let syllabusViewTestId = null;
+
+    window.openSyllabusModal = (id) => {
+      closeAllMenus();
+      const t = sharedData.tests.find(x => x.id === id);
+      if (!t || !(t.syllabus || '').trim()) { showToast("No syllabus added"); return; }
+      syllabusViewTestId = id;
+      document.getElementById('syllabusModalTitle').textContent = t.title;
+      document.getElementById('syllabusModalBody').textContent = t.syllabus;
+      document.getElementById('syllabusModal').classList.remove('hidden');
+    };
+
+    window.printSyllabus = () => {
+      const t = sharedData.tests.find(x => x.id === syllabusViewTestId);
+      if (!t) return;
+      const marks = Number(t.totalMarks) > 0 ? ` • ${fmtMarks(t.totalMarks)} Marks` : '';
+      document.getElementById('syllabusPrintArea').innerHTML = `
+        <div class="sp-brand">CivTrek • Test Series</div>
+        <h1>${escapeHtml(t.title)}</h1>
+        <div class="sp-meta">${escapeHtml(TYPE_NAMES[t.testType] || 'Test')} • ${t.qCount || 0} Qs • ${t.duration || 60} Mins${marks}</div>
+        <div class="sp-body">${escapeHtml(t.syllabus)}</div>
+      `;
+      document.body.classList.add('print-syllabus');
+      const cleanup = () => {
+        document.body.classList.remove('print-syllabus');
+        window.removeEventListener('afterprint', cleanup);
+      };
+      window.addEventListener('afterprint', cleanup);
+      setTimeout(cleanup, 60000);
+      setTimeout(() => window.print(), 80);
     };
 
     // ---------------- SIDEBAR DRAWER & PROFILE ----------------

@@ -7197,6 +7197,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         renderPerformanceCharts(stateCounters);
 
         reportModel = buildReportModel({ score: totalScoreSum, max: maxTotalPossibleScore, correct: correctTrack, wrong: incorrectTrack, topicTracker: topicTracker, perQ: perQRecords });
+        try { if (typeof window.__ctPersistAttemptForPortal === 'function') window.__ctPersistAttemptForPortal(reportModel); } catch (e) { console.error('Portal result sync error:', e); }
         renderMarksBreakdown(reportModel);
         (function () {
             var a = document.getElementById('accuracyVal'), pl = document.getElementById('statusSummaryPill');
@@ -9929,24 +9930,6 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
 </script>
 
 
-<div id="ctEarlySubmitScreen" role="dialog" aria-modal="true">
-    <div class="ct-early-card">
-        <div style="font-size: 3rem; line-height: 1; margin-bottom: 12px;">✅</div>
-        <h2 style="margin: 0 0 8px 0; font-size: 1.45rem; font-weight: 800; color: #0b3c70;">Test Submitted Successfully</h2>
-        <p style="margin: 0 0 16px 0; font-size: 0.92rem; line-height: 1.55; color: #475569;">
-            Your responses have been recorded and synced to your portal.
-        </p>
-        <div style="background: #fff4e6; border: 1px solid #f6d3ac; border-radius: 12px; padding: 12px 14px; margin-bottom: 22px; font-size: 0.85rem; color: #7c2d12; font-weight: 700;">
-            🔒 Key &amp; Detailed Solutions will unlock at:<br>
-            <span id="ctKeyUnlockTimeText" style="font-size: 1rem; color: #0b3c70; display: inline-block; margin-top: 4px;">--</span>
-        </div>
-        <button type="button" onclick="window.location.href='index.html'"
-            style="width: 100%; padding: 14px 20px; border: none; border-radius: 14px; background: #0b3c70; color: #ffffff; font-size: 0.95rem; font-weight: 800; cursor: pointer;">
-            ← Back to Portal
-        </button>
-    </div>
-</div>
-
 <div id="ctNoExamScreen" role="dialog" aria-modal="true">
     <div class="ct-early-card">
         <div style="font-size: 2.8rem; line-height: 1; margin-bottom: 12px;">📝</div>
@@ -10029,46 +10012,6 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         if (typeof switchReportSection === 'function') switchReportSection(tab);
     };
 
-    function syncRevisionItemsToPortal(activeMeta) {
-        try {
-            var items = [];
-            for (var i = 1; i <= totalSteps; i++) {
-                var m = quizMetadata[i];
-                if (!m) continue;
-                var card = $('solq_' + i);
-                var isBm = card ? card.classList.contains('bookmarked') : false;
-                var isWrongOrSkip = card ? (card.getAttribute('data-correct') !== 'yes') : false;
-                if (isBm || isWrongOrSkip) {
-                    items.push({
-                        qKey: (activeMeta.testId || 'test') + '_q' + i,
-                        sourceTestId: activeMeta.testId || '',
-                        sourceTestTitle: activeMeta.title || examNameValue || 'Practice Test',
-                        section: m.section,
-                        topic: m.topic,
-                        subTopic: m.subTopic,
-                        text: m.text,
-                        options: m.options,
-                        correct: m.correct,
-                        explanation: m.sol,
-                        markingSchemeId: m.markingSchemeId,
-                        isMatching: m.isMatching,
-                        isMultiSelect: m.isMultiSelect,
-                        isNumerical: m.isNumerical,
-                        headerLeft: m.headerLeft,
-                        headerRight: m.headerRight,
-                        leftItems: m.leftItems,
-                        rightItems: m.rightItems,
-                        isMistake: isWrongOrSkip,
-                        isBookmarked: isBm
-                    });
-                }
-            }
-            if (items.length > 0) {
-                localStorage.setItem('CIVTREK_REVISION_ITEMS', JSON.stringify(items));
-            }
-        } catch (e) {}
-    }
-
     function saveTestAttemptSnapshot(activeMeta) {
         if (!activeMeta || !activeMeta.testId) return;
         try {
@@ -10093,19 +10036,6 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         } catch (e) {}
     }
 
-    // Hook toggleBookmark for instant Revision Bank sync
-    var origToggleBm = window.toggleBookmark;
-    if (typeof origToggleBm === 'function') {
-        window.toggleBookmark = function (btn) {
-            var res = origToggleBm.apply(this, arguments);
-            try {
-                var activeMeta = JSON.parse(localStorage.getItem('ACTIVE_EXAM_DATA') || '{}');
-                syncRevisionItemsToPortal(activeMeta);
-            } catch (e) {}
-            return res;
-        };
-    }
-
     // Hook switchReportSection so inline tabs stay synced
     var origSwitchSec = window.switchReportSection;
     if (typeof origSwitchSec === 'function') {
@@ -10119,45 +10049,57 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         };
     }
 
-    // Hook executeFinalEvaluation for Portal sync + Key Release lock + Clean Report Nav
+    function readActiveMeta() {
+        try { return JSON.parse(localStorage.getItem('ACTIVE_EXAM_DATA') || 'null'); } catch (e) { return null; }
+    }
+
+    // Writes the attempt snapshot (for View Key / Only Wrong & Skipped) and CIVTREK_PENDING_RESULT
+    // synchronously, the moment the report model exists - no waiting for the user to leave this page.
+    window.__ctPersistAttemptForPortal = function (model) {
+        if (window.__ctPortalPersisted) return;
+        try {
+            var activeMeta = readActiveMeta();
+            if (!activeMeta || activeMeta.mode !== 'attempt') return;
+            if (activeMeta.isReattempt || activeMeta.isCustomPractice) return;
+            var m = model || (typeof reportModel !== 'undefined' ? reportModel : null);
+            if (!m) return;
+
+            saveTestAttemptSnapshot(activeMeta);
+
+            var dur = window.__examTotalDurationSec || 0;
+            var minsTaken = dur > 0
+                ? Math.max(1, Math.round((dur - totalTimeInSeconds) / 60))
+                : Math.max(1, Math.round((m.totalTime || 60) / 60));
+            localStorage.setItem('CIVTREK_PENDING_RESULT', JSON.stringify({
+                testId: activeMeta.testId,
+                testTitle: activeMeta.title || m.examName,
+                domain: activeMeta.domain || 'technical',
+                testType: activeMeta.testType || 'topic',
+                maxMarks: m.max,
+                userEmail: activeMeta.userEmail,
+                userName: activeMeta.userName,
+                marks: m.score,
+                accuracy: m.accuracy,
+                timeMins: minsTaken,
+                submittedAt: Date.now()
+            }));
+            window.__ctPortalPersisted = true;
+        } catch (err) {
+            console.error('Portal result write error:', err);
+        }
+    };
+
+    // Hook executeFinalEvaluation for Clean Report Nav (+ safety-net result write)
     var origFinalEval = window.executeFinalEvaluation;
     if (typeof origFinalEval === 'function') {
         window.executeFinalEvaluation = function () {
+            window.__ctPortalPersisted = false;
             var out = origFinalEval.apply(this, arguments);
             setTimeout(function () {
                 try {
                     if (typeof ctSolEnsureBuilt === 'function') ctSolEnsureBuilt();
                     injectCleanReportNav();
-
-                    var activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA');
-                    if (!activeRaw) return;
-                    var activeMeta = JSON.parse(activeRaw);
-
-                    syncRevisionItemsToPortal(activeMeta);
-
-                    if (!activeMeta.isReattempt && !activeMeta.isCustomPractice && activeMeta.mode === 'attempt') {
-                        saveTestAttemptSnapshot(activeMeta);
-                    }
-
-                    if (activeMeta.mode === 'attempt' && !activeMeta.isReattempt && !activeMeta.isCustomPractice && window.reportModel) {
-                        var m = window.reportModel;
-                        var dur = window.__examTotalDurationSec || 0;
-                        var minsTaken = dur > 0 ? Math.max(1, Math.round((dur - totalTimeInSeconds) / 60)) : Math.max(1, Math.round((m.totalTime || 60) / 60));
-                        localStorage.setItem('CIVTREK_PENDING_RESULT', JSON.stringify({
-                            testId: activeMeta.testId,
-                            testTitle: activeMeta.title || m.examName,
-                            domain: activeMeta.domain || 'technical',
-                            testType: activeMeta.testType || 'topic',
-                            maxMarks: m.max,
-                            userEmail: activeMeta.userEmail,
-                            userName: activeMeta.userName,
-                            marks: m.score,
-                            accuracy: m.accuracy,
-                            timeMins: minsTaken
-                        }));
-                    }
-
-                    // Instant key unlock on submit (End Time / Key Release Lock removed)
+                    window.__ctPersistAttemptForPortal();
                 } catch (err) {
                     console.error('Portal post-eval sync error:', err);
                 }
@@ -10178,7 +10120,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         }
         if (active.title) c.name = active.title;
         if (active.duration && Number(active.duration) > 0) c.duration = Number(active.duration);
-        if (active.isRevisionSession || active.mode === 'report') { c.instrSec = 0; }
+        if (active.mode === 'report') { c.instrSec = 0; }
 
         window.__ctApplyNormalizedExam(c);
 
@@ -10396,6 +10338,27 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         .ct-inline-report-nav {
             margin: 0 0 6px 0 !important;
             padding: 8px 10px !important;
+        }
+    }
+
+    /* Sticky report navigation (← Portal | Results | Solutions + tools) */
+    @media screen {
+        .ct-inline-report-nav {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+            background: #ffffff !important;
+        }
+        body.exam-workspace-root.evaluation-completed #dashboard:not(.sol-split-lock) {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            padding-top: 0 !important;
+        }
+        body.exam-workspace-root.evaluation-completed #dashboard:not(.sol-split-lock) > .ct-inline-report-nav {
+            margin-top: 0 !important;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
         }
     }
 </style>
