@@ -708,7 +708,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCYjYNhpvtnwLxnM0euaQU7M7ziPBl-dcc",
@@ -926,8 +926,10 @@
       try {
         const ref = doc(db, "civtrek_portal", "shared_state_v12");
         await setDoc(ref, partialObj, { merge: true });
+        return true;
       } catch (e) {
         console.warn("Firestore shared save error:", e);
+        return false;
       }
     }
 
@@ -1218,10 +1220,15 @@
       const schemes = (parsedObj && !Array.isArray(parsedObj) && Array.isArray(parsedObj.markingSchemes) && parsedObj.markingSchemes.length)
         ? parsedObj.markingSchemes : [{ id: 'default', pos: 1, neg: 0 }];
       let totalMarks = 0;
+      const schemeSet = [];
       questions.forEach(q => {
         const sch = schemes.find(x => x.id === q.markingSchemeId) || schemes[0];
         totalMarks += parseFloat(sch.pos) || 1;
+        const lbl = `+${parseFloat(sch.pos) || 1}/-${parseFloat(sch.neg) || 0}`;
+        if (!schemeSet.includes(lbl)) schemeSet.push(lbl);
       });
+      const tru = v => v === true || v === 1 || /^(true|1|yes|on)$/i.test(String(v || ''));
+      const calc = !!(parsedObj && !Array.isArray(parsedObj) && (tru(parsedObj.enableCalculator) || tru(parsedObj.allowCalculator) || tru(parsedObj.calculator) || tru(parsedObj.hasCalculator)));
       totalMarks = Math.round(totalMarks * 100) / 100;
 
       if (parsedObj && typeof parsedObj === 'object' && !Array.isArray(parsedObj)) {
@@ -1236,7 +1243,7 @@
         }
         if (parsedObj.examName) examName = String(parsedObj.examName).trim();
       }
-      return { qCount: qCount || 0, duration: durationMins || 60, totalMarks, examName };
+      return { qCount: qCount || 0, duration: durationMins || 60, totalMarks, examName, scheme: schemeSet.join(', '), calc };
     }
 
     window.previewJsonStats = async (input) => {
@@ -1250,7 +1257,7 @@
         const text = await file.text();
         const parsed = JSON.parse(text);
         const meta = extractMetaFromExamJson(parsed);
-        tag.textContent = `${meta.qCount} Qs • ${meta.duration} Mins • ${fmtMarks(meta.totalMarks)} Marks`;
+        tag.textContent = `${meta.qCount} Qs • ${meta.duration} Mins • ${fmtMarks(meta.totalMarks)} Marks • ${meta.scheme} • Calculator ${meta.calc ? 'ON' : 'OFF'}`;
         tag.classList.remove('hidden');
         const titleInput = document.getElementById('newTestTitle');
         if (meta.examName && !titleInput.value.trim()) {
@@ -1432,6 +1439,24 @@
       }
     };
 
+    let sharedUnsub = null;
+    function startSharedListener() {
+      if (sharedUnsub) return;
+      try {
+        sharedUnsub = onSnapshot(doc(db, "civtrek_portal", "shared_state_v12"), (snap) => {
+          if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+          sharedData = { ...getDefaultSharedData(), ...snap.data() };
+          if (!Array.isArray(sharedData.folders) || sharedData.folders.length === 0) sharedData.folders = getDefaultSharedData().folders;
+          ensureHierarchy(sharedData);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData)); } catch (e) {}
+          if (currentUser && !document.getElementById('appShell').classList.contains('hidden')) {
+            try { renderWorkspace(); } catch (e) {}
+            try { renderHomeDashboardWidgets(); } catch (e) {}
+          }
+        }, (err) => console.warn("Live sync error:", err));
+      } catch (e) { console.warn("Live sync not started:", e); }
+    }
+
     function hideAuthSplash() {
       const sp = document.getElementById('authSplash');
       if (sp) sp.style.display = 'none';
@@ -1453,6 +1478,7 @@
           await loadGithubFromFirestore(user.email);
           await ingestPendingExamResult();
           enterAuthenticatedApp(user);
+          startSharedListener();
         } else {
           document.getElementById('deniedEmailText').textContent = user.email;
           await signOut(auth);
@@ -1481,6 +1507,7 @@
 
     window.handleLogout = async () => {
       closeDrawer();
+      if (sharedUnsub) { try { sharedUnsub(); } catch (e) {} sharedUnsub = null; }
       await signOut(auth);
       currentUser = null;
       document.getElementById('appShell').classList.add('hidden');
@@ -1768,6 +1795,8 @@
         const marks = Number(t.totalMarks) > 0 ? Number(t.totalMarks) : Number(maxMarksByTest.get(t.id));
         const metaParts = [`${t.qCount || 0} Qs`, `${t.duration || 60} Mins`];
         if (marks > 0) metaParts.push(`${fmtMarks(marks)} Marks`);
+        if (t.scheme) metaParts.push(t.scheme);
+        if (t.calc) metaParts.push('Calculator');
         const hasSyllabus = Boolean((t.syllabus || '').trim());
 
         let statusPill = '', actionHtml = '';
@@ -1999,6 +2028,7 @@
           accuracy: Number(res.accuracy) || 0,
           timeMins: Number(res.timeMins) || 1
         };
+        if (res.answers && res.answers.q) { try { record.answersJson = JSON.stringify(res.answers); } catch (e) {} }
 
         const idx = myData.results.findIndex(r => r.testId === res.testId);
         if (idx >= 0) myData.results[idx] = record;
@@ -2061,6 +2091,11 @@
 
       const prof = sharedData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
       let resolvedJson = null;
+      let savedAnswers = null;
+      if (mode === 'report' || mode === 'reattempt_wrong') {
+        const rec = (getMyUserData().results || []).find(r => r.testId === testId);
+        if (rec && rec.answersJson) { try { savedAnswers = JSON.parse(rec.answersJson); } catch (e) {} }
+      }
 
       try {
         showToast("Loading test...");
@@ -2072,10 +2107,12 @@
 
       // Backfill card meta (marks) for tests uploaded before it was tracked
       try {
-        if (!(Number(test.totalMarks) > 0)) {
+        if (!(Number(test.totalMarks) > 0) || test.scheme === undefined) {
           const meta = extractMetaFromExamJson(JSON.parse(resolvedJson));
           if (meta.totalMarks > 0) {
             test.totalMarks = meta.totalMarks;
+            test.scheme = meta.scheme;
+            test.calc = meta.calc;
             if (canManageContent()) persistSharedFields({ tests: sharedData.tests });
           }
         }
@@ -2094,13 +2131,16 @@
           userEmail: currentUser.email,
           userName: prof.name || currentUser.displayName,
           defaultLang: prof.lang || 'eng',
-          questionsJson: resolvedJson
+          questionsJson: resolvedJson,
+          photoURL: currentUser.photoURL || '',
+          savedAnswers
         }));
       } catch (e) {
         showToast("File too large for browser storage");
         return;
       }
 
+      window.__ctNav = true;
       window.location.href = "exam.html";
     };
 
@@ -2239,7 +2279,7 @@
         }
 
         let githubFilePath = null;
-        let autoMeta = { qCount: 0, duration: 60, totalMarks: 0 };
+        let autoMeta = { qCount: 0, duration: 60, totalMarks: 0, scheme: '', calc: false };
 
         if (file) {
           if (!isGithubReady()) {
@@ -2275,6 +2315,8 @@
               t.qCount = autoMeta.qCount;
               t.duration = autoMeta.duration;
               t.totalMarks = autoMeta.totalMarks;
+              t.scheme = autoMeta.scheme;
+              t.calc = autoMeta.calc;
             }
           }
         } else {
@@ -2287,16 +2329,18 @@
             duration: autoMeta.duration,
             qCount: autoMeta.qCount,
             totalMarks: autoMeta.totalMarks,
+            scheme: autoMeta.scheme,
+            calc: autoMeta.calc,
             startTime,
             syllabus,
             githubFilePath
           });
         }
 
-        await persistSharedFields({ tests: sharedData.tests });
+        const cloudOk = await persistSharedFields({ tests: sharedData.tests });
         closeModal('testModal');
         renderWorkspace();
-        showToast("Saved");
+        showToast(cloudOk === false ? "Saved on this device only - partner sync failed. Check connection and retry." : "Saved & synced");
       } catch (err) {
         showToast(err.message || "Error saving test");
       } finally {
@@ -2440,5 +2484,35 @@
       }, 2200);
     }
   </script>
+<div id="ctPageLoader" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(7,43,82,.45);align-items:center;justify-content:center;flex-direction:column;gap:12px;backdrop-filter:blur(1px)">
+  <div style="width:46px;height:46px;border-radius:50%;border:5px solid #dbe4f0;border-top-color:#e58e26;animation:ctSpin .8s linear infinite"></div>
+  <div id="ctPageLoaderText" style="color:#fff;font:700 14px 'Plus Jakarta Sans',Arial,sans-serif">Loading...</div>
+</div>
+<style>@keyframes ctSpin{to{transform:rotate(360deg)}}#ctPageLoader.open{display:flex!important}</style>
+<script>
+(function () {
+  function show(m) { var l = document.getElementById('ctPageLoader'); if (!l) return; document.getElementById('ctPageLoaderText').textContent = m || 'Loading...'; l.classList.add('open'); }
+  function hide() { var l = document.getElementById('ctPageLoader'); if (l) l.classList.remove('open'); }
+  window.showPageLoader = show; window.hidePageLoader = hide;
+  window.addEventListener('pageshow', function () { window.__ctNav = false; hide(); });
+  window.addEventListener('load', function () {
+    ['openPastResultsPage', 'openFolder', 'goHomeRoot', 'goBackOneLevel'].forEach(function (n) {
+      var o = window[n]; if (typeof o !== 'function') return;
+      window[n] = function () {
+        var self = this, a = arguments; show('Loading...');
+        setTimeout(function () { try { o.apply(self, a); } finally { setTimeout(hide, 200); } }, 30);
+      };
+    });
+    var L = window.launchExam;
+    if (typeof L === 'function') {
+      window.launchExam = async function () {
+        window.__ctNav = false; show('Loading test...');
+        try { return await L.apply(this, arguments); }
+        finally { if (!window.__ctNav) hide(); }
+      };
+    }
+  });
+})();
+</script>
 </body>
 </html>
