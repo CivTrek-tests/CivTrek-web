@@ -2148,7 +2148,7 @@
       } catch (e) {}
 
       try {
-        localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify({
+        var __payload = ({
           testId: test.id,
           title: test.title,
           domain: test.domain || 'technical',
@@ -2163,10 +2163,18 @@
           questionsJson: resolvedJson,
           photoURL: currentUser.photoURL || '',
           savedAnswers
-        }));
+        });
+        localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify(__payload));
       } catch (e) {
-        showToast("File too large for browser storage");
-        return;
+        // Phones have little storage: free old heavy leftovers and retry once
+        try {
+          localStorage.removeItem('CIVTREK_TEST_ATTEMPTS_V1');
+          localStorage.removeItem('ACTIVE_EXAM_DATA');
+          localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify(__payload));
+        } catch (e2) {
+          showToast("Phone storage is full. Clear this site's data in browser settings and try again.");
+          return;
+        }
       }
 
       window.__ctNav = true;
