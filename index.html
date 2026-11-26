@@ -714,8 +714,8 @@
             <p class="text-[11px] font-semibold text-slate-400">📖 Read = 50% · ✅ Tested = 100%</p>
           </div>
         </div>
-        <button onclick="openSyllabusSubjectModal()"
-          class="px-4 py-2 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">
+        <button id="sylAddSubjectBtn" onclick="openSyllabusSubjectModal()"
+          class="hidden px-4 py-2 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">
           + Add Subject
         </button>
       </div>
@@ -925,7 +925,7 @@
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brandOrange"></span> Exam Date</span>
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-navy"></span> Mock Test</span>
         </div>
-        <button onclick="toggleAddExamDateForm()" class="font-extrabold text-navy hover:text-brandOrange transition">
+        <button id="calAddExamDateBtn" onclick="toggleAddExamDateForm()" class="hidden font-extrabold text-navy hover:text-brandOrange transition">
           + Add Exam Date
         </button>
       </div>
@@ -1242,6 +1242,31 @@
         <button type="button" id="ctConfirmOkBtn" onclick="resolveCtConfirm(true)"
           class="px-6 py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">
           OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bookmark Removal Confirmation Overlay Modal -->
+  <div id="bookmarkRemoveModal" onclick="if(event.target===this) closeBookmarkRemoveModal()"
+    class="hidden fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-red-500 animate-pop">
+      <div class="flex items-center gap-2.5 mb-2">
+        <span class="w-9 h-9 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-lg shrink-0">🗑️</span>
+        <h3 class="text-base sm:text-lg font-extrabold text-navy leading-tight">Remove Saved Question?</h3>
+      </div>
+      <p class="text-xs sm:text-sm font-semibold text-slate-600 leading-relaxed mb-3">
+        Are you sure you want to remove this question from your bookmarks?
+      </p>
+      <div id="bookmarkRemoveMeta" class="hidden flex items-center flex-wrap gap-1.5 mb-5"></div>
+      <div class="flex justify-end gap-2.5">
+        <button type="button" onclick="closeBookmarkRemoveModal()"
+          class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+          Cancel
+        </button>
+        <button type="button" onclick="confirmRemoveBookmark()"
+          class="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition">
+          Remove
         </button>
       </div>
     </div>
@@ -2137,6 +2162,7 @@
 
     window.saveNoticeForm = async (e) => {
       e.preventDefault();
+      if (!isAdmin()) return;
       if (!isAdmin()) { showToast('Only admin can manage notices'); return; }
       const title = document.getElementById('noticeTitleInput').value.trim();
       if (!title) { showToast('Title is required'); return; }
@@ -2284,11 +2310,14 @@
         .sort((a, b) => a.daysLeft - b.daysLeft);
 
       if (targets.length === 0) {
-        strip.innerHTML = `
-          <button onclick="openCalendarModal(); toggleAddExamDateForm();"
-            class="px-4 py-2.5 rounded-2xl bg-white border border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-navy hover:text-navy transition">
-            + Add Exam Countdown
-          </button>`;
+        strip.innerHTML = isAdmin()
+          ? `<button onclick="openCalendarModal(); toggleAddExamDateForm();"
+              class="px-4 py-2.5 rounded-2xl bg-white border border-dashed border-slate-300 text-xs font-bold text-slate-500 hover:border-navy hover:text-navy transition">
+              + Add Exam Countdown
+            </button>`
+          : `<div class="px-4 py-2.5 rounded-2xl bg-white border border-slate-200/90 text-xs font-bold text-slate-400">
+              📅 No upcoming exam dates set
+            </div>`;
         return;
       }
 
@@ -2317,6 +2346,8 @@
           calSelectedIso = focusIsoDate;
         }
       }
+      const addBtn = document.getElementById('calAddExamDateBtn');
+      if (addBtn) addBtn.classList.toggle('hidden', !isAdmin());
       document.getElementById('addExamDateSection').classList.add('hidden');
       renderCalendarGrid();
       renderManageExamDatesList();
@@ -2390,12 +2421,14 @@
     }
 
     window.toggleAddExamDateForm = () => {
+      if (!isAdmin()) return;
       document.getElementById('addExamDateSection').classList.toggle('hidden');
       renderManageExamDatesList();
     };
 
     window.saveExamTargetDate = async (e) => {
       e.preventDefault();
+      if (!isAdmin()) return;
       const name = document.getElementById('newTargetExamName').value.trim();
       const date = document.getElementById('newTargetExamDate').value;
       if (!name || !date) return;
@@ -2414,6 +2447,7 @@
     };
 
     window.deleteExamTargetDate = async (id) => {
+      if (!isAdmin()) return;
       const ok = await showCtConfirm(
         "Remove this exam target date from your countdown & calendar?",
         "Remove",
@@ -2431,10 +2465,11 @@
     function renderManageExamDatesList() {
       const list = document.getElementById('manageExamDatesList');
       const targets = [...(sharedData.examTargets || [])].sort((a, b) => a.date.localeCompare(b.date));
+      const admin = isAdmin();
       list.innerHTML = targets.map(et => `
         <div class="flex items-center justify-between bg-paper px-3 py-1.5 rounded-lg text-xs">
           <span class="font-bold text-slate-700">${escapeHtml(et.name)} <span class="text-slate-400 font-normal">(${et.date})</span></span>
-          <button onclick="deleteExamTargetDate('${et.id}')" class="text-red-500 font-bold px-1.5">✕</button>
+          ${admin ? `<button onclick="deleteExamTargetDate('${et.id}')" class="text-red-500 font-bold px-1.5">✕</button>` : ''}
         </div>
       `).join('');
     }
@@ -3004,11 +3039,11 @@
     };
 
     function isAdmin() {
-      return currentUser && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      return Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
     }
 
     function canManageContent() {
-      return isAdmin() || Boolean(sharedData.settings && sharedData.settings.collaborativeMode);
+      return isAdmin();
     }
 
     // ---------------- PROGRESS & ATTEMPT HELPERS ----------------
@@ -3139,7 +3174,39 @@
       renderRevisionPage();
     };
 
-    window.removeBookmarkItem = async (bmKey) => {
+    let pendingRemoveBookmarkKey = null;
+
+    window.removeBookmarkItem = (bmKey) => {
+      if (!bmKey) return;
+      pendingRemoveBookmarkKey = bmKey;
+      const bm = (getMyUserData().bookmarks || []).find(b => b && b.key === bmKey);
+      const metaEl = document.getElementById('bookmarkRemoveMeta');
+      if (metaEl) {
+        if (bm) {
+          metaEl.innerHTML = `
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-navy text-white">Q${escapeHtml(String(bm.qNum || '?'))}</span>
+            ${bm.testTitle ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-navy-light text-navy truncate max-w-[180px]">${escapeHtml(bm.testTitle)}</span>` : ''}
+            ${bm.topic ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-brandOrange-deep truncate max-w-[160px]">${escapeHtml(bm.topic)}</span>` : ''}
+          `;
+          metaEl.classList.remove('hidden');
+        } else {
+          metaEl.innerHTML = '';
+          metaEl.classList.add('hidden');
+        }
+      }
+      document.getElementById('bookmarkRemoveModal').classList.remove('hidden');
+    };
+
+    window.closeBookmarkRemoveModal = () => {
+      pendingRemoveBookmarkKey = null;
+      const modal = document.getElementById('bookmarkRemoveModal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.confirmRemoveBookmark = async () => {
+      const bmKey = pendingRemoveBookmarkKey;
+      closeBookmarkRemoveModal();
+      if (!bmKey) return;
       const my = getMyUserData();
       my.bookmarks = (my.bookmarks || []).filter(b => b.key !== bmKey);
       await persistMyUserData(true);
@@ -4969,6 +5036,7 @@
 
     // ---------------- FOLDER CRUD ----------------
     window.openFolderModal = () => {
+      if (!isAdmin()) return;
       const info = getLevelInfo();
       if (!info.canAddFolder) { showToast("Folders can't be created here"); return; }
       document.getElementById('folderModalTitle').textContent = `New ${info.folderLabel} Folder`;
@@ -4983,6 +5051,7 @@
 
     window.editFolder = (id) => {
       closeAllMenus();
+      if (!isAdmin()) return;
       const f = sharedData.folders.find(x => x.id === id);
       if (!f) return;
       document.getElementById('folderModalTitle').textContent = "Rename Folder";
@@ -4995,6 +5064,7 @@
 
     window.saveFolderForm = async (e) => {
       e.preventDefault();
+      if (!isAdmin()) return;
       const editId = document.getElementById('editFolderId').value;
       const name = document.getElementById('newFolderName').value.trim();
       const desc = document.getElementById('newFolderDesc').value.trim();
@@ -5023,6 +5093,7 @@
 
     window.deleteFolder = async (id) => {
       closeAllMenus();
+      if (!isAdmin()) return;
       const target = sharedData.folders.find(f => f.id === id);
       if (!target || target.isRootDomain || target.isSystem) { showToast("This folder can't be deleted"); return; }
       if (!(await showCtConfirm("Delete this folder and all tests inside it?", "Delete", true))) return;
@@ -5047,6 +5118,7 @@
     }
 
     window.openTestModal = () => {
+      if (!isAdmin()) return;
       const info = getLevelInfo();
       if (!info.canAddTest) { showToast("Tests can't be added here"); return; }
       document.getElementById('testModalTitle').textContent = "Add Test";
@@ -5062,6 +5134,7 @@
 
     window.editTest = (id) => {
       closeAllMenus();
+      if (!isAdmin()) return;
       const t = sharedData.tests.find(x => x.id === id);
       if (!t) return;
       document.getElementById('testModalTitle').textContent = "Edit Test";
@@ -5077,6 +5150,7 @@
 
     window.saveTestForm = async (e) => {
       e.preventDefault();
+      if (!isAdmin()) return;
       const btn = document.getElementById('saveTestSubmitBtn');
       btn.disabled = true;
       btn.textContent = "Saving...";
@@ -5192,6 +5266,7 @@
 
     window.deleteTest = async (id) => {
       closeAllMenus();
+      if (!isAdmin()) return;
       if (!(await showCtConfirm("Delete this test and its JSON file?", "Delete", true))) return;
       const target = sharedData.tests.find(t => t.id === id);
       let ghOk = true;
@@ -5400,6 +5475,8 @@
         const el = document.getElementById(id);
         if (el) el.classList.toggle('active', syllabusDomainFilter === k);
       });
+      const addSubBtn = document.getElementById('sylAddSubjectBtn');
+      if (addSubBtn) addSubBtn.classList.toggle('hidden', !isAdmin());
 
       const me = currentUser.email.toLowerCase();
       const pe = getPartnerEmail();
@@ -5427,7 +5504,7 @@
         <p class="text-center text-[11px] font-bold text-slate-400 mt-2.5">${verdict}</p>`;
 
       if (!subs.length) {
-        area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📚</div><p class="text-sm font-bold text-slate-600">No subjects added yet</p><p class="text-xs text-slate-400 mt-1">Tap “+ Add Subject” to build the shared syllabus for both of you.</p></div>`;
+        area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📚</div><p class="text-sm font-bold text-slate-600">No subjects added yet</p><p class="text-xs text-slate-400 mt-1">${isAdmin() ? 'Tap “+ Add Subject” to build the shared syllabus for both of you.' : 'Subjects will appear here once added by the admin.'}</p></div>`;
         return;
       }
       area.innerHTML = subs.map(sub => renderSyllabusSubjectCard(sub, me, pe)).join('');
@@ -5458,11 +5535,13 @@
             <div class="flex items-center gap-1.5 shrink-0">
               <button type="button" aria-pressed="${mySt >= 1}" onclick="toggleChapterRead('${cid}')" class="px-3 py-1.5 rounded-xl border text-[11px] font-extrabold transition ${readCls}">📖 Read</button>
               <button type="button" aria-pressed="${mySt === 2}" onclick="toggleChapterTested('${cid}')" class="px-3 py-1.5 rounded-xl border text-[11px] font-extrabold transition ${testCls}">✅ Tested</button>
-              <button type="button" aria-label="Rename chapter" onclick="openSyllabusChapterEditModal('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
-              <button type="button" aria-label="Delete chapter" onclick="deleteSyllabusChapter('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
+              ${isAdmin() ? `
+                <button type="button" aria-label="Rename chapter" onclick="openSyllabusChapterEditModal('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
+                <button type="button" aria-label="Delete chapter" onclick="deleteSyllabusChapter('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
+              ` : ''}
             </div>
           </div>`;
-      }).join('') : `<div class="px-4 py-4 border-t border-slate-100 text-xs font-semibold text-slate-400">No chapters yet — use “+ Chapters” to bulk-add.</div>`) : '';
+      }).join('') : `<div class="px-4 py-4 border-t border-slate-100 text-xs font-semibold text-slate-400">${isAdmin() ? 'No chapters yet — use “+ Chapters” to bulk-add.' : 'No chapters added yet.'}</div>`) : '';
 
       return `
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -5479,11 +5558,13 @@
                 <div><div class="flex justify-between text-[10px] font-extrabold text-brandOrange-deep mb-1"><span>Partner</span><span>${ptPct}%</span></div>${sylBar(ptPct, 'bg-brandOrange')}</div>
               </div>
             </button>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button type="button" onclick="openSyllabusBulkModal('${sid}')" class="px-2.5 h-8 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition">+ Chapters</button>
-              <button type="button" aria-label="Edit subject" onclick="openSyllabusSubjectModal('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
-              <button type="button" aria-label="Delete subject" onclick="deleteSyllabusSubject('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
-            </div>
+            ${isAdmin() ? `
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="openSyllabusBulkModal('${sid}')" class="px-2.5 h-8 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition">+ Chapters</button>
+                <button type="button" aria-label="Edit subject" onclick="openSyllabusSubjectModal('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
+                <button type="button" aria-label="Delete subject" onclick="deleteSyllabusSubject('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
+              </div>
+            ` : ''}
           </div>
           ${rows}
         </div>`;
@@ -5491,6 +5572,7 @@
 
     // ---- structure editing (shared, synced through shared_state_v12 merge writes) ----
     async function persistSyllabusStructure() {
+      if (!isAdmin()) return false;
       const ok = await persistSharedFields({ syllabusSubjects: getSyllabusSubjects() });
       if (!ok) showToast("Saved on this device, but cloud sync failed");
       refreshSyllabusUI();
@@ -5523,6 +5605,7 @@
     }
 
     window.openSyllabusSubjectModal = (subjectId = null) => {
+      if (!isAdmin()) return;
       const sub = subjectId ? getSyllabusSubjects().find(x => x.id === subjectId) : null;
       if (subjectId && !sub) return;
       syllabusFormState = { mode: '', subjectId: sub ? sub.id : null, chapterId: null };
@@ -5534,6 +5617,7 @@
     };
 
     window.openSyllabusBulkModal = (subjectId) => {
+      if (!isAdmin()) return;
       const sub = getSyllabusSubjects().find(x => x.id === subjectId);
       if (!sub) return;
       syllabusFormState = { mode: '', subjectId: sub.id, chapterId: null };
@@ -5542,6 +5626,7 @@
     };
 
     window.openSyllabusChapterEditModal = (subjectId, chapterId) => {
+      if (!isAdmin()) return;
       const sub = getSyllabusSubjects().find(x => x.id === subjectId);
       const ch = sub && (sub.chapters || []).find(c => c.id === chapterId);
       if (!ch) return;
@@ -5552,6 +5637,7 @@
 
     window.saveSyllabusForm = async (e) => {
       e.preventDefault();
+      if (!isAdmin()) return;
       const st = syllabusFormState;
       const subjects = getSyllabusSubjects();
       const name = document.getElementById('sylNameInput').value.trim();
@@ -5597,6 +5683,7 @@
     };
 
     window.deleteSyllabusSubject = async (subjectId) => {
+      if (!isAdmin()) return;
       const sub = getSyllabusSubjects().find(x => x.id === subjectId);
       if (!sub) return;
       const n = (sub.chapters || []).length;
@@ -5611,6 +5698,7 @@
     };
 
     window.deleteSyllabusChapter = async (subjectId, chapterId) => {
+      if (!isAdmin()) return;
       const sub = getSyllabusSubjects().find(x => x.id === subjectId);
       const ch = sub && (sub.chapters || []).find(c => c.id === chapterId);
       if (!ch) return;
@@ -5718,7 +5806,11 @@
     };
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && ctConfirmResolver) resolveCtConfirm(false);
+      if (e.key === 'Escape') {
+        if (ctConfirmResolver) resolveCtConfirm(false);
+        const bmModal = document.getElementById('bookmarkRemoveModal');
+        if (bmModal && !bmModal.classList.contains('hidden')) closeBookmarkRemoveModal();
+      }
     });
 
     window.confirmRestartTest = async (testId) => {
