@@ -258,6 +258,10 @@
         /* Root font size: stable 16px on mobile/tablet, 18px on desktop (A+/A- steps below still apply) */
         html {
             font-size: 16px;
+            overscroll-behavior-y: contain;
+        }
+        body, .question-scroll-wrapper {
+            overscroll-behavior-y: contain;
         }
 
         @media (min-width: 1025px) {
@@ -3355,6 +3359,17 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
     </div>
 </div>
 
+<div class="custom-modal-overlay" id="ctExitExamModal" onclick="if (event.target === this) ctCloseExitExamDialog()">
+    <div class="custom-modal-box" role="dialog" aria-modal="true" aria-labelledby="ctExitModalTitle">
+        <h3 class="custom-modal-title" id="ctExitModalTitle"><div>Civ<span style="color: var(--brand-orange);">Trek</span></div> <span class="says-txt">says</span></h3>
+        <p class="custom-modal-body">Do you want to exit the test? Your answers and remaining time are saved — you can resume this test later from the portal.</p>
+        <div class="custom-modal-actions">
+            <button type="button" class="custom-modal-btn btn-confirm-modal" onclick="ctCloseExitExamDialog()">Continue Test</button>
+            <button type="button" class="custom-modal-btn" style="background: var(--brand-orange); color: #ffffff; padding: 12px 24px;" onclick="ctConfirmExitExam()">Save &amp; Exit</button>
+        </div>
+    </div>
+</div>
+
 <div class="custom-modal-overlay" id="ctReviewChoiceModal" onclick="if (event.target === this) ctCloseReviewChoiceModal()">
     <div class="custom-modal-box" role="dialog" aria-modal="true" aria-labelledby="ctReviewModalTitle">
         <h3 class="custom-modal-title" id="ctReviewModalTitle">
@@ -5235,6 +5250,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
             meta.state = "unanswered";
         }
         updateGridDisplayStates();
+        if (typeof window.__ctSaveResumeProgress === 'function') window.__ctSaveResumeProgress();
     }
 
     function handleNavigation(direction, skipSave = false) {
@@ -5289,6 +5305,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
             quizMetadata[currentStep].state = "unanswered";
         }
         updateGridDisplayStates();
+        if (typeof window.__ctSaveResumeProgress === 'function') window.__ctSaveResumeProgress();
     }
 
     function markActiveForReview() {
@@ -5304,6 +5321,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
             meta.state = "review";
         }
         updateGridDisplayStates();
+        if (typeof window.__ctSaveResumeProgress === 'function') window.__ctSaveResumeProgress();
         handleNavigation(1, true);
     }
 
@@ -6281,6 +6299,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         item.classList.toggle('bookmarked', isNow);
         btn.classList.toggle('active', isNow);
         btn.innerHTML = isNow ? '★ Bookmarked' : '☆ Bookmark';
+        if (typeof window.__ctSyncBookmarkToggle === 'function') window.__ctSyncBookmarkToggle(item, isNow);
         refreshSolBookmarkUI();
         if (solBookmarkOnly) renderFilteredSolutions();
     };
@@ -6864,6 +6883,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         ctSolFinished = true;
         if (ctSolTimer !== null) { clearTimeout(ctSolTimer); ctSolTimer = null; }
         ctSolJobs = [];
+        if (typeof window.__ctRestoreSavedBookmarks === 'function') window.__ctRestoreSavedBookmarks();
         applySolOrder();
         updateSolutionFilterCounts();
         renderFilteredSolutions();      // also queues the chunked MathJax typesetting
@@ -10195,6 +10215,74 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         return true;
     }
 
+    function ctBookmarkStoreKey(email) {
+        return 'CIVTREK_BOOKMARKS_V1_' + String(email || '').toLowerCase();
+    }
+
+    function ctReadBookmarksList(email) {
+        try {
+            var raw = localStorage.getItem(ctBookmarkStoreKey(email));
+            var arr = raw ? JSON.parse(raw) : [];
+            return Array.isArray(arr) ? arr : [];
+        } catch (e) { return []; }
+    }
+
+    window.__ctSyncBookmarkToggle = function (item, isNow) {
+        try {
+            var active = readActiveMeta();
+            if (!active || !active.userEmail || !active.testId || !item || !item.id) return;
+            var list = ctReadBookmarksList(active.userEmail);
+            var bKey = active.testId + '__' + item.id;
+            list = list.filter(function (x) { return x && x.key !== bKey; });
+            if (isNow) {
+                var titleEl = item.querySelector('.sol-q-title');
+                var rawTxt = titleEl ? (titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+                if (rawTxt.length > 140) rawTxt = rawTxt.slice(0, 137) + '...';
+                list.unshift({
+                    key: bKey,
+                    testId: active.testId,
+                    testTitle: active.title || 'Test',
+                    domain: active.domain || 'technical',
+                    testType: active.testType || 'topic',
+                    solId: item.id,
+                    qNum: parseInt(item.getAttribute('data-qnum'), 10) || 1,
+                    section: item.getAttribute('data-section') || '',
+                    topic: item.getAttribute('data-topic') || '',
+                    preview: rawTxt || ('Question #' + (item.getAttribute('data-qnum') || '')),
+                    savedAt: Date.now()
+                });
+            }
+            localStorage.setItem(ctBookmarkStoreKey(active.userEmail), JSON.stringify(list));
+            localStorage.setItem('CIVTREK_PENDING_BOOKMARKS_SYNC', String(Date.now()));
+        } catch (e) {}
+    };
+
+    window.__ctRestoreSavedBookmarks = function () {
+        try {
+            var active = readActiveMeta();
+            if (!active || !active.userEmail || !active.testId) return;
+            var list = ctReadBookmarksList(active.userEmail);
+            if ((!list || !list.length) && Array.isArray(active.savedBookmarks) && active.savedBookmarks.length) {
+                list = active.savedBookmarks;
+                try { localStorage.setItem(ctBookmarkStoreKey(active.userEmail), JSON.stringify(list)); } catch (e) {}
+            }
+            var wanted = {};
+            list.forEach(function (b) {
+                if (b && b.testId === active.testId && b.solId) wanted[b.solId] = true;
+            });
+            var count = 0;
+            document.querySelectorAll('#solutionsList .sol-item').forEach(function (el) {
+                if (wanted[el.id]) {
+                    el.classList.add('bookmarked');
+                    var btn = el.querySelector('.bookmark-btn');
+                    if (btn) { btn.classList.add('active'); btn.innerHTML = '★ Bookmarked'; }
+                    count++;
+                }
+            });
+            if (count > 0 && typeof refreshSolBookmarkUI === 'function') refreshSolBookmarkUI();
+        } catch (e) {}
+    };
+
     function bootFromPortal() {
         var activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA');
         if (!activeRaw) {
@@ -10230,6 +10318,16 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                     else ctNotice('Your answers for this attempt were not saved (older attempt) - showing key & solutions only.');
                     ctEvalStarted = false;
                     window.executeFinalEvaluation();
+                    if (active.focusSolId) {
+                        var targetSol = String(active.focusSolId);
+                        setTimeout(function () {
+                            try {
+                                if (typeof ctSolEnsureBuilt === 'function') ctSolEnsureBuilt();
+                                if (typeof ctSwitchCleanTab === 'function') ctSwitchCleanTab('solutions');
+                                if (typeof openSolutionFromResults === 'function') openSolutionFromResults(targetSol);
+                            } catch (e) {}
+                        }, 180);
+                    }
                 }
                 return;
             }
@@ -10320,13 +10418,65 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 localStorage.setItem(key, JSON.stringify(snap));
             } catch (e) {}
         }
+        window.__ctSaveResumeProgress = ctSaveResumeProgress;
+        window.__ctAllowExamUnload = false;
+
+        function ctIsLiveExamActive() {
+            if (typeof ctEvalStarted !== 'undefined' && ctEvalStarted) return false;
+            var il = document.getElementById('instructionsLayer');
+            if (il && il.style.display !== 'none') return false;
+            var act = readActiveMeta();
+            if (!act || act.mode === 'report') return false;
+            return totalSteps > 0;
+        }
+
+        window.ctOpenExitExamDialog = function () {
+            ctSaveResumeProgress();
+            var m = document.getElementById('ctExitExamModal');
+            if (m) m.style.display = 'flex';
+        };
+        window.ctCloseExitExamDialog = function () {
+            var m = document.getElementById('ctExitExamModal');
+            if (m) m.style.display = 'none';
+        };
+        window.ctConfirmExitExam = function () {
+            ctSaveResumeProgress();
+            window.__ctAllowExamUnload = true;
+            var m = document.getElementById('ctExitExamModal');
+            if (m) m.style.display = 'none';
+            location.href = 'index.html';
+        };
+
+        function ctArmBackGuard() {
+            if (window.__ctBackGuardArmed) return;
+            window.__ctBackGuardArmed = true;
+            try { history.pushState({ ctExamGuard: true }, '', location.href); } catch (e) {}
+            window.addEventListener('popstate', function () {
+                if (window.__ctAllowExamUnload) return;
+                if (ctIsLiveExamActive()) {
+                    try { history.pushState({ ctExamGuard: true }, '', location.href); } catch (e) {}
+                    window.ctOpenExitExamDialog();
+                }
+            });
+        }
+
         function ctStartResumeAutosave() {
             if (window.__ctResumeTimer) clearInterval(window.__ctResumeTimer);
             window.__ctResumeTimer = setInterval(ctSaveResumeProgress, 5000);
-            window.addEventListener('beforeunload', ctSaveResumeProgress);
-            document.addEventListener('visibilitychange', function () {
-                if (document.hidden) ctSaveResumeProgress();
-            });
+            ctArmBackGuard();
+            if (!window.__ctUnloadBound) {
+                window.__ctUnloadBound = true;
+                window.addEventListener('beforeunload', function (e) {
+                    ctSaveResumeProgress();
+                    if (!window.__ctAllowExamUnload && ctIsLiveExamActive()) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) ctSaveResumeProgress();
+                });
+            }
         }
 
         // Standard Attempt / Full Re-attempt / Custom Practice

@@ -397,8 +397,42 @@
           <div id="scheduleTabList" class="max-h-[345px] overflow-y-auto pr-1 space-y-2"></div>
         </div>
 
-        <!-- 4-Box Quick Stats -->
-        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+        <!-- Shared Pinned Notice / Formula Board -->
+        <div id="pinnedNoticeCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <button type="button" onclick="togglePinnedNoticeCollapse()" class="flex items-center gap-2 text-left min-w-0">
+              <span class="w-8 h-8 rounded-xl bg-amber-50 text-brandOrange-deep flex items-center justify-center text-sm shrink-0">📌</span>
+              <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-extrabold text-navy leading-tight truncate">Pinned Notice &amp; Formulas</h2>
+                <p id="pinnedNoticeMeta" class="text-[10px] font-semibold text-slate-400 truncate">Shared with partner</p>
+              </div>
+            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="openPinnedNoticeModal()" class="px-2.5 py-1 rounded-lg bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-bold transition">Edit</button>
+              <button type="button" id="pinnedNoticeChevron" onclick="togglePinnedNoticeCollapse()" aria-label="Toggle Notice" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center transition">▾</button>
+            </div>
+          </div>
+          <div id="pinnedNoticeBodyWrap">
+            <div id="pinnedNoticeText" class="text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed"></div>
+          </div>
+        </div>
+
+        <!-- 4-Box Quick Stats + Streak & Weekly Target -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-brandOrange-deep text-xs font-extrabold inline-flex items-center gap-1">
+                🔥 <span id="statStreakDays">0</span> Day Streak
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="font-bold text-slate-500">🎯 This Week: <b id="statWeeklyProgress" class="text-navy">0 / 5</b></span>
+              <button type="button" onclick="promptWeeklyTarget()" class="text-[10px] font-extrabold text-navy hover:text-brandOrange underline">Goal</button>
+            </div>
+            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div id="statWeeklyBar" class="h-full bg-gradient-to-r from-navy to-brandOrange rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+          </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
             <div class="bg-paper rounded-xl p-3">
               <div id="statTestsTaken" class="text-lg sm:text-xl font-extrabold text-navy">0</div>
@@ -449,6 +483,13 @@
           <div id="resMyAvgAcc" class="text-lg sm:text-2xl font-extrabold text-emerald-600">0%</div>
           <div class="text-[11px] font-bold text-slate-400 mt-0.5">My Accuracy</div>
         </div>
+      </div>
+
+      <!-- Scope Filter Pills (All | My Tests | Shared) -->
+      <div class="sched-pill-track max-w-md" role="tablist" aria-label="Filter past results">
+        <button type="button" id="resScopeAll" onclick="setResultsScope('all')" class="sched-pill-btn active">All Results</button>
+        <button type="button" id="resScopeMine" onclick="setResultsScope('mine')" class="sched-pill-btn">My Tests</button>
+        <button type="button" id="resScopeShared" onclick="setResultsScope('shared')" class="sched-pill-btn">Shared (2)</button>
       </div>
 
       <!-- Search & Filter Bar -->
@@ -515,6 +556,47 @@
       <div id="analysisContentArea" class="space-y-4"></div>
     </main>
 
+    <!-- VIEW D: FULL-SCREEN SAVED / REVISION BOOKMARKS PAGE -->
+    <main id="revisionView" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-20 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button onclick="showHomeView()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm">
+            ←
+          </button>
+          <div>
+            <h1 class="text-lg sm:text-xl font-extrabold text-navy leading-tight">Saved / Revision</h1>
+            <p class="text-[11px] font-semibold text-slate-400">Questions you starred (★) across tests</p>
+          </div>
+        </div>
+        <span id="revTotalBadge" class="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-brandOrange-deep text-xs font-extrabold">0 Saved</span>
+      </div>
+
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+        <div class="sm:col-span-5">
+          <input type="search" id="revSearchInput" oninput="renderRevisionPage()"
+            placeholder="Search saved questions or topics..."
+            class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
+        </div>
+        <div class="sm:col-span-4">
+          <select id="revTestFilter" onchange="renderRevisionPage()"
+            class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
+            <option value="all">All Tests</option>
+          </select>
+        </div>
+        <div class="sm:col-span-3">
+          <select id="revDomainFilter" onchange="renderRevisionPage()"
+            class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
+            <option value="all">All Subjects</option>
+            <option value="technical">Technical</option>
+            <option value="nontechnical">Non-Technical</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="revisionListContainer" class="space-y-3"></div>
+    </main>
+
     <!-- Single Floating '+' Action Button -->
     <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
       <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
@@ -559,6 +641,18 @@
         </div>
       </div>
 
+      <!-- Partner Live Status Strip -->
+      <div id="partnerPresenceBox" class="px-4 py-2.5 bg-paper border-b border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="partnerPresenceDot" class="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0"></span>
+          <div class="min-w-0">
+            <div id="partnerPresenceName" class="font-extrabold text-navy truncate">Partner</div>
+            <div id="partnerPresenceText" class="text-[10px] font-semibold text-slate-400 truncate">Checking status...</div>
+          </div>
+        </div>
+        <span id="partnerPresenceBadge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-200 text-slate-500 shrink-0">Offline</span>
+      </div>
+
       <!-- Menu Options -->
       <div class="flex-1 overflow-y-auto p-3 space-y-1.5">
         <button onclick="openPastResultsPage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
@@ -575,6 +669,17 @@
             <span class="font-bold text-sm text-slate-800">Test Analysis</span>
           </div>
           <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="openRevisionPage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-yellow-50 text-amber-600 flex items-center justify-center text-base">⭐</span>
+            <span class="font-bold text-sm text-slate-800">Saved / Revision</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="drawerBookmarkCount" class="hidden px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">0</span>
+            <span class="text-slate-400">›</span>
+          </div>
         </button>
 
 
@@ -843,6 +948,14 @@
           </button>
         </div>
 
+        <div id="settingsGhCleanRow" class="hidden pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+          <span class="font-semibold text-slate-500">GitHub Unused JSONs</span>
+          <button type="button" id="settingsGhCleanBtn" onclick="scanAndCleanUnusedGithubJsons()"
+            class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold transition">
+            🧹 Scan &amp; Clean
+          </button>
+        </div>
+
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeModal('profileModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
           <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save</button>
@@ -871,6 +984,50 @@
 
   <!-- Syllabus print area (only visible in print) -->
   <div id="syllabusPrintArea"></div>
+
+  <!-- Shared Pinned Notice Editor Modal -->
+  <div id="pinnedNoticeModal" onclick="if(event.target===this) closeModal('pinnedNoticeModal')"
+    class="hidden fixed inset-0 z-[75] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-extrabold text-navy">📌 Pinned Notice &amp; Formulas</h3>
+        <button onclick="closeModal('pinnedNoticeModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="savePinnedNoticeForm(event)" class="space-y-3">
+        <textarea id="pinnedNoticeInput" rows="6" placeholder="e.g., Tomorrow 7 AM: SOM Full-Length Test&#10;IS 456 min steel = 0.85bd/fy..."
+          class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy resize-y"></textarea>
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button type="button" onclick="document.getElementById('pinnedNoticeInput').value=''" class="text-xs font-bold text-slate-400 hover:text-red-500">Clear</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeModal('pinnedNoticeModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save &amp; Pin</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Weekly Target Modal -->
+  <div id="weeklyGoalModal" onclick="if(event.target===this) closeModal('weeklyGoalModal')"
+    class="hidden fixed inset-0 z-[75] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl border-t-4 border-navy animate-pop">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-extrabold text-navy">🎯 Weekly Test Goal</h3>
+        <button onclick="closeModal('weeklyGoalModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <form onsubmit="saveWeeklyGoalForm(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Tests per week (1 – 30)</label>
+          <input type="number" id="weeklyGoalInput" min="1" max="30" required
+            class="w-full px-3.5 py-2.5 text-sm font-bold border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" onclick="closeModal('weeklyGoalModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-brandOrange text-white font-bold text-xs">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- CivTrek Custom Confirm Dialog -->
   <div id="ctConfirmModal" onclick="if(event.target===this) resolveCtConfirm(false)"
@@ -932,6 +1089,7 @@
     let analysisDomainFilter = 'all';
     let activeScheduleTab = 'today';
     let resultsVisibleLimit = 10;
+    let resultsScopeFilter = 'all';
     let expandedResultIds = new Set();
     const NAV_STATE_KEY = 'CIVTREK_NAV_STATE_V1';
 
@@ -974,6 +1132,10 @@
         }
         if (st.view === 'analysis') {
           openTestAnalysisPage(st.analysisTestId || null);
+          return true;
+        }
+        if (st.view === 'revision') {
+          openRevisionPage();
           return true;
         }
         showHomeView();
@@ -1021,6 +1183,7 @@
           "jahnavisai29@gmail.com": { name: "Jahnavi Sai", targetExam: "APPSC AEE", lang: "eng" }
         },
         examTargets: [],
+        pinnedNotice: { text: '', updatedBy: '', updatedAt: 0 },
         folders: [
           { id: 'root_tech', parentId: null, domain: 'technical', name: 'Technical', desc: 'Civil Engineering', isRootDomain: true },
           { id: 'root_nontech', parentId: null, domain: 'nontechnical', name: 'Non-Technical', desc: 'GS & Mental Ability', isRootDomain: true }
@@ -1112,6 +1275,24 @@
       } catch (e) { return []; }
     }
 
+    function readLocalUserBookmarks(emailLower) {
+      try {
+        const raw = localStorage.getItem('CIVTREK_BOOKMARKS_V1_' + String(emailLower || '').toLowerCase());
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    }
+
+    function mergeBookmarkLists(a, b) {
+      const map = new Map();
+      [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach(x => {
+        if (!x || !x.key) return;
+        const prev = map.get(x.key);
+        if (!prev || (x.savedAt || 0) >= (prev.savedAt || 0)) map.set(x.key, x);
+      });
+      return Array.from(map.values()).sort((x, y) => (y.savedAt || 0) - (x.savedAt || 0));
+    }
+
     function loadSharedLocal() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -1122,7 +1303,8 @@
 
     function getMyUserData() {
       const key = (currentUser?.email || '').toLowerCase();
-      if (!usersDataMap[key]) usersDataMap[key] = { results: [] };
+      if (!usersDataMap[key]) usersDataMap[key] = { results: [], bookmarks: [] };
+      if (!Array.isArray(usersDataMap[key].bookmarks)) usersDataMap[key].bookmarks = [];
       return usersDataMap[key];
     }
 
@@ -1134,12 +1316,17 @@
       const me = currentUser.email.toLowerCase();
       const my = getMyUserData();
       my.results = (my.results || []).filter(r => !gone.has(r.testId));
+      my.bookmarks = (my.bookmarks || []).filter(b => !gone.has(b.testId));
+      try { localStorage.setItem('CIVTREK_BOOKMARKS_V1_' + me, JSON.stringify(my.bookmarks)); } catch (e) {}
       ALLOWED_EMAILS.forEach(em => {
         const k = em.toLowerCase(), u = usersDataMap[k];
         if (k !== me && u && Array.isArray(u.results)) u.results = u.results.filter(r => !gone.has(r.testId));
       });
       try {
-        ids.forEach(id => localStorage.removeItem('CIVTREK_ANS_V2_' + me + '_' + id));
+        ids.forEach(id => {
+          localStorage.removeItem('CIVTREK_ANS_V2_' + me + '_' + id);
+          localStorage.removeItem('CIVTREK_RESUME_V1_' + me + '_' + id);
+        });
         localStorage.removeItem('CIVTREK_TEST_ATTEMPTS_V1');
       } catch (e) {}
       await persistMyUserData(true);
@@ -1219,12 +1406,16 @@
       const myData = getMyUserData();
       try {
         localStorage.setItem(USER_DATA_KEY_PREFIX + emailDocKey(key), JSON.stringify({ results: myData.results }));
+        localStorage.setItem('CIVTREK_BOOKMARKS_V1_' + key, JSON.stringify(myData.bookmarks || []));
       } catch (e) {}
       try {
         const ref = doc(db, "civtrek_portal", "user_" + emailDocKey(key));
         const snap = await getDoc(ref);
-        if (snap.exists() && !replace) myData.results = mergeResultLists(snap.data().results, myData.results);
-        await setDoc(ref, { results: myData.results }, { merge: true });
+        if (snap.exists() && !replace) {
+          myData.results = mergeResultLists(snap.data().results, myData.results);
+          myData.bookmarks = mergeBookmarkLists(snap.data().bookmarks, myData.bookmarks);
+        }
+        await setDoc(ref, { results: myData.results, bookmarks: myData.bookmarks || [] }, { merge: true });
       } catch (e) {
         console.warn("Firestore user save error:", e);
       }
@@ -1235,12 +1426,25 @@
         const key = em.toLowerCase();
         const localResults = readLocalUserResults(key);
         const memResults = usersDataMap[key]?.results || [];
+        const localBm = readLocalUserBookmarks(key);
+        const memBm = usersDataMap[key]?.bookmarks || [];
         try {
           const uSnap = await getDoc(doc(db, "civtrek_portal", "user_" + emailDocKey(key)));
           const remote = uSnap.exists() ? uSnap.data().results : [];
-          usersDataMap[key] = { results: mergeResultLists(mergeResultLists(remote, localResults), memResults) };
+          const remoteBm = uSnap.exists() ? uSnap.data().bookmarks : [];
+          const mergedBm = mergeBookmarkLists(mergeBookmarkLists(remoteBm, localBm), memBm);
+          usersDataMap[key] = {
+            results: mergeResultLists(mergeResultLists(remote, localResults), memResults),
+            bookmarks: mergedBm
+          };
+          if (currentUser && key === currentUser.email.toLowerCase()) {
+            try { localStorage.setItem('CIVTREK_BOOKMARKS_V1_' + key, JSON.stringify(mergedBm)); } catch (e) {}
+          }
         } catch (e) {
-          usersDataMap[key] = { results: mergeResultLists(localResults, memResults) };
+          usersDataMap[key] = {
+            results: mergeResultLists(localResults, memResults),
+            bookmarks: mergeBookmarkLists(localBm, memBm)
+          };
         }
       }));
     }
@@ -1476,8 +1680,104 @@
       }).join('');
     }
 
+    let pinnedNoticeCollapsed = false;
+    window.togglePinnedNoticeCollapse = () => {
+      pinnedNoticeCollapsed = !pinnedNoticeCollapsed;
+      const body = document.getElementById('pinnedNoticeBodyWrap');
+      const chev = document.getElementById('pinnedNoticeChevron');
+      if (body) body.classList.toggle('hidden', pinnedNoticeCollapsed);
+      if (chev) chev.textContent = pinnedNoticeCollapsed ? '▸' : '▾';
+    };
+
+    function renderPinnedNoticeWidget() {
+      const textEl = document.getElementById('pinnedNoticeText');
+      const metaEl = document.getElementById('pinnedNoticeMeta');
+      if (!textEl || !metaEl) return;
+      const pn = sharedData.pinnedNotice || {};
+      const txt = String(pn.text || '').trim();
+      if (txt) {
+        textEl.textContent = txt;
+        textEl.className = 'text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed';
+        const when = pn.updatedAt ? new Date(pn.updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+        metaEl.textContent = pn.updatedBy ? `Updated by ${pn.updatedBy}${when ? ' • ' + when : ''}` : 'Shared with partner';
+      } else {
+        textEl.textContent = 'Pin study reminders, exam alerts, or key IS code formulas for both of you.';
+        textEl.className = 'text-xs font-semibold text-slate-400 bg-paper rounded-xl p-3 italic';
+        metaEl.textContent = 'Shared with partner';
+      }
+    }
+
+    window.openPinnedNoticeModal = () => {
+      const pn = sharedData.pinnedNotice || {};
+      document.getElementById('pinnedNoticeInput').value = pn.text || '';
+      document.getElementById('pinnedNoticeModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('pinnedNoticeInput').focus(), 60);
+    };
+
+    window.savePinnedNoticeForm = async (e) => {
+      e.preventDefault();
+      const text = document.getElementById('pinnedNoticeInput').value.trim();
+      const prof = sharedData.profiles?.[currentUser.email] || { name: currentUser.displayName || currentUser.email };
+      sharedData.pinnedNotice = {
+        text,
+        updatedBy: prof.name || currentUser.email,
+        updatedAt: Date.now()
+      };
+      await persistSharedFields({ pinnedNotice: sharedData.pinnedNotice });
+      closeModal('pinnedNoticeModal');
+      renderPinnedNoticeWidget();
+      showToast(text ? 'Notice pinned & synced' : 'Notice cleared');
+    };
+
+    window.promptWeeklyTarget = () => {
+      const prof = sharedData.profiles?.[currentUser.email] || {};
+      document.getElementById('weeklyGoalInput').value = Number(prof.weeklyTarget) || 5;
+      document.getElementById('weeklyGoalModal').classList.remove('hidden');
+    };
+
+    window.saveWeeklyGoalForm = async (e) => {
+      e.preventDefault();
+      const val = Math.max(1, Math.min(30, parseInt(document.getElementById('weeklyGoalInput').value, 10) || 5));
+      if (!sharedData.profiles[currentUser.email]) {
+        sharedData.profiles[currentUser.email] = { name: currentUser.displayName || 'Candidate', targetExam: 'APPSC AEE', lang: 'eng' };
+      }
+      sharedData.profiles[currentUser.email].weeklyTarget = val;
+      await persistSharedFields({ profiles: sharedData.profiles });
+      closeModal('weeklyGoalModal');
+      renderHomeDashboardWidgets();
+      showToast(`Weekly goal set to ${val} tests`);
+    };
+
+    function computeStudyStreakAndWeekly(myResults) {
+      const liveSet = window.__ctSharedLoaded ? new Set((sharedData.tests || []).map(t => t.id)) : null;
+      const valid = (myResults || []).filter(r => r && r.timestamp && (!liveSet || liveSet.has(r.testId)));
+      const daySet = new Set(valid.map(r => getLocalIsoDate(new Date(Number(r.timestamp)))));
+
+      // Consecutive streak ending today or yesterday
+      let streak = 0;
+      const cursor = new Date();
+      let iso = getLocalIsoDate(cursor);
+      if (!daySet.has(iso)) {
+        cursor.setDate(cursor.getDate() - 1);
+        iso = getLocalIsoDate(cursor);
+      }
+      while (daySet.has(iso)) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+        iso = getLocalIsoDate(cursor);
+      }
+
+      // Weekly tests count (Monday 00:00 local time to now)
+      const now = new Date();
+      const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0 ... Sun=6
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0).getTime();
+      const weeklyDone = valid.filter(r => Number(r.timestamp) >= weekStart).length;
+      return { streak, weeklyDone };
+    }
+
     function renderHomeDashboardWidgets() {
       renderUpcomingScheduleWidget();
+      renderPinnedNoticeWidget();
       const allResults = getCombinedResults();
       const myRes = getMyUserData().results || [];
       let myTestsCount = 0, myAccSum = 0, myRank1Count = 0;
@@ -1508,6 +1808,17 @@
       const negSub = document.getElementById('statNegSubLabel');
       if (negEl) negEl.textContent = totalNegLost > 0 ? `-${fmtMarks(totalNegLost)}` : '0';
       if (negSub) negSub.textContent = `${totalWrong} wrong / ${totalAttempted} att.`;
+
+      const sw = computeStudyStreakAndWeekly(myRes);
+      const prof = sharedData.profiles?.[currentUser.email] || {};
+      const goal = Math.max(1, Number(prof.weeklyTarget) || 5);
+      const pct = Math.min(100, Math.round((sw.weeklyDone / goal) * 100));
+      const stEl = document.getElementById('statStreakDays');
+      const wkEl = document.getElementById('statWeeklyProgress');
+      const wkBar = document.getElementById('statWeeklyBar');
+      if (stEl) stEl.textContent = sw.streak;
+      if (wkEl) wkEl.textContent = `${sw.weeklyDone} / ${goal}`;
+      if (wkBar) wkBar.style.width = `${pct}%`;
     }
 
     // ---------------- MULTI-EXAM COUNTDOWN STRIP ----------------
@@ -1654,6 +1965,12 @@
     };
 
     window.deleteExamTargetDate = async (id) => {
+      const ok = await showCtConfirm(
+        "Remove this exam target date from your countdown & calendar?",
+        "Remove",
+        true
+      );
+      if (!ok) return;
       sharedData.examTargets = (sharedData.examTargets || []).filter(et => et.id !== id);
       await persistSharedFields({ examTargets: sharedData.examTargets });
       renderExamCountdownsStrip();
@@ -1790,7 +2107,63 @@
         statusLabel.textContent = connected ? `GitHub: ${gh.repo}` : 'GitHub: Not connected';
       }
       if (changeBtn) changeBtn.classList.toggle('hidden', !isAdmin());
+      const cleanRow = document.getElementById('settingsGhCleanRow');
+      if (cleanRow) cleanRow.classList.toggle('hidden', !(connected && isAdmin()));
     }
+
+    window.scanAndCleanUnusedGithubJsons = async () => {
+      if (!isAdmin() || !isGithubReady()) {
+        showToast("Admin GitHub connection required");
+        return;
+      }
+      const btn = document.getElementById('settingsGhCleanBtn');
+      const origText = btn ? btn.textContent : '🧹 Scan & Clean';
+      if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
+      try {
+        const gh = getGithubConfig();
+        const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/tests`, {
+          cache: 'no-store',
+          headers: {
+            'Authorization': `Bearer ${gh.token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
+        if (res.status === 404) {
+          showToast("No tests/ folder found on GitHub");
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to scan GitHub tests/ folder");
+        const items = await res.json();
+        if (!Array.isArray(items)) { showToast("GitHub tests/ folder is empty"); return; }
+
+        const activePaths = new Set((sharedData.tests || []).map(t => t.githubFilePath).filter(Boolean));
+        const unused = items.filter(it => it && it.type === 'file' && /\.json$/i.test(it.name) && !activePaths.has(it.path));
+
+        if (unused.length === 0) {
+          showToast("GitHub is already clean! 0 unused JSONs.");
+          return;
+        }
+
+        const ok = await showCtConfirm(
+          `Found ${unused.length} unused JSON file(s) in GitHub tests/ (not linked to any active test). Delete them permanently?`,
+          `Delete ${unused.length} File${unused.length > 1 ? 's' : ''}`,
+          true
+        );
+        if (!ok) return;
+
+        let deleted = 0;
+        for (let i = 0; i < unused.length; i++) {
+          if (btn) btn.textContent = `Deleting ${i + 1}/${unused.length}...`;
+          const done = await deleteJsonFromGithubRepo(unused[i].path);
+          if (done) deleted++;
+        }
+        showToast(`Cleaned ${deleted}/${unused.length} unused JSON file(s)`);
+      } catch (err) {
+        showToast(err.message || "Cleanup failed");
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = origText; }
+      }
+    };
 
     window.openGithubSettingsModal = () => {
       closeDrawer();
@@ -1959,6 +2332,7 @@
           await syncAllFromFirestore();
           await loadGithubFromFirestore(user.email);
           await ingestPendingExamResult();
+          await ingestPendingBookmarks();
           await pruneOwnOrphanResults();
           enterAuthenticatedApp(user);
           startSharedListener();
@@ -1976,6 +2350,117 @@
       hideAuthSplash();
     });
 
+    // ---------------- PARTNER LIVE PRESENCE (OPTION A: FIRESTORE) ----------------
+    let presenceUnsub = null;
+    let presenceHeartbeat = null;
+    let presenceUiTimer = null;
+    let partnerPresenceData = null;
+    let presenceListenersBound = false;
+
+    function getPartnerEmail() {
+      if (!currentUser) return null;
+      const me = currentUser.email.toLowerCase();
+      return ALLOWED_EMAILS.find(e => e.toLowerCase() !== me) || null;
+    }
+
+    async function writeMyPresence(isOnline) {
+      if (!currentUser) return;
+      try {
+        const ref = doc(db, "civtrek_portal", "presence_" + emailDocKey(currentUser.email));
+        await setDoc(ref, {
+          email: currentUser.email.toLowerCase(),
+          online: Boolean(isOnline),
+          lastSeen: Date.now()
+        }, { merge: true });
+      } catch (e) {}
+    }
+
+    function formatLastSeen(ts) {
+      if (!ts) return 'Not seen yet';
+      const d = new Date(Number(ts));
+      const todayIso = getLocalIsoDate(new Date());
+      const seenIso = getLocalIsoDate(d);
+      const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (seenIso === todayIso) return `Last seen: Today, ${timeStr}`;
+      const yest = new Date(); yest.setDate(yest.getDate() - 1);
+      if (seenIso === getLocalIsoDate(yest)) return `Last seen: Yesterday, ${timeStr}`;
+      const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      return `Last seen: ${dateStr}, ${timeStr}`;
+    }
+
+    function renderPartnerPresenceUI() {
+      const partnerEmail = getPartnerEmail();
+      const nameEl = document.getElementById('partnerPresenceName');
+      const textEl = document.getElementById('partnerPresenceText');
+      const dotEl = document.getElementById('partnerPresenceDot');
+      const badgeEl = document.getElementById('partnerPresenceBadge');
+      if (!nameEl || !textEl || !dotEl || !badgeEl) return;
+
+      const prof = partnerEmail ? sharedData.profiles?.[partnerEmail.toLowerCase()] : null;
+      nameEl.textContent = prof?.name || partnerEmail || 'Partner';
+
+      const d = partnerPresenceData;
+      const lastSeen = Number(d?.lastSeen || 0);
+      const isOnline = Boolean(d && d.online && (Date.now() - lastSeen) < 95000);
+
+      if (isOnline) {
+        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 animate-pulse';
+        textEl.textContent = 'Active now';
+        textEl.className = 'text-[10px] font-bold text-emerald-600 truncate';
+        badgeEl.textContent = 'Online';
+        badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 shrink-0';
+      } else {
+        dotEl.className = 'w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0';
+        textEl.textContent = formatLastSeen(lastSeen);
+        textEl.className = 'text-[10px] font-semibold text-slate-400 truncate';
+        badgeEl.textContent = 'Offline';
+        badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-200 text-slate-500 shrink-0';
+      }
+    }
+
+    function stopPresenceTracking() {
+      if (presenceUnsub) { try { presenceUnsub(); } catch (e) {} presenceUnsub = null; }
+      if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+      if (presenceUiTimer) { clearInterval(presenceUiTimer); presenceUiTimer = null; }
+    }
+
+    function startPresenceTracking() {
+      stopPresenceTracking();
+      if (!currentUser) return;
+
+      writeMyPresence(!document.hidden);
+
+      presenceHeartbeat = setInterval(() => {
+        if (currentUser && !document.hidden) writeMyPresence(true);
+      }, 60000);
+
+      presenceUiTimer = setInterval(() => {
+        if (currentUser) renderPartnerPresenceUI();
+      }, 30000);
+
+      if (!presenceListenersBound) {
+        presenceListenersBound = true;
+        document.addEventListener('visibilitychange', () => {
+          if (!currentUser) return;
+          writeMyPresence(!document.hidden);
+        });
+        window.addEventListener('pagehide', () => {
+          if (currentUser) writeMyPresence(false);
+        });
+      }
+
+      const partnerEmail = getPartnerEmail();
+      if (partnerEmail) {
+        try {
+          presenceUnsub = onSnapshot(doc(db, "civtrek_portal", "presence_" + emailDocKey(partnerEmail)), (snap) => {
+            partnerPresenceData = snap.exists() ? snap.data() : null;
+            renderPartnerPresenceUI();
+          }, () => {});
+        } catch (e) {}
+      }
+      renderPartnerPresenceUI();
+    }
+
     function enterAuthenticatedApp(user) {
       currentUser = user;
       try { localStorage.removeItem('CIVTREK_REVISION_ITEMS'); } catch (e) {}
@@ -1985,11 +2470,21 @@
       updateProfileUI();
       updateGithubIndicator();
       renderExamCountdownsStrip();
+      startPresenceTracking();
+      updateDrawerBookmarkBadge();
       if (!restoreNavState()) showHomeView();
     }
 
     window.handleLogout = async () => {
       closeDrawer();
+      const ok = await showCtConfirm(
+        "Are you sure you want to logout? Any unsaved test progress on this device will stay locally, and you will need Google Sign-In to access the portal again.",
+        "Logout",
+        true
+      );
+      if (!ok) return;
+      await writeMyPresence(false);
+      stopPresenceTracking();
       if (sharedUnsub) { try { sharedUnsub(); } catch (e) {} sharedUnsub = null; }
       await signOut(auth);
       currentUser = null;
@@ -2050,6 +2545,7 @@
       currentView = 'home';
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
+      document.getElementById('revisionView').classList.add('hidden');
       document.getElementById('homeView').classList.remove('hidden');
       document.getElementById('searchToggleBtn').classList.remove('hidden');
       document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
@@ -2066,6 +2562,7 @@
       document.getElementById('fabContainer').classList.add('hidden');
       document.getElementById('homeView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
+      document.getElementById('revisionView').classList.add('hidden');
       document.getElementById('resultsView').classList.remove('hidden');
       saveNavState();
       resultsVisibleLimit = 10;
@@ -2085,6 +2582,7 @@
       document.getElementById('fabContainer').classList.add('hidden');
       document.getElementById('homeView').classList.add('hidden');
       document.getElementById('resultsView').classList.add('hidden');
+      document.getElementById('revisionView').classList.add('hidden');
       const av = document.getElementById('analysisView');
       av.classList.remove('hidden');
       av.classList.remove('view-fade'); void av.offsetWidth; av.classList.add('view-fade');
@@ -2104,6 +2602,111 @@
       const m = Math.floor(sec / 60), s = sec % 60;
       return `${m}m ${s < 10 ? '0' : ''}${s}s`;
     }
+
+    function updateDrawerBookmarkBadge() {
+      const cnt = (getMyUserData().bookmarks || [])
+        .filter(b => !window.__ctSharedLoaded || sharedData.tests.some(t => t.id === b.testId)).length;
+      const el = document.getElementById('drawerBookmarkCount');
+      if (el) {
+        el.textContent = cnt;
+        el.classList.toggle('hidden', cnt === 0);
+      }
+    }
+
+    window.openRevisionPage = () => {
+      closeDrawer();
+      currentView = 'revision';
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      document.getElementById('searchToggleBtn').classList.add('hidden');
+      document.getElementById('fabContainer').classList.add('hidden');
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('resultsView').classList.add('hidden');
+      document.getElementById('analysisView').classList.add('hidden');
+      const rv = document.getElementById('revisionView');
+      rv.classList.remove('hidden');
+      rv.classList.remove('view-fade'); void rv.offsetWidth; rv.classList.add('view-fade');
+      saveNavState();
+      renderRevisionPage();
+    };
+
+    window.removeBookmarkItem = async (bmKey) => {
+      const my = getMyUserData();
+      my.bookmarks = (my.bookmarks || []).filter(b => b.key !== bmKey);
+      await persistMyUserData(true);
+      updateDrawerBookmarkBadge();
+      renderRevisionPage();
+      showToast("Removed from Revision");
+    };
+
+    window.renderRevisionPage = () => {
+      const listEl = document.getElementById('revisionListContainer');
+      const badgeEl = document.getElementById('revTotalBadge');
+      const testSel = document.getElementById('revTestFilter');
+      const domSel = document.getElementById('revDomainFilter');
+      const qInput = document.getElementById('revSearchInput');
+      if (!listEl) return;
+
+      const allBm = (getMyUserData().bookmarks || [])
+        .filter(b => b && b.testId && (!window.__ctSharedLoaded || sharedData.tests.some(t => t.id === b.testId)))
+        .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+
+      if (badgeEl) badgeEl.textContent = `${allBm.length} Saved`;
+      updateDrawerBookmarkBadge();
+
+      // Populate test dropdown preserving current selection
+      if (testSel) {
+        const prevVal = testSel.value || 'all';
+        const seen = new Map();
+        allBm.forEach(b => { if (!seen.has(b.testId)) seen.set(b.testId, b.testTitle || 'Test'); });
+        testSel.innerHTML = `<option value="all">All Tests (${seen.size})</option>` +
+          Array.from(seen.entries()).map(([tid, ttl]) => `<option value="${tid}" ${tid === prevVal ? 'selected' : ''}>${escapeHtml(ttl)}</option>`).join('');
+      }
+
+      const searchQ = (qInput?.value || '').trim().toLowerCase();
+      const testF = testSel?.value || 'all';
+      const domF = domSel?.value || 'all';
+
+      const filtered = allBm.filter(b => {
+        if (testF !== 'all' && b.testId !== testF) return false;
+        if (domF !== 'all' && (b.domain || 'technical') !== domF) return false;
+        if (searchQ) {
+          const hay = `${b.preview || ''} ${b.topic || ''} ${b.testTitle || ''} ${b.section || ''}`.toLowerCase();
+          if (!hay.includes(searchQ)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">⭐</div><p class="text-sm font-bold text-slate-600">${allBm.length === 0 ? 'No Bookmarked Questions Yet' : 'No matching saved questions'}</p><p class="text-xs text-slate-400 mt-1">${allBm.length === 0 ? 'Open any test solution report and tap ☆ Bookmark on important questions to collect them here.' : 'Try clearing your search or filter.'}</p></div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(b => {
+        const dt = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
+        return `
+          <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center flex-wrap gap-1.5 min-w-0">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-navy text-white">Q${b.qNum || '?'}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-navy-light text-navy truncate max-w-[180px]">${escapeHtml(b.testTitle)}</span>
+                ${b.topic ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-brandOrange-deep truncate max-w-[160px]">${escapeHtml(b.topic)}</span>` : ''}
+                ${dt ? `<span class="text-[10px] font-semibold text-slate-400">${dt}</span>` : ''}
+              </div>
+              <button type="button" onclick="removeBookmarkItem('${b.key}')" title="Remove bookmark"
+                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 text-xs font-bold flex items-center justify-center shrink-0 transition">✕</button>
+            </div>
+            <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">${escapeHtml(b.preview || 'Bookmarked question')}</p>
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <span class="text-[11px] font-semibold text-slate-400 truncate">${escapeHtml(b.section || '')}</span>
+              <button type="button" onclick="launchExam('${b.testId}', 'report', false, { focusSolId: '${b.solId}' })"
+                class="px-3.5 py-1.5 rounded-xl bg-navy hover:bg-navy-deep text-white text-xs font-extrabold transition shrink-0">
+                Open in Solutions →
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
 
     window.setAnalysisDomain = (dom) => {
       if (!['all', 'technical', 'nontechnical'].includes(dom)) return;
@@ -2501,10 +3104,20 @@
       `;
     };
 
-    // Auto-refresh live schedule status every 10 seconds while on Home root
+    // Auto-refresh live schedule status every 10 seconds (Home root + inside folders safely)
     setInterval(() => {
-      if (currentUser && currentView === 'home' && folderPath.length === 0 && !document.getElementById('appShell').classList.contains('hidden')) {
+      if (!currentUser || currentView !== 'home' || document.getElementById('appShell').classList.contains('hidden')) return;
+      if (folderPath.length === 0) {
         renderUpcomingScheduleWidget();
+      } else {
+        const anyMenuOpen = Array.from(document.querySelectorAll('[id^="menu_"]')).some(el => !el.classList.contains('hidden'));
+        const anyModalOpen = ['reattemptChoiceModal','calendarModal','folderModal','testModal','githubModal','profileModal','syllabusModal','ctConfirmModal']
+          .some(id => { const el = document.getElementById(id); return el && !el.classList.contains('hidden'); });
+        if (!anyMenuOpen && !anyModalOpen) {
+          const curId = getCurrentFolderId();
+          const hasScheduledHere = (sharedData.tests || []).some(t => (t.folderId || null) === curId && t.startTime);
+          if (hasScheduledHere) renderWorkspace();
+        }
       }
     }, 10000);
 
@@ -2823,6 +3436,13 @@
     };
 
     // ---------------- RENDER PAST RESULTS ----------------
+    window.setResultsScope = (scope) => {
+      if (!['all', 'mine', 'shared'].includes(scope)) return;
+      resultsScopeFilter = scope;
+      resultsVisibleLimit = 10;
+      renderPastResultsPage();
+    };
+
     window.resetResultsLimitAndRender = () => {
       resultsVisibleLimit = 10;
       renderPastResultsPage();
@@ -2862,7 +3482,16 @@
       document.getElementById('resWinsCompare').textContent = `${u1Wins} - ${u2Wins}`;
       document.getElementById('resMyAvgAcc').textContent = myCount ? `${Math.round(myAccSum / myCount)}%` : '0%';
 
+      const myEmailLower = (currentUser?.email || '').toLowerCase();
+      const scopeMap = { all: 'resScopeAll', mine: 'resScopeMine', shared: 'resScopeShared' };
+      Object.entries(scopeMap).forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', resultsScopeFilter === k);
+      });
+
       const filtered = allResults.filter(r => {
+        if (resultsScopeFilter === 'mine' && !(r.scores || []).some(s => s.email.toLowerCase() === myEmailLower)) return false;
+        if (resultsScopeFilter === 'shared' && (r.scores || []).length < 2) return false;
         if (domainF !== 'all' && (r.domain || 'technical') !== domainF) return false;
         if (typeF !== 'all' && (r.testType || 'topic') !== typeF) return false;
         if (searchQ && !r.testTitle.toLowerCase().includes(searchQ)) return false;
@@ -2878,25 +3507,28 @@
         container.innerHTML = visible.map(r => {
           const sorted = [...r.scores].sort((a, b) => b.marks - a.marks);
           const myRankIdx = sorted.findIndex(s => s.email.toLowerCase() === currentUser.email.toLowerCase());
-          const myScoreObj = myRankIdx >= 0 ? sorted[myRankIdx] : sorted[0];
+          const iAttempted = myRankIdx >= 0;
+          const myScoreObj = iAttempted ? sorted[myRankIdx] : null;
           const isExpanded = expandedResultIds.has(r.testId);
-          const rankLabel = myRankIdx === 0 ? '🥇 #1' : (myRankIdx > 0 ? `🥈 #${myRankIdx + 1}` : '👤 Partner');
+          const rankLabel = !iAttempted ? '🔒 Partner' : (myRankIdx === 0 ? '🥇 #1' : `🥈 #${myRankIdx + 1}`);
 
           return `
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden transition">
               <div onclick="toggleResultExpand('${r.testId}')" class="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition">
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-extrabold ${myRankIdx === 0 ? 'text-brandOrange-deep' : 'text-slate-400'}">${rankLabel}</span>
+                    <span class="text-xs font-extrabold ${iAttempted && myRankIdx === 0 ? 'text-brandOrange-deep' : 'text-slate-400'}">${rankLabel}</span>
                     <h3 class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(r.testTitle)}</h3>
                   </div>
                   <div class="text-[11px] font-semibold text-slate-400 mt-1">
-                    ${r.date || ''} • ${TYPE_NAMES[r.testType] || 'Test'}
+                    ${r.date || ''} • ${TYPE_NAMES[r.testType] || 'Test'}${!iAttempted ? ' • Attempt to unlock score' : ''}
                   </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
                   <div class="text-right">
-                    <div class="text-sm sm:text-base font-extrabold text-navy">${myScoreObj ? myScoreObj.marks : '-'} <span class="text-xs text-slate-400 font-semibold">/ ${r.maxMarks}</span></div>
+                    ${iAttempted
+                      ? `<div class="text-sm sm:text-base font-extrabold text-navy">${myScoreObj.marks} <span class="text-xs text-slate-400 font-semibold">/ ${r.maxMarks}</span></div>`
+                      : `<span class="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-[11px] font-extrabold">🔒 Locked</span>`}
                   </div>
                   <span class="text-slate-400 text-sm font-bold transition-transform ${isExpanded ? 'rotate-90' : ''}">›</span>
                 </div>
@@ -2904,27 +3536,38 @@
 
               ${isExpanded ? `
                 <div class="px-4 pb-4 pt-2 bg-paper border-t border-slate-100 space-y-2.5 animate-pop">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    ${sorted.map((s, idx) => `
-                      <div class="bg-white p-3 rounded-xl border ${idx === 0 ? 'border-brandOrange' : 'border-slate-200'} flex items-center justify-between">
-                        <div>
-                          <div class="text-xs font-extrabold ${idx === 0 ? 'text-brandOrange-deep' : 'text-slate-500'}">
-                            ${idx === 0 ? '🥇 #1' : '🥈 #2'} • <span class="text-slate-800">${escapeHtml(s.name)}</span>
+                  ${iAttempted ? `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      ${sorted.map((s, idx) => `
+                        <div class="bg-white p-3 rounded-xl border ${idx === 0 ? 'border-brandOrange' : 'border-slate-200'} flex items-center justify-between">
+                          <div>
+                            <div class="text-xs font-extrabold ${idx === 0 ? 'text-brandOrange-deep' : 'text-slate-500'}">
+                              ${idx === 0 ? '🥇 #1' : '🥈 #2'} • <span class="text-slate-800">${escapeHtml(s.name)}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">${s.accuracy}% Accuracy • ${s.timeMins} Mins</div>
                           </div>
-                          <div class="text-[11px] text-slate-400 mt-0.5">${s.accuracy}% Accuracy • ${s.timeMins} Mins</div>
+                          <div class="text-base font-extrabold text-navy">${s.marks}/${r.maxMarks}</div>
                         </div>
-                        <div class="text-base font-extrabold text-navy">${s.marks}/${r.maxMarks}</div>
+                      `).join('')}
+                    </div>
+                    <div class="flex justify-end gap-2">
+                      <button onclick="openTestAnalysisPage('${r.testId}')" class="px-4 py-2 rounded-xl bg-navy-light text-navy hover:bg-navy hover:text-white font-bold text-xs transition">
+                        Test Analysis
+                      </button>
+                      <button onclick="launchExam('${r.testId}', 'report')" class="px-4 py-2 rounded-xl bg-navy text-white font-bold text-xs">
+                        View Key &amp; Solutions
+                      </button>
+                    </div>
+                  ` : `
+                    <div class="bg-white p-4 rounded-xl border border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div class="text-xs font-semibold text-slate-500 text-center sm:text-left">
+                        🔒 Your partner has completed this test. Submit your attempt to unlock their score &amp; head-to-head comparison.
                       </div>
-                    `).join('')}
-                  </div>
-                  <div class="flex justify-end gap-2">
-                    <button onclick="openTestAnalysisPage('${r.testId}')" class="px-4 py-2 rounded-xl bg-navy-light text-navy hover:bg-navy hover:text-white font-bold text-xs transition">
-                      Test Analysis
-                    </button>
-                    <button onclick="launchExam('${r.testId}', 'report')" class="px-4 py-2 rounded-xl bg-navy text-white font-bold text-xs">
-                      View Key &amp; Solutions
-                    </button>
-                  </div>
+                      <button onclick="launchExam('${r.testId}', 'attempt')" class="px-4 py-2 rounded-xl bg-navy hover:bg-navy-deep text-white font-extrabold text-xs shrink-0 transition">
+                        Start Test →
+                      </button>
+                    </div>
+                  `}
                 </div>
               ` : ''}
             </div>
@@ -3020,17 +3663,34 @@
       }
     }
 
+    async function ingestPendingBookmarks() {
+      if (!currentUser) return false;
+      try {
+        const flag = localStorage.getItem('CIVTREK_PENDING_BOOKMARKS_SYNC');
+        if (!flag) return false;
+        localStorage.removeItem('CIVTREK_PENDING_BOOKMARKS_SYNC');
+        const key = currentUser.email.toLowerCase();
+        const my = getMyUserData();
+        my.bookmarks = readLocalUserBookmarks(key);
+        updateDrawerBookmarkBadge();
+        await persistMyUserData(true);
+        return true;
+      } catch (e) { return false; }
+    }
+
     async function refreshFromPendingResult() {
       if (!currentUser) return;
+      const bmChanged = await ingestPendingBookmarks();
       const changed = await ingestPendingExamResult();
-      if (!changed) return;
+      if (!changed && !bmChanged) return;
       if (currentView === 'home') renderWorkspace();
       else if (currentView === 'analysis') renderTestAnalysisPage(currentAnalysisTestId);
+      else if (currentView === 'revision') renderRevisionPage();
       else renderPastResultsPage();
     }
 
     // Coming back from exam.html via bfcache / tab switch / another tab: pick up the result instantly
-    window.addEventListener('pageshow', (e) => { if (e.persisted) refreshFromPendingResult(); });
+    window.addEventListener('pageshow', (e) => { __ctLaunchingExam = false; if (e.persisted) refreshFromPendingResult(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFromPendingResult(); });
     window.addEventListener('storage', (e) => { if (e.key === 'CIVTREK_PENDING_RESULT' && e.newValue) refreshFromPendingResult(); });
 
@@ -3051,7 +3711,11 @@
       else launchExam(pendingReattemptTestId, 'reattempt_wrong', true);
     };
 
+    let __ctLaunchingExam = false;
     window.launchExam = async (testId, mode, isReattempt = false, opts = {}) => {
+      if (__ctLaunchingExam) return;
+      __ctLaunchingExam = true;
+      try {
       const test = sharedData.tests.find(t => t.id === testId);
       if (!test) {
         showToast("Test not found");
@@ -3108,7 +3772,9 @@
           defaultLang: prof.lang || 'eng',
           questionsJson: resolvedJson,
           photoURL: currentUser.photoURL || '',
-          savedAnswers
+          savedAnswers,
+          savedBookmarks: getMyUserData().bookmarks || [],
+          focusSolId: (opts && opts.focusSolId) ? opts.focusSolId : null
         });
         localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify(__payload));
       } catch (e) {
@@ -3125,6 +3791,9 @@
 
       window.__ctNav = true;
       window.location.href = "exam.html";
+      } finally {
+        if (!window.__ctNav) __ctLaunchingExam = false;
+      }
     };
 
     // ---------------- FOLDER CRUD ----------------
@@ -3267,6 +3936,18 @@
         let autoMeta = { qCount: 0, duration: 60, totalMarks: 0, scheme: '', calc: false };
 
         if (file) {
+          if (editId && existing && existing.githubFilePath) {
+            const okReplace = await showCtConfirm(
+              "Replace the existing question JSON file with the new one? Old file will be removed from GitHub.",
+              "Replace & Save",
+              false
+            );
+            if (!okReplace) {
+              btn.disabled = false;
+              btn.textContent = "Save Test";
+              return;
+            }
+          }
           if (!isGithubReady()) {
             showToast("Connect GitHub first");
             btn.disabled = false;
