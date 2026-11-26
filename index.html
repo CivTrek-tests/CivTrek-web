@@ -590,6 +590,38 @@
       <div id="revisionListContainer" class="space-y-3"></div>
     </main>
 
+    <!-- VIEW E: SYLLABUS COVERAGE TRACKER -->
+    <main id="syllabusView" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-20 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button onclick="showHomeView()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm">
+            ←
+          </button>
+          <div>
+            <h1 class="text-lg sm:text-xl font-extrabold text-navy leading-tight">Syllabus Coverage</h1>
+            <p class="text-[11px] font-semibold text-slate-400">📖 Read = 50% · ✅ Tested = 100%</p>
+          </div>
+        </div>
+        <button onclick="openSyllabusSubjectModal()"
+          class="px-4 py-2 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">
+          + Add Subject
+        </button>
+      </div>
+
+      <!-- Head-to-Head -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 space-y-3.5">
+        <div class="sched-pill-track max-w-md" role="tablist" aria-label="Filter syllabus by subject type">
+          <button type="button" id="sylDomAll" onclick="setSyllabusDomain('all')" class="sched-pill-btn active">All</button>
+          <button type="button" id="sylDomTechnical" onclick="setSyllabusDomain('technical')" class="sched-pill-btn">Technical</button>
+          <button type="button" id="sylDomNontechnical" onclick="setSyllabusDomain('nontechnical')" class="sched-pill-btn">Non-Technical</button>
+        </div>
+        <div id="sylH2H"></div>
+      </div>
+
+      <div id="syllabusContentArea" class="space-y-3"></div>
+    </main>
+
     <!-- Single Floating '+' Action Button -->
     <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
       <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
@@ -675,6 +707,17 @@
           </div>
         </button>
 
+
+        <button onclick="openSyllabusCoveragePage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base">📚</span>
+            <span class="font-bold text-sm text-slate-800">Syllabus Coverage</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="drawerSyllabusPct" class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">0%</span>
+            <span class="text-slate-400">›</span>
+          </div>
+        </button>
 
         <button onclick="closeDrawer(); openCalendarModal();" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
           <div class="flex items-center gap-3">
@@ -1016,6 +1059,40 @@
     </div>
   </div>
 
+  <!-- Syllabus Coverage: add / edit / bulk-add modal -->
+  <div id="syllabusFormModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
+    <form onsubmit="saveSyllabusForm(event)" class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-navy animate-pop space-y-4">
+      <div>
+        <h3 id="sylFormTitle" class="text-lg font-extrabold text-navy">Add Subject</h3>
+        <p id="sylFormSub" class="text-[11px] font-semibold text-slate-400"></p>
+      </div>
+      <div id="sylNameGroup">
+        <label id="sylNameLabel" for="sylNameInput" class="block text-xs font-bold text-slate-600 mb-1">Subject name</label>
+        <input id="sylNameInput" type="text" maxlength="120" autocomplete="off"
+          class="w-full px-3.5 py-2.5 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
+      </div>
+      <div id="sylDomainGroup">
+        <label for="sylDomainInput" class="block text-xs font-bold text-slate-600 mb-1">Type</label>
+        <select id="sylDomainInput"
+          class="w-full py-2.5 px-3 text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none focus:border-navy">
+          <option value="technical">Technical</option>
+          <option value="nontechnical">Non-Technical</option>
+        </select>
+      </div>
+      <div id="sylChaptersGroup">
+        <label for="sylChaptersInput" class="block text-xs font-bold text-slate-600 mb-1">Chapters <span class="font-semibold text-slate-400">(one per line, blank lines are skipped)</span></label>
+        <textarea id="sylChaptersInput" rows="7" placeholder="Chapter 1&#10;Chapter 2&#10;Chapter 3"
+          class="w-full px-3.5 py-2.5 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy"></textarea>
+      </div>
+      <div class="flex justify-end gap-2.5 pt-1">
+        <button type="button" onclick="closeModal('syllabusFormModal')"
+          class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">Cancel</button>
+        <button type="submit" id="sylFormSaveBtn"
+          class="px-6 py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">Save</button>
+      </div>
+    </form>
+  </div>
+
   <!-- CivTrek Custom Confirm Dialog -->
   <div id="ctConfirmModal" onclick="if(event.target===this) resolveCtConfirm(false)"
     class="hidden fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center p-4">
@@ -1046,7 +1123,7 @@
   <!-- 6. APPLICATION LOGIC -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -1069,6 +1146,11 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
+    // Keep the Firebase session in localStorage so it survives tab closes, backgrounding and
+    // device restarts until the user explicitly taps Logout. Must finish BEFORE auth listeners start.
+    const authPersistenceReady = setPersistence(auth, browserLocalPersistence)
+      .catch((e) => { console.warn("Auth persistence setup failed:", e); });
+
     let currentUser = null;
     let folderPath = [];
     let currentView = 'home';
@@ -1077,6 +1159,7 @@
     let activeScheduleTab = 'today';
     let resultsVisibleLimit = 10;
     let resultsScopeFilter = 'all';
+    let syllabusDomainFilter = 'all';
     let expandedResultIds = new Set();
     const NAV_STATE_KEY = 'CIVTREK_NAV_STATE_V1';
 
@@ -1087,6 +1170,7 @@
           folderPath: folderPath,
           analysisTestId: currentAnalysisTestId,
           analysisDomain: analysisDomainFilter,
+          syllabusDomain: syllabusDomainFilter,
           scheduleTab: activeScheduleTab
         }));
       } catch (e) {}
@@ -1103,6 +1187,9 @@
         }
         if (st.analysisDomain && ['all', 'technical', 'nontechnical'].includes(st.analysisDomain)) {
           analysisDomainFilter = st.analysisDomain;
+        }
+        if (st.syllabusDomain && ['all', 'technical', 'nontechnical'].includes(st.syllabusDomain)) {
+          syllabusDomainFilter = st.syllabusDomain;
         }
         if (Array.isArray(st.folderPath)) {
           const validPath = [];
@@ -1123,6 +1210,10 @@
         }
         if (st.view === 'revision') {
           openRevisionPage();
+          return true;
+        }
+        if (st.view === 'syllabus') {
+          openSyllabusCoveragePage();
           return true;
         }
         showHomeView();
@@ -1147,6 +1238,7 @@
     const STORAGE_KEY = 'CIVTREK_PORTAL_SHARED_V12';
     const USER_DATA_KEY_PREFIX = 'CIVTREK_USER_DATA_V12_';
     const GH_LOCAL_KEY = 'CIVTREK_GH_CONFIG_V1';
+    const SYLLABUS_PROG_KEY = 'CIVTREK_SYLLABUS_PROG_V1_';
 
     // Test-type categories that live inside each domain (Technical / Non-Technical)
     const CATEGORY_DEFS = [
@@ -1175,7 +1267,8 @@
           { id: 'root_tech', parentId: null, domain: 'technical', name: 'Technical', desc: 'Civil Engineering', isRootDomain: true },
           { id: 'root_nontech', parentId: null, domain: 'nontechnical', name: 'Non-Technical', desc: 'GS & Mental Ability', isRootDomain: true }
         ],
-        tests: []
+        tests: [],
+        syllabusSubjects: []
       };
     }
 
@@ -1280,6 +1373,37 @@
       return Array.from(map.values()).sort((x, y) => (y.savedAt || 0) - (x.savedAt || 0));
     }
 
+    // Syllabus progress: { [chapterId]: { s: 0|1|2, t: timestamp, p?: statusBeforeTested } }.
+    // Merged per chapter by newest timestamp, so un-ticking (s:0) also wins over older remote ticks.
+    function mergeSyllabusProgress(a, b) {
+      const out = {};
+      [a, b].forEach(src => {
+        if (!src || typeof src !== 'object') return;
+        Object.keys(src).forEach(k => {
+          const e = src[k];
+          if (!e || typeof e !== 'object') return;
+          const st = Number(e.s);
+          if (![0, 1, 2].includes(st)) return;
+          const t = Number(e.t) || 0;
+          const prev = out[k];
+          if (!prev || t > prev.t || (t === prev.t && st > prev.s)) {
+            const o = { s: st, t };
+            if (st === 2) o.p = Number(e.p) === 1 ? 1 : 0;
+            out[k] = o;
+          }
+        });
+      });
+      return out;
+    }
+
+    function readLocalSyllabusProgress(emailLower) {
+      try {
+        const raw = localStorage.getItem(SYLLABUS_PROG_KEY + String(emailLower || '').toLowerCase());
+        const obj = raw ? JSON.parse(raw) : {};
+        return mergeSyllabusProgress(obj, null);
+      } catch (e) { return {}; }
+    }
+
     function loadSharedLocal() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -1290,8 +1414,11 @@
 
     function getMyUserData() {
       const key = (currentUser?.email || '').toLowerCase();
-      if (!usersDataMap[key]) usersDataMap[key] = { results: [], bookmarks: [] };
+      if (!usersDataMap[key]) usersDataMap[key] = { results: [], bookmarks: [], syllabusProgress: readLocalSyllabusProgress(key) };
       if (!Array.isArray(usersDataMap[key].bookmarks)) usersDataMap[key].bookmarks = [];
+      if (!usersDataMap[key].syllabusProgress || typeof usersDataMap[key].syllabusProgress !== 'object') {
+        usersDataMap[key].syllabusProgress = readLocalSyllabusProgress(key);
+      }
       return usersDataMap[key];
     }
 
@@ -1394,6 +1521,7 @@
       try {
         localStorage.setItem(USER_DATA_KEY_PREFIX + emailDocKey(key), JSON.stringify({ results: myData.results }));
         localStorage.setItem('CIVTREK_BOOKMARKS_V1_' + key, JSON.stringify(myData.bookmarks || []));
+        localStorage.setItem(SYLLABUS_PROG_KEY + key, JSON.stringify(myData.syllabusProgress || {}));
       } catch (e) {}
       try {
         const ref = doc(db, "civtrek_portal", "user_" + emailDocKey(key));
@@ -1402,7 +1530,11 @@
           myData.results = mergeResultLists(snap.data().results, myData.results);
           myData.bookmarks = mergeBookmarkLists(snap.data().bookmarks, myData.bookmarks);
         }
-        await setDoc(ref, { results: myData.results, bookmarks: myData.bookmarks || [] }, { merge: true });
+        // Syllabus progress is always merged (never replaced) so a stale device can't wipe newer ticks
+        myData.syllabusProgress = mergeSyllabusProgress(snap.exists() ? snap.data().syllabusProgress : null, myData.syllabusProgress);
+        try { localStorage.setItem(SYLLABUS_PROG_KEY + key, JSON.stringify(myData.syllabusProgress)); } catch (e) {}
+        // Only ever writes the CURRENT user's own doc; the partner's doc is never touched
+        await setDoc(ref, { results: myData.results, bookmarks: myData.bookmarks || [], syllabusProgress: myData.syllabusProgress }, { merge: true });
       } catch (e) {
         console.warn("Firestore user save error:", e);
       }
@@ -1415,14 +1547,18 @@
         const memResults = usersDataMap[key]?.results || [];
         const localBm = readLocalUserBookmarks(key);
         const memBm = usersDataMap[key]?.bookmarks || [];
+        const localProg = readLocalSyllabusProgress(key);
+        const memProg = usersDataMap[key]?.syllabusProgress || {};
         try {
           const uSnap = await getDoc(doc(db, "civtrek_portal", "user_" + emailDocKey(key)));
           const remote = uSnap.exists() ? uSnap.data().results : [];
           const remoteBm = uSnap.exists() ? uSnap.data().bookmarks : [];
+          const remoteProg = uSnap.exists() ? uSnap.data().syllabusProgress : {};
           const mergedBm = mergeBookmarkLists(mergeBookmarkLists(remoteBm, localBm), memBm);
           usersDataMap[key] = {
             results: mergeResultLists(mergeResultLists(remote, localResults), memResults),
-            bookmarks: mergedBm
+            bookmarks: mergedBm,
+            syllabusProgress: mergeSyllabusProgress(mergeSyllabusProgress(remoteProg, localProg), memProg)
           };
           if (currentUser && key === currentUser.email.toLowerCase()) {
             try { localStorage.setItem('CIVTREK_BOOKMARKS_V1_' + key, JSON.stringify(mergedBm)); } catch (e) {}
@@ -1430,10 +1566,12 @@
         } catch (e) {
           usersDataMap[key] = {
             results: mergeResultLists(localResults, memResults),
-            bookmarks: mergeBookmarkLists(localBm, memBm)
+            bookmarks: mergeBookmarkLists(localBm, memBm),
+            syllabusProgress: mergeSyllabusProgress(localProg, memProg)
           };
         }
       }));
+      try { updateDrawerSyllabusBadge(); } catch (e) {}
     }
 
     async function syncAllFromFirestore() {
@@ -2338,6 +2476,7 @@
     // ---------------- AUTH ----------------
     window.handleGoogleSignIn = async () => {
       try {
+        await authPersistenceReady;
         await signInWithPopup(auth, provider);
       } catch (err) {
         showToast("Login failed");
@@ -2357,6 +2496,7 @@
           if (currentUser && !document.getElementById('appShell').classList.contains('hidden')) {
             try { renderWorkspace(); } catch (e) {}
             try { renderHomeDashboardWidgets(); } catch (e) {}
+            try { refreshSyllabusUI(); } catch (e) {}
           }
         }, (err) => console.warn("Live sync error:", err));
       } catch (e) { console.warn("Live sync not started:", e); }
@@ -2367,38 +2507,86 @@
       if (sp) sp.style.display = 'none';
     }
 
-    setTimeout(() => {
-      const sp = document.getElementById('authSplash');
-      if (sp && sp.style.display !== 'none') {
-        document.getElementById('loginScreen').classList.remove('hidden');
-        hideAuthSplash();
-      }
-    }, 8000);
+    // The old 8s "show login if Firebase is slow" timeout was removed on purpose: login is only shown once
+    // Firebase has really reported "no user", so a slow session restore can no longer look like a logout.
+    let lastAuthRecoveryAt = 0;
+    let authEventSeq = 0;
+    let explicitLogout = false;
+    let deniedSignOutPending = false;
+    const AUTH_RECHECK_MS = 1500;
+    const AUTH_RECOVERY_WINDOW_MS = 10000;
+    const markAuthRecovery = () => { lastAuthRecoveryAt = Date.now(); };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) markAuthRecovery(); });
+    window.addEventListener('online', markAuthRecovery);
+    window.addEventListener('pageshow', (e) => { if (e.persisted) markAuthRecovery(); });
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        if (ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
-          currentUser = user;
-          await syncAllFromFirestore();
-          await loadGithubFromFirestore(user.email);
-          await ingestPendingExamResult();
-          await ingestPendingBookmarks();
-          await pruneOwnOrphanResults();
-          enterAuthenticatedApp(user);
-          startSharedListener();
-        } else {
-          document.getElementById('deniedEmailText').textContent = user.email;
-          await signOut(auth);
-          document.getElementById('loginScreen').classList.add('hidden');
-          document.getElementById('appShell').classList.add('hidden');
-          document.getElementById('deniedScreen').classList.remove('hidden');
-        }
+    async function handleSignedInUser(user) {
+      explicitLogout = false;
+      if (ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
+        currentUser = user;
+        await syncAllFromFirestore();
+        await loadGithubFromFirestore(user.email);
+        await ingestPendingExamResult();
+        await ingestPendingBookmarks();
+        await pruneOwnOrphanResults();
+        enterAuthenticatedApp(user);
+        startSharedListener();
       } else {
-        document.getElementById('loginScreen').classList.remove('hidden');
+        deniedSignOutPending = true;
+        document.getElementById('deniedEmailText').textContent = user.email;
+        await signOut(auth);
+        document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('appShell').classList.add('hidden');
+        document.getElementById('deniedScreen').classList.remove('hidden');
       }
-      hideAuthSplash();
-    });
+    }
+
+    function handleSignedOutConfirmed() {
+      if (currentUser) {
+        try { stopPresenceTracking(); } catch (e) {}
+        if (sharedUnsub) { try { sharedUnsub(); } catch (e) {} sharedUnsub = null; }
+        try { stopPartnerProgressListener(); } catch (e) {}
+        currentUser = null;
+      }
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('appShell').classList.add('hidden');
+    }
+
+    function initAuthListener() {
+      onAuthStateChanged(auth, async (user) => {
+        const seq = ++authEventSeq;
+        if (user) {
+          try { await handleSignedInUser(user); }
+          catch (e) { console.warn("Sign-in flow error:", e); }
+          finally { hideAuthSplash(); }
+          return;
+        }
+        if (deniedSignOutPending) { deniedSignOutPending = false; hideAuthSplash(); return; }
+        if (explicitLogout) { handleSignedOutConfirmed(); hideAuthSplash(); return; }
+
+        // A null user can be transient (tab resumed, network back, token refresh in flight).
+        // Wait ~1.5s and re-check before leaving #authSplash / #appShell for #loginScreen.
+        const recovering = (Date.now() - lastAuthRecoveryAt) < AUTH_RECOVERY_WINDOW_MS;
+        if (auth.currentUser || currentUser || recovering) {
+          await new Promise(r => setTimeout(r, AUTH_RECHECK_MS));
+          if (seq !== authEventSeq) return; // a newer auth event took over
+          if (auth.currentUser) {
+            const sameUser = currentUser && currentUser.email && auth.currentUser.email &&
+              currentUser.email.toLowerCase() === auth.currentUser.email.toLowerCase();
+            if (!sameUser) {
+              try { await handleSignedInUser(auth.currentUser); }
+              catch (e) { console.warn("Sign-in recovery error:", e); }
+            }
+            hideAuthSplash();
+            return;
+          }
+        }
+        handleSignedOutConfirmed();
+        hideAuthSplash();
+      });
+    }
+    // Only start listening once persistence is configured
+    authPersistenceReady.then(initAuthListener);
 
     // ---------------- PARTNER LIVE PRESENCE (OPTION A: FIRESTORE) ----------------
     let presenceUnsub = null;
@@ -2522,6 +2710,8 @@
       renderExamCountdownsStrip();
       startPresenceTracking();
       updateDrawerBookmarkBadge();
+      startPartnerProgressListener();
+      updateDrawerSyllabusBadge();
       if (!restoreNavState()) showHomeView();
     }
 
@@ -2536,6 +2726,8 @@
       await writeMyPresence(false);
       stopPresenceTracking();
       if (sharedUnsub) { try { sharedUnsub(); } catch (e) {} sharedUnsub = null; }
+      stopPartnerProgressListener();
+      explicitLogout = true;
       await signOut(auth);
       currentUser = null;
       document.getElementById('appShell').classList.add('hidden');
@@ -2596,6 +2788,7 @@
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
+      document.getElementById('syllabusView').classList.add('hidden');
       document.getElementById('homeView').classList.remove('hidden');
       document.getElementById('searchToggleBtn').classList.remove('hidden');
       document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
@@ -2613,6 +2806,7 @@
       document.getElementById('homeView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
+      document.getElementById('syllabusView').classList.add('hidden');
       document.getElementById('resultsView').classList.remove('hidden');
       saveNavState();
       resultsVisibleLimit = 10;
@@ -2633,6 +2827,7 @@
       document.getElementById('homeView').classList.add('hidden');
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
+      document.getElementById('syllabusView').classList.add('hidden');
       const av = document.getElementById('analysisView');
       av.classList.remove('hidden');
       av.classList.remove('view-fade'); void av.offsetWidth; av.classList.add('view-fade');
@@ -2672,6 +2867,7 @@
       document.getElementById('homeView').classList.add('hidden');
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
+      document.getElementById('syllabusView').classList.add('hidden');
       const rv = document.getElementById('revisionView');
       rv.classList.remove('hidden');
       rv.classList.remove('view-fade'); void rv.offsetWidth; rv.classList.add('view-fade');
@@ -4114,6 +4310,389 @@
       window.addEventListener('afterprint', cleanup);
       setTimeout(cleanup, 60000);
       setTimeout(() => window.print(), 80);
+    };
+
+    // ---------------- SYLLABUS COVERAGE TRACKER ----------------
+    const syllabusExpanded = new Set();
+    let syllabusFormState = { mode: '', subjectId: null, chapterId: null };
+    let sylIdSeq = 0;
+    let sylPersistTimer = null;
+    let partnerProgUnsub = null;
+
+    function newSylId(prefix) {
+      return `${prefix}_${Date.now().toString(36)}${(sylIdSeq++).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+    }
+
+    function getSyllabusSubjects() {
+      if (!Array.isArray(sharedData.syllabusSubjects)) sharedData.syllabusSubjects = [];
+      return sharedData.syllabusSubjects;
+    }
+
+    function sylStatusOf(email, chId) {
+      const key = String(email || '').toLowerCase();
+      const me = (currentUser?.email || '').toLowerCase();
+      const u = key === me ? getMyUserData() : usersDataMap[key];
+      const e = u && u.syllabusProgress && u.syllabusProgress[chId];
+      const st = e ? Number(e.s) : 0;
+      return st === 2 ? 2 : (st === 1 ? 1 : 0);
+    }
+
+    const sylStatusPct = (st) => (st === 2 ? 100 : (st === 1 ? 50 : 0));
+
+    function sylCoverage(email, subjects) {
+      let total = 0, sum = 0;
+      subjects.forEach(sub => (sub.chapters || []).forEach(ch => {
+        total++;
+        sum += sylStatusPct(sylStatusOf(email, ch.id));
+      }));
+      return total ? Math.round(sum / total) : 0;
+    }
+
+    function sylFilteredSubjects() {
+      const all = getSyllabusSubjects();
+      return syllabusDomainFilter === 'all' ? all : all.filter(sub => sub.domain === syllabusDomainFilter);
+    }
+
+    function updateDrawerSyllabusBadge() {
+      const el = document.getElementById('drawerSyllabusPct');
+      if (!el || !currentUser) return;
+      el.textContent = sylCoverage(currentUser.email, getSyllabusSubjects()) + '%';
+    }
+
+    function refreshSyllabusUI() {
+      updateDrawerSyllabusBadge();
+      if (currentView === 'syllabus' && !document.getElementById('syllabusView').classList.contains('hidden')) renderSyllabusPage();
+    }
+
+    // Live partner progress (read-only listener on the partner's doc; we never write to it)
+    function stopPartnerProgressListener() {
+      if (partnerProgUnsub) { try { partnerProgUnsub(); } catch (e) {} partnerProgUnsub = null; }
+    }
+
+    function startPartnerProgressListener() {
+      stopPartnerProgressListener();
+      const pe = getPartnerEmail();
+      if (!pe) return;
+      const key = pe.toLowerCase();
+      try {
+        partnerProgUnsub = onSnapshot(doc(db, "civtrek_portal", "user_" + emailDocKey(key)), (snap) => {
+          if (!snap.exists()) return;
+          if (!usersDataMap[key]) usersDataMap[key] = { results: [], bookmarks: [], syllabusProgress: {} };
+          usersDataMap[key].syllabusProgress = mergeSyllabusProgress(snap.data().syllabusProgress, null);
+          refreshSyllabusUI();
+        }, (err) => console.warn("Partner progress sync error:", err));
+      } catch (e) { console.warn("Partner progress listener not started:", e); }
+    }
+
+    function scheduleSyllabusPersist() {
+      clearTimeout(sylPersistTimer);
+      sylPersistTimer = setTimeout(() => { sylPersistTimer = null; persistMyUserData().catch(() => {}); }, 700);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && sylPersistTimer) {
+        clearTimeout(sylPersistTimer);
+        sylPersistTimer = null;
+        persistMyUserData().catch(() => {});
+      }
+    });
+
+    function setMyChapterStatus(chId, next, prevForTested) {
+      const my = getMyUserData();
+      const entry = { s: next, t: Date.now() };
+      if (next === 2) entry.p = prevForTested === 1 ? 1 : 0;
+      my.syllabusProgress[chId] = entry;
+      try { localStorage.setItem(SYLLABUS_PROG_KEY + currentUser.email.toLowerCase(), JSON.stringify(my.syllabusProgress)); } catch (e) {}
+      scheduleSyllabusPersist();
+      refreshSyllabusUI();
+    }
+
+    // 📖 Read: 0 <-> 1 (a Tested chapter drops back to Read-only)
+    window.toggleChapterRead = (chId) => {
+      const cur = sylStatusOf(currentUser.email, chId);
+      setMyChapterStatus(chId, cur === 0 ? 1 : (cur === 1 ? 0 : 1));
+    };
+
+    // ✅ Tested: sets 2 (counts as read); tapping again reverts to what it was before (1 or 0)
+    window.toggleChapterTested = (chId) => {
+      const cur = sylStatusOf(currentUser.email, chId);
+      if (cur === 2) {
+        const e = getMyUserData().syllabusProgress[chId];
+        setMyChapterStatus(chId, Number(e && e.p) === 1 ? 1 : 0);
+      } else {
+        setMyChapterStatus(chId, 2, cur);
+      }
+    };
+
+    window.openSyllabusCoveragePage = () => {
+      closeDrawer();
+      currentView = 'syllabus';
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      document.getElementById('searchToggleBtn').classList.add('hidden');
+      document.getElementById('fabContainer').classList.add('hidden');
+      ['homeView', 'resultsView', 'analysisView', 'revisionView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      const v = document.getElementById('syllabusView');
+      v.classList.remove('hidden');
+      v.classList.remove('view-fade'); void v.offsetWidth; v.classList.add('view-fade');
+      saveNavState();
+      renderSyllabusPage();
+      loadAllUsersData().then(() => {
+        if (currentView === 'syllabus' && !v.classList.contains('hidden')) renderSyllabusPage();
+      });
+    };
+
+    window.setSyllabusDomain = (dom) => {
+      if (!['all', 'technical', 'nontechnical'].includes(dom)) return;
+      syllabusDomainFilter = dom;
+      saveNavState();
+      renderSyllabusPage();
+    };
+
+    window.toggleSyllabusSubject = (id) => {
+      if (syllabusExpanded.has(id)) syllabusExpanded.delete(id); else syllabusExpanded.add(id);
+      renderSyllabusPage();
+    };
+
+    function sylPartnerLabel(st) {
+      if (st === 2) return '<span class="text-emerald-600">Partner: ✅ Tested</span>';
+      if (st === 1) return '<span class="text-amber-600">Partner: 📖 Read</span>';
+      return '<span class="text-slate-400">Partner: —</span>';
+    }
+
+    function sylBar(pct, colorCls) {
+      return `<div class="h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full ${colorCls}" style="width:${pct}%"></div></div>`;
+    }
+
+    function renderSyllabusPage() {
+      const area = document.getElementById('syllabusContentArea');
+      const h2h = document.getElementById('sylH2H');
+      if (!area || !h2h || !currentUser) return;
+
+      const domMap = { all: 'sylDomAll', technical: 'sylDomTechnical', nontechnical: 'sylDomNontechnical' };
+      Object.entries(domMap).forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', syllabusDomainFilter === k);
+      });
+
+      const me = currentUser.email.toLowerCase();
+      const pe = getPartnerEmail();
+      const subs = sylFilteredSubjects();
+      const myPct = sylCoverage(me, subs);
+      const ptPct = pe ? sylCoverage(pe, subs) : 0;
+      const ptName = (pe && sharedData.profiles && sharedData.profiles[pe] && sharedData.profiles[pe].name) || '';
+      const meLead = myPct > ptPct, ptLead = ptPct > myPct;
+      const diff = Math.abs(myPct - ptPct);
+      const verdict = meLead ? `You lead by ${diff} pt${diff === 1 ? '' : 's'}` : (ptLead ? `Partner leads by ${diff} pt${diff === 1 ? '' : 's'}` : 'Neck and neck');
+
+      h2h.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl p-3.5 border ${meLead ? 'border-brandOrange bg-brandOrange-light/60' : 'border-slate-200 bg-paper'}">
+            <div class="flex items-center justify-between text-xs font-extrabold text-navy"><span>You</span>${meLead ? '<span class="text-base leading-none">👑</span>' : ''}</div>
+            <div class="text-2xl font-extrabold text-navy mt-1">${myPct}%</div>
+            <div class="mt-2">${sylBar(myPct, 'bg-navy')}</div>
+          </div>
+          <div class="rounded-2xl p-3.5 border ${ptLead ? 'border-brandOrange bg-brandOrange-light/60' : 'border-slate-200 bg-paper'}">
+            <div class="flex items-center justify-between text-xs font-extrabold text-navy"><span class="truncate">Partner${ptName ? ` <span class="font-semibold text-slate-400">· ${escapeHtml(ptName.split(' ')[0])}</span>` : ''}</span>${ptLead ? '<span class="text-base leading-none">👑</span>' : ''}</div>
+            <div class="text-2xl font-extrabold text-brandOrange-deep mt-1">${ptPct}%</div>
+            <div class="mt-2">${sylBar(ptPct, 'bg-brandOrange')}</div>
+          </div>
+        </div>
+        <p class="text-center text-[11px] font-bold text-slate-400 mt-2.5">${verdict}</p>`;
+
+      if (!subs.length) {
+        area.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">📚</div><p class="text-sm font-bold text-slate-600">No subjects added yet</p><p class="text-xs text-slate-400 mt-1">Tap “+ Add Subject” to build the shared syllabus for both of you.</p></div>`;
+        return;
+      }
+      area.innerHTML = subs.map(sub => renderSyllabusSubjectCard(sub, me, pe)).join('');
+    }
+
+    function renderSyllabusSubjectCard(sub, me, pe) {
+      const chs = Array.isArray(sub.chapters) ? sub.chapters : [];
+      const myPct = sylCoverage(me, [sub]);
+      const ptPct = pe ? sylCoverage(pe, [sub]) : 0;
+      const open = syllabusExpanded.has(sub.id);
+      const sid = escapeHtml(sub.id);
+      const testedCnt = chs.filter(ch => sylStatusOf(me, ch.id) === 2).length;
+      const domCls = sub.domain === 'technical' ? 'bg-navy-light text-navy' : 'bg-brandOrange-light text-brandOrange-deep';
+      const domLbl = sub.domain === 'technical' ? 'Technical' : 'Non-Technical';
+
+      const rows = open ? (chs.length ? chs.map(ch => {
+        const cid = escapeHtml(ch.id);
+        const mySt = sylStatusOf(me, ch.id);
+        const ptSt = pe ? sylStatusOf(pe, ch.id) : 0;
+        const readCls = mySt >= 1 ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-500 hover:border-navy';
+        const testCls = mySt === 2 ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-emerald-500';
+        return `
+          <div class="px-4 py-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-sm font-bold text-slate-800 break-words">${escapeHtml(ch.name)}</div>
+              <div class="text-[10px] font-bold mt-0.5">${sylPartnerLabel(ptSt)}</div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" aria-pressed="${mySt >= 1}" onclick="toggleChapterRead('${cid}')" class="px-3 py-1.5 rounded-xl border text-[11px] font-extrabold transition ${readCls}">📖 Read</button>
+              <button type="button" aria-pressed="${mySt === 2}" onclick="toggleChapterTested('${cid}')" class="px-3 py-1.5 rounded-xl border text-[11px] font-extrabold transition ${testCls}">✅ Tested</button>
+              <button type="button" aria-label="Rename chapter" onclick="openSyllabusChapterEditModal('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
+              <button type="button" aria-label="Delete chapter" onclick="deleteSyllabusChapter('${sid}','${cid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
+            </div>
+          </div>`;
+      }).join('') : `<div class="px-4 py-4 border-t border-slate-100 text-xs font-semibold text-slate-400">No chapters yet — use “+ Chapters” to bulk-add.</div>`) : '';
+
+      return `
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div class="p-4 flex items-start justify-between gap-3">
+            <button type="button" onclick="toggleSyllabusSubject('${sid}')" class="min-w-0 flex-1 text-left">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] text-slate-400">${open ? '▼' : '▶'}</span>
+                <span class="text-sm font-extrabold text-navy break-words">${escapeHtml(sub.name)}</span>
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold ${domCls}">${domLbl}</span>
+              </div>
+              <div class="text-[11px] font-semibold text-slate-400 mt-1">${chs.length} chapter${chs.length === 1 ? '' : 's'} · ${testedCnt} tested by you</div>
+              <div class="grid grid-cols-2 gap-3 mt-2.5">
+                <div><div class="flex justify-between text-[10px] font-extrabold text-navy mb-1"><span>You</span><span>${myPct}%</span></div>${sylBar(myPct, 'bg-navy')}</div>
+                <div><div class="flex justify-between text-[10px] font-extrabold text-brandOrange-deep mb-1"><span>Partner</span><span>${ptPct}%</span></div>${sylBar(ptPct, 'bg-brandOrange')}</div>
+              </div>
+            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="openSyllabusBulkModal('${sid}')" class="px-2.5 h-8 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition">+ Chapters</button>
+              <button type="button" aria-label="Edit subject" onclick="openSyllabusSubjectModal('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-navy-light text-xs transition">✏️</button>
+              <button type="button" aria-label="Delete subject" onclick="deleteSyllabusSubject('${sid}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-100 text-xs transition">🗑️</button>
+            </div>
+          </div>
+          ${rows}
+        </div>`;
+    }
+
+    // ---- structure editing (shared, synced through shared_state_v12 merge writes) ----
+    async function persistSyllabusStructure() {
+      const ok = await persistSharedFields({ syllabusSubjects: getSyllabusSubjects() });
+      if (!ok) showToast("Saved on this device, but cloud sync failed");
+      refreshSyllabusUI();
+      return ok;
+    }
+
+    function sylParseChapterLines(text) {
+      return String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    }
+
+    function sylSetFormLayout(mode) {
+      const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+      show('sylNameGroup', mode === 'addSubject' || mode === 'editSubject' || mode === 'editChapter');
+      show('sylDomainGroup', mode === 'addSubject' || mode === 'editSubject');
+      show('sylChaptersGroup', mode === 'addSubject' || mode === 'bulkChapters');
+      document.getElementById('sylNameLabel').textContent = mode === 'editChapter' ? 'Chapter name' : 'Subject name';
+    }
+
+    function sylOpenForm(mode, title, sub, saveLabel) {
+      syllabusFormState.mode = mode;
+      sylSetFormLayout(mode);
+      document.getElementById('sylFormTitle').textContent = title;
+      document.getElementById('sylFormSub').textContent = sub || '';
+      document.getElementById('sylFormSaveBtn').textContent = saveLabel;
+      document.getElementById('syllabusFormModal').classList.remove('hidden');
+      setTimeout(() => {
+        const f = document.getElementById(mode === 'bulkChapters' ? 'sylChaptersInput' : 'sylNameInput');
+        if (f) f.focus();
+      }, 60);
+    }
+
+    window.openSyllabusSubjectModal = (subjectId = null) => {
+      const sub = subjectId ? getSyllabusSubjects().find(x => x.id === subjectId) : null;
+      if (subjectId && !sub) return;
+      syllabusFormState = { mode: '', subjectId: sub ? sub.id : null, chapterId: null };
+      document.getElementById('sylNameInput').value = sub ? sub.name : '';
+      document.getElementById('sylChaptersInput').value = '';
+      document.getElementById('sylDomainInput').value = sub ? sub.domain : (syllabusDomainFilter === 'nontechnical' ? 'nontechnical' : 'technical');
+      if (sub) sylOpenForm('editSubject', 'Edit Subject', 'Rename it or change its type', 'Save');
+      else sylOpenForm('addSubject', 'Add Subject', 'Shared with your partner — you each track your own progress', 'Add Subject');
+    };
+
+    window.openSyllabusBulkModal = (subjectId) => {
+      const sub = getSyllabusSubjects().find(x => x.id === subjectId);
+      if (!sub) return;
+      syllabusFormState = { mode: '', subjectId: sub.id, chapterId: null };
+      document.getElementById('sylChaptersInput').value = '';
+      sylOpenForm('bulkChapters', 'Add Chapters', sub.name, 'Add Chapters');
+    };
+
+    window.openSyllabusChapterEditModal = (subjectId, chapterId) => {
+      const sub = getSyllabusSubjects().find(x => x.id === subjectId);
+      const ch = sub && (sub.chapters || []).find(c => c.id === chapterId);
+      if (!ch) return;
+      syllabusFormState = { mode: '', subjectId, chapterId };
+      document.getElementById('sylNameInput').value = ch.name;
+      sylOpenForm('editChapter', 'Rename Chapter', sub.name, 'Save');
+    };
+
+    window.saveSyllabusForm = async (e) => {
+      e.preventDefault();
+      const st = syllabusFormState;
+      const subjects = getSyllabusSubjects();
+      const name = document.getElementById('sylNameInput').value.trim();
+      const domain = document.getElementById('sylDomainInput').value === 'nontechnical' ? 'nontechnical' : 'technical';
+      const lines = sylParseChapterLines(document.getElementById('sylChaptersInput').value);
+      const mkChapters = (arr) => arr.map(n => ({ id: newSylId('ch'), name: n }));
+      let msg = 'Saved';
+
+      if (st.mode === 'addSubject') {
+        if (!name) { showToast("Enter a subject name"); return; }
+        const sub = { id: newSylId('sub'), domain, name, chapters: mkChapters(lines) };
+        subjects.push(sub);
+        syllabusExpanded.add(sub.id);
+        msg = lines.length ? `Subject added with ${lines.length} chapter${lines.length === 1 ? '' : 's'}` : 'Subject added';
+      } else if (st.mode === 'editSubject') {
+        const sub = subjects.find(x => x.id === st.subjectId);
+        if (!sub) { closeModal('syllabusFormModal'); return; }
+        if (!name) { showToast("Enter a subject name"); return; }
+        sub.name = name;
+        sub.domain = domain;
+      } else if (st.mode === 'bulkChapters') {
+        const sub = subjects.find(x => x.id === st.subjectId);
+        if (!sub) { closeModal('syllabusFormModal'); return; }
+        if (!lines.length) { showToast("Add at least one chapter (one per line)"); return; }
+        if (!Array.isArray(sub.chapters)) sub.chapters = [];
+        sub.chapters.push(...mkChapters(lines));
+        syllabusExpanded.add(sub.id);
+        msg = `${lines.length} chapter${lines.length === 1 ? '' : 's'} added`;
+      } else if (st.mode === 'editChapter') {
+        const sub = subjects.find(x => x.id === st.subjectId);
+        const ch = sub && (sub.chapters || []).find(c => c.id === st.chapterId);
+        if (!ch) { closeModal('syllabusFormModal'); return; }
+        if (!name) { showToast("Enter a chapter name"); return; }
+        ch.name = name;
+      } else {
+        return;
+      }
+      closeModal('syllabusFormModal');
+      renderSyllabusPage();
+      updateDrawerSyllabusBadge();
+      await persistSyllabusStructure();
+      showToast(msg);
+    };
+
+    window.deleteSyllabusSubject = async (subjectId) => {
+      const sub = getSyllabusSubjects().find(x => x.id === subjectId);
+      if (!sub) return;
+      const n = (sub.chapters || []).length;
+      const ok = await showCtConfirm(`Delete “${sub.name}” and its ${n} chapter${n === 1 ? '' : 's'} for both of you? Progress on these chapters will no longer be counted.`, 'Delete', true);
+      if (!ok) return;
+      sharedData.syllabusSubjects = getSyllabusSubjects().filter(x => x.id !== subjectId);
+      syllabusExpanded.delete(subjectId);
+      renderSyllabusPage();
+      updateDrawerSyllabusBadge();
+      await persistSyllabusStructure();
+      showToast("Subject deleted");
+    };
+
+    window.deleteSyllabusChapter = async (subjectId, chapterId) => {
+      const sub = getSyllabusSubjects().find(x => x.id === subjectId);
+      const ch = sub && (sub.chapters || []).find(c => c.id === chapterId);
+      if (!ch) return;
+      const ok = await showCtConfirm(`Delete chapter “${ch.name}” for both of you?`, 'Delete', true);
+      if (!ok) return;
+      sub.chapters = sub.chapters.filter(c => c.id !== chapterId);
+      renderSyllabusPage();
+      updateDrawerSyllabusBadge();
+      await persistSyllabusStructure();
+      showToast("Chapter deleted");
     };
 
     // ---------------- SIDEBAR DRAWER & PROFILE ----------------
