@@ -143,6 +143,10 @@
       border-radius: 999px;
       animation: ctNewFlash 1.3s ease-in-out infinite;
     }
+    .notice-bell-dot {
+      position: absolute; top: 7px; right: 8px; width: 9px; height: 9px; border-radius: 999px;
+      background: #e58e26; border: 2px solid #ffffff; animation: ctNewFlash 1.3s ease-in-out infinite;
+    }
     .sched-pill-track {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -208,6 +212,103 @@
       #syllabusPrintArea h1 { font-size: 22px; font-weight: 800; color: #0b3c70; margin: 6px 0 4px; }
       #syllabusPrintArea .sp-meta { font-size: 12px; color: #64748b; font-weight: 600; padding-bottom: 12px; border-bottom: 2px solid #0b3c70; margin-bottom: 16px; }
       #syllabusPrintArea .sp-body { font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; }
+    }
+  </style>
+
+  <!-- MathJax v3 (same inline $...$ / $$...$$ configuration as exam.html) for the Saved / Revision cards -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      }
+    };
+
+    // Typeset a container with MathJax.typesetPromise(). Safe to call before MathJax has
+    // finished loading: it waits (up to ~15s) and then typesets; failures never throw.
+    window.ctTypesetRevision = function (target) {
+      var scope = target ? [target] : undefined;
+      var run = function () {
+        try {
+          return MathJax.typesetPromise(scope).catch(function (err) { console.warn('MathJax typeset error:', err); });
+        } catch (e) {
+          console.warn('MathJax typeset error:', e);
+          return Promise.resolve();
+        }
+      };
+      if (window.MathJax && typeof MathJax.typesetPromise === 'function') return run();
+      return new Promise(function (resolve) {
+        var tries = 0;
+        var timer = setInterval(function () {
+          if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+            clearInterval(timer);
+            run().then(resolve, resolve);
+          } else if (++tries > 150) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 100);
+      });
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+
+  <style id="revisionCardStyles">
+    /* ---- Saved / Revision: question content (HTML coming from exam.html) ---- */
+    #revisionListContainer .rev-q { font-family: Arial, 'Segoe UI', system-ui, sans-serif; color: #0f172a; font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+    #revisionListContainer .rev-q p { margin: 0 0 8px; }
+    #revisionListContainer .rev-q img,
+    #revisionListContainer .rev-opt-body img,
+    #revisionListContainer .rev-expl img { max-width: 100%; max-height: 300px; height: auto; width: auto; display: block; margin: 8px 0; object-fit: contain; background: #fff; border-radius: 6px; }
+    #revisionListContainer .eng-text { display: block; }
+    #revisionListContainer .telugu-text { display: block; margin-top: 6px; line-height: 1.5; }
+    #revisionListContainer .table-responsive-wrapper { overflow-x: auto; width: 100%; margin: 10px 0 4px; -webkit-overflow-scrolling: touch; }
+    #revisionListContainer .matching-table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 14px; }
+    #revisionListContainer .matching-table th { background: #e6f0fa; color: #0b3c70; font-weight: 700; text-align: left; border: 1px solid #cbd5e1; padding: 7px 10px; }
+    #revisionListContainer .matching-table td { border: 1px solid #cbd5e1; padding: 9px 10px; vertical-align: middle; width: 50%; color: #1e293b; }
+    #revisionListContainer .matching-table td img { margin: 4px auto; max-height: 160px; }
+    #revisionListContainer mjx-container { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+    #revisionListContainer mjx-container[display="true"] { margin: 8px 0 !important; }
+
+    /* ---- Interactive option rows ---- */
+    #revisionListContainer .rev-opt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 9px 12px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease; -webkit-tap-highlight-color: transparent; }
+    #revisionListContainer .rev-opt:hover { border-color: #9db8d6; }
+    #revisionListContainer .rev-opt:focus-visible { outline: 2px solid #0b3c70; outline-offset: 2px; }
+    #revisionListContainer .rev-opt-letter { width: 26px; height: 26px; border-radius: 999px; background: #eef3f9; color: #0b3c70; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #revisionListContainer .rev-opt-body { font-family: Arial, 'Segoe UI', system-ui, sans-serif; font-size: 14.5px; line-height: 1.55; color: #334155; min-width: 0; overflow-wrap: anywhere; padding-top: 2px; }
+    #revisionListContainer .rev-opt-tag { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; align-self: center; }
+    #revisionListContainer .rev-opt.is-picked { background: #e6f0fa !important; border-color: #0b3c70 !important; box-shadow: 0 0 0 3px rgba(11, 60, 112, 0.08); }
+    #revisionListContainer .rev-opt.is-picked .rev-opt-letter { background: #0b3c70; color: #fff; }
+    #revisionListContainer .rev-opt.is-correct { background: #ecfdf5 !important; border-color: #34d399 !important; box-shadow: none; }
+    #revisionListContainer .rev-opt.is-correct .rev-opt-letter { background: #10b981; color: #fff; }
+    #revisionListContainer .rev-opt.is-correct .rev-opt-body { color: #14532d; font-weight: 600; }
+    #revisionListContainer .rev-opt.is-correct .rev-opt-tag { background: #d1fae5; color: #047857; }
+    #revisionListContainer .rev-opt.is-wrong { background: #fef2f2 !important; border-color: #fca5a5 !important; box-shadow: none; }
+    #revisionListContainer .rev-opt.is-wrong .rev-opt-letter { background: #ef4444; color: #fff; }
+    #revisionListContainer .rev-opt.is-wrong .rev-opt-body { color: #7f1d1d; }
+    #revisionListContainer .rev-opt.is-wrong .rev-opt-tag { background: #fee2e2; color: #b91c1c; }
+    #revisionListContainer .rev-opt.rev-locked { cursor: default; }
+    #revisionListContainer .rev-nat { width: 100%; max-width: 280px; padding: 9px 12px; font-size: 15px; font-weight: 700; color: #0b3c70; background: #f3f6fb; border: 1.5px solid #e2e8f0; border-radius: 12px; }
+    #revisionListContainer .rev-nat:focus { outline: none; background: #fff; border-color: #0b3c70; }
+    #revisionListContainer .rev-nat.is-correct { background: #ecfdf5; border-color: #34d399; }
+    #revisionListContainer .rev-nat.is-wrong { background: #fef2f2; border-color: #fca5a5; }
+
+    /* ---- Answer & Explanation box ---- */
+    #revisionListContainer details.rev-ans > summary { list-style: none; }
+    #revisionListContainer details.rev-ans > summary::-webkit-details-marker { display: none; }
+    #revisionListContainer details.rev-ans[open] .rev-chev { transform: rotate(180deg); }
+    #revisionListContainer .rev-chev { display: inline-block; transition: transform .18s ease; }
+    #revisionListContainer .rev-expl { font-family: Arial, 'Segoe UI', system-ui, sans-serif; font-size: 14.5px; line-height: 1.65; color: #475569; overflow-wrap: anywhere; }
+    #revisionListContainer .rev-expl p { margin: 0 0 8px; }
+    @media (prefers-reduced-motion: reduce) {
+      #revisionListContainer .rev-opt, #revisionListContainer .rev-chev { transition: none; }
     }
   </style>
 </head>
@@ -279,6 +380,13 @@
 
         <!-- Right Icons -->
         <div class="flex items-center gap-2">
+          <!-- Important Notice Bell -->
+          <button onclick="openImportantNotice()" id="noticeBellBtn" aria-label="Important Notice" title="Important Notice"
+            class="relative w-10 h-10 rounded-xl bg-slate-100 hover:bg-navy-light text-navy flex items-center justify-center transition text-lg">
+            <span aria-hidden="true">🔔</span>
+            <span id="noticeBellDot" class="notice-bell-dot hidden"></span>
+          </button>
+
           <!-- Search & Filter Toggle -->
           <button onclick="toggleSearchPanel()" id="searchToggleBtn" aria-label="Search"
             class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-navy-light text-navy flex items-center justify-center transition">
@@ -346,9 +454,6 @@
           </svg>
         </button>
       </div>
-
-      <!-- 1b. Top Notice Board (Home root only; 3-day NEW flash -> 7-day auto-close / Permanent) -->
-      <div id="pinnedNoticeCard" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm transition-all"></div>
 
       <!-- Back / Breadcrumb Header (Inside sub-folders or search) -->
       <div id="navHeaderBar" class="hidden flex items-center justify-between gap-2">
@@ -535,12 +640,12 @@
           <h1 class="text-lg sm:text-xl font-extrabold text-navy">Test Analysis</h1>
         </div>
         <select id="analysisTestSelect" onchange="renderTestAnalysisPage(this.value)"
-          class="w-full sm:w-72 py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-navy shadow-sm">
+          class="w-full sm:w-96 max-w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-navy shadow-sm">
         </select>
       </div>
 
       <!-- Subject-wise Domain Filter Pills -->
-      <div class="sched-pill-track max-w-md" role="tablist" aria-label="Filter analysis by subject">
+      <div class="sched-pill-track max-w-md mx-auto" role="tablist" aria-label="Filter analysis by subject">
         <button type="button" id="anDomainAll" onclick="setAnalysisDomain('all')" class="sched-pill-btn active">All Subjects</button>
         <button type="button" id="anDomainTechnical" onclick="setAnalysisDomain('technical')" class="sched-pill-btn">Technical</button>
         <button type="button" id="anDomainNontechnical" onclick="setAnalysisDomain('nontechnical')" class="sched-pill-btn">Non-Technical</button>
@@ -567,7 +672,7 @@
 
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-2.5">
         <div class="sm:col-span-5">
-          <input type="search" id="revSearchInput" oninput="renderRevisionPage()"
+          <input type="search" id="revSearchInput" oninput="debouncedRenderRevision()"
             placeholder="Search saved questions or topics..."
             class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
         </div>
@@ -1021,42 +1126,63 @@
   <!-- Syllabus print area (only visible in print) -->
   <div id="syllabusPrintArea"></div>
 
-  <!-- Shared Notice Board Editor Modal -->
-  <div id="pinnedNoticeModal" onclick="if(event.target===this) closeModal('pinnedNoticeModal')"
-    class="hidden fixed inset-0 z-[75] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-extrabold text-navy">📌 Notice Board</h3>
-        <button onclick="closeModal('pinnedNoticeModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+  <!-- Important Notice Popup Modal -->
+  <div id="importantNoticeModal" onclick="if(event.target===this) closeImportantNotice()"
+    class="hidden fixed inset-0 z-[75] bg-slate-900/55 backdrop-blur-[1px] flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl animate-pop">
+      <div class="bg-navy text-white px-4 sm:px-5 py-4 border-b-4 border-brandOrange flex items-center gap-3 shrink-0">
+        <div class="w-10 h-10 rounded-2xl bg-brandOrange flex items-center justify-center text-lg shrink-0">🔔</div>
+        <div class="min-w-0 flex-1">
+          <h3 class="text-base sm:text-lg font-extrabold leading-tight">Important Notice</h3>
+          <p class="text-[11px] font-semibold text-white/70 truncate">CivTrek Test Series Updates</p>
+        </div>
+        <button id="noticeAddBtn" type="button" onclick="openNoticeForm()"
+          class="hidden px-3 py-1.5 rounded-xl bg-brandOrange hover:bg-brandOrange-deep text-white text-[11px] font-extrabold transition shrink-0">+ Add Notice</button>
+        <button type="button" onclick="closeImportantNotice()" aria-label="Close"
+          class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-sm font-bold flex items-center justify-center transition shrink-0">✕</button>
       </div>
-      <form onsubmit="savePinnedNoticeForm(event)" class="space-y-3.5">
-        <div class="grid grid-cols-2 gap-2">
-          <label class="cursor-pointer">
-            <input type="radio" name="noticeModeRadio" id="noticeModeFlash" value="flash" checked class="peer hidden" />
-            <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-brandOrange peer-checked:bg-brandOrange-light/60 text-center transition">
-              <div class="text-xs font-extrabold text-navy">⚡ 7-Day Update</div>
-              <div class="text-[10px] font-semibold text-slate-500 mt-0.5">3d NEW flash • Auto-close</div>
-            </div>
-          </label>
-          <label class="cursor-pointer">
-            <input type="radio" name="noticeModeRadio" id="noticeModePermanent" value="permanent" class="peer hidden" />
-            <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-navy peer-checked:bg-navy-light/70 text-center transition">
-              <div class="text-xs font-extrabold text-navy">📌 Permanent Pin</div>
-              <div class="text-[10px] font-semibold text-slate-500 mt-0.5">Stays until cleared</div>
-            </div>
-          </label>
-        </div>
-        <textarea id="pinnedNoticeInput" rows="5" placeholder="Write an update or notice for both of you..."
-          class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy resize-y"></textarea>
-        <div class="flex items-center justify-between gap-2 pt-1">
-          <button type="button" onclick="document.getElementById('pinnedNoticeInput').value=''" class="text-xs font-bold text-slate-400 hover:text-red-500">Clear</button>
-          <div class="flex gap-2">
-            <button type="button" onclick="closeModal('pinnedNoticeModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
-            <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Post Notice</button>
-          </div>
-        </div>
-      </form>
+      <div id="importantNoticeBody" class="p-4 sm:p-5 overflow-y-auto space-y-5 bg-paper"></div>
     </div>
+  </div>
+
+  <!-- Important Notice: Add / Edit form (admin only) -->
+  <div id="noticeFormModal" onclick="if(event.target===this) closeModal('noticeFormModal')"
+    class="hidden fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
+    <form onsubmit="saveNoticeForm(event)" class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-t-4 border-brandOrange animate-pop space-y-3.5 my-auto">
+      <div class="flex justify-between items-center">
+        <h3 id="noticeFormTitle" class="text-lg font-extrabold text-navy">Add Notice</h3>
+        <button type="button" onclick="closeModal('noticeFormModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <input type="hidden" id="noticeEditId" />
+      <div>
+        <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Icon</label>
+        <div id="noticeIconPicker" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Accent Color</label>
+        <div id="noticeColorPicker" class="grid grid-cols-3 gap-2"></div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Title</label>
+        <input type="text" id="noticeTitleInput" required maxlength="90" placeholder="e.g. Test schedule changed"
+          class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Tag</label>
+        <input type="text" id="noticeTagInput" maxlength="24" placeholder="e.g. IMPORTANT UPDATE"
+          class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy uppercase" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wide mb-1.5">Note Points <span class="normal-case font-semibold text-slate-400">(one per line)</span></label>
+        <textarea id="noticePointsInput" rows="5" placeholder="Point 1&#10;Point 2&#10;Point 3"
+          class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy resize-y"></textarea>
+      </div>
+      <p class="text-[10px] font-semibold text-slate-400">Notices stay active until you edit or delete them.</p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeModal('noticeFormModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+        <button type="submit" id="noticeFormSaveBtn" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save Notice</button>
+      </div>
+    </form>
   </div>
 
   <!-- Syllabus Coverage: add / edit / bulk-add modal -->
@@ -1262,7 +1388,7 @@
           "jahnavisai29@gmail.com": { name: "Jahnavi Sai", targetExam: "APPSC AEE", lang: "eng" }
         },
         examTargets: [],
-        pinnedNotice: { text: '', updatedBy: '', updatedAt: 0, mode: 'flash' },
+        customNotices: [],
         folders: [
           { id: 'root_tech', parentId: null, domain: 'technical', name: 'Technical', desc: 'Civil Engineering', isRootDomain: true },
           { id: 'root_nontech', parentId: null, domain: 'nontechnical', name: 'Non-Technical', desc: 'GS & Mental Ability', isRootDomain: true }
@@ -1805,110 +1931,239 @@
       }).join('');
     }
 
-    let pinnedNoticeCollapsed = false;
-    window.togglePinnedNoticeCollapse = () => {
-      pinnedNoticeCollapsed = !pinnedNoticeCollapsed;
-      renderPinnedNoticeWidget();
+    // ---------------- IMPORTANT NOTICE POPUP (custom notices + latest 3 test updates) ----------------
+    const NOTICE_ICONS = ['📢', '📅', '📘', '⚠️', '🎯'];
+    const NOTICE_COLORS = {
+      blue:    { label: 'Blue',    badge: 'bg-sky-100 text-sky-700',          pill: 'bg-sky-100 text-sky-700 border-sky-200',             border: 'border-sky-200',     ring: 'peer-checked:border-sky-500 peer-checked:bg-sky-50',         dot: 'bg-sky-500' },
+      emerald: { label: 'Emerald', badge: 'bg-emerald-100 text-emerald-700',  pill: 'bg-emerald-100 text-emerald-700 border-emerald-200', border: 'border-emerald-200', ring: 'peer-checked:border-emerald-500 peer-checked:bg-emerald-50', dot: 'bg-emerald-500' },
+      orange:  { label: 'Orange',  badge: 'bg-brandOrange-light text-brandOrange-deep', pill: 'bg-brandOrange-light text-brandOrange-deep border-amber-200', border: 'border-amber-200', ring: 'peer-checked:border-brandOrange peer-checked:bg-brandOrange-light/60', dot: 'bg-brandOrange' }
     };
+    const NOTICE_FROM_EXAM_KEY = 'CIVTREK_FROM_EXAM_V1';
+    const RECENT_UPDATE_MS = 7 * 86400000;
 
-    function renderPinnedNoticeWidget() {
-      const card = document.getElementById('pinnedNoticeCard');
-      if (!card) return;
-      const pn = sharedData.pinnedNotice || {};
-      const txt = String(pn.text || '').trim();
-      const mode = pn.mode === 'permanent' ? 'permanent' : 'flash';
-      const updatedAt = Number(pn.updatedAt || 0);
-      const ageMs = updatedAt ? Math.max(0, Date.now() - updatedAt) : 0;
-      const THREE_DAYS = 3 * 86400000;
-      const SEVEN_DAYS = 7 * 86400000;
-
-      const isExpired = Boolean(txt) && mode === 'flash' && updatedAt > 0 && ageMs > SEVEN_DAYS;
-      const isActive = Boolean(txt) && !isExpired;
-
-      // Compact slim 1-line bar when there is no active notice (or after 7-day auto-close)
-      if (!isActive) {
-        card.className = 'bg-white rounded-2xl px-4 py-2.5 border border-slate-200/90 shadow-sm flex items-center justify-between gap-2';
-        card.innerHTML = `
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="text-sm">📌</span>
-            <span class="text-xs sm:text-sm font-extrabold text-navy truncate">Notice Board</span>
-            <span class="text-[11px] font-semibold text-slate-400 truncate hidden sm:inline">• No active updates</span>
-          </div>
-          <button type="button" onclick="openPinnedNoticeModal()"
-            class="px-3 py-1 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition shrink-0">
-            + Add
-          </button>
-        `;
-        return;
-      }
-
-      const isNewFlash = mode === 'flash' && ageMs <= THREE_DAYS;
-      const daysLeft = mode === 'flash' ? Math.max(1, Math.ceil((SEVEN_DAYS - ageMs) / 86400000)) : 0;
-      const when = updatedAt ? new Date(updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
-      const metaText = pn.updatedBy ? `By ${pn.updatedBy}${when ? ' • ' + when : ''}` : (when || 'Shared notice');
-
-      let badgeHtml = '';
-      if (isNewFlash) {
-        badgeHtml = `<span class="notice-new-flash">NEW</span>`;
-      } else if (mode === 'permanent') {
-        badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-navy-light text-navy tracking-wide">PINNED</span>`;
-      } else {
-        badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500">${daysLeft}d left</span>`;
-      }
-
-      card.className = `bg-white rounded-2xl p-3.5 sm:p-4 border ${isNewFlash ? 'border-brandOrange/70 ring-1 ring-amber-200/70' : 'border-slate-200/90'} shadow-sm space-y-2.5`;
-      card.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <button type="button" onclick="togglePinnedNoticeCollapse()" class="flex items-center gap-2 text-left min-w-0">
-            <span class="w-8 h-8 rounded-xl ${isNewFlash ? 'bg-brandOrange-light text-brandOrange-deep' : 'bg-navy-light text-navy'} flex items-center justify-center text-sm shrink-0">📌</span>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <h2 class="text-sm sm:text-base font-extrabold text-navy leading-tight">Notice Board</h2>
-                ${badgeHtml}
-              </div>
-              <p class="text-[10px] font-semibold text-slate-400 truncate">${escapeHtml(metaText)}</p>
-            </div>
-          </button>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button type="button" onclick="openPinnedNoticeModal()" class="px-2.5 py-1 rounded-lg bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-bold transition">Edit</button>
-            <button type="button" onclick="togglePinnedNoticeCollapse()" aria-label="Toggle Notice" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center transition">${pinnedNoticeCollapsed ? '▸' : '▾'}</button>
-          </div>
-        </div>
-        ${pinnedNoticeCollapsed ? '' : `<div class="text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed">${escapeHtml(txt)}</div>`}
-      `;
+    function getCustomNotices() {
+      return Array.isArray(sharedData.customNotices) ? sharedData.customNotices.filter(n => n && n.id) : [];
     }
 
-    window.openPinnedNoticeModal = () => {
-      const pn = sharedData.pinnedNotice || {};
-      const updatedAt = Number(pn.updatedAt || 0);
-      const mode = pn.mode === 'permanent' ? 'permanent' : 'flash';
-      const isExpired = Boolean((pn.text || '').trim()) && mode === 'flash' && updatedAt > 0 && (Date.now() - updatedAt) > 7 * 86400000;
-      document.getElementById('pinnedNoticeInput').value = isExpired ? '' : (pn.text || '');
-      const flashEl = document.getElementById('noticeModeFlash');
-      const permEl = document.getElementById('noticeModePermanent');
-      if (mode === 'permanent' && !isExpired && permEl) permEl.checked = true;
-      else if (flashEl) flashEl.checked = true;
-      document.getElementById('pinnedNoticeModal').classList.remove('hidden');
-      setTimeout(() => document.getElementById('pinnedNoticeInput').focus(), 60);
+    function getTestStamp(t) {
+      const u = Number(t && (t.updatedAt || t.createdAt));
+      if (u > 0) return u;
+      const fromId = Number(String((t && t.id) || '').replace(/\D/g, ''));
+      return fromId > 0 ? fromId : 0;
+    }
+
+    function getLatestTests() {
+      return (sharedData.tests || [])
+        .filter(t => t && t.id)
+        .slice()
+        .sort((a, b) => getTestStamp(b) - getTestStamp(a))
+        .slice(0, 3);
+    }
+
+    function hasNoticeContent() {
+      return getCustomNotices().length > 0 || getLatestTests().length > 0;
+    }
+
+    function updateNoticeBellDot() {
+      const dot = document.getElementById('noticeBellDot');
+      if (!dot) return;
+      const now = Date.now();
+      const recent = getLatestTests().some(t => now - getTestStamp(t) <= RECENT_UPDATE_MS);
+      dot.classList.toggle('hidden', !(getCustomNotices().length > 0 || recent));
+    }
+
+    function noticePointsToList(points) {
+      return String(points || '').split('\n')
+        .map(l => l.replace(/^\s*[-•*▪●]+\s*/, '').trim())
+        .filter(Boolean);
+    }
+
+    function renderImportantNotice() {
+      const body = document.getElementById('importantNoticeBody');
+      if (!body) return;
+      const admin = isAdmin();
+      const addBtn = document.getElementById('noticeAddBtn');
+      if (addBtn) addBtn.classList.toggle('hidden', !admin);
+
+      const customs = getCustomNotices().slice().sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+      const customHtml = customs.length ? customs.map(n => {
+        const c = NOTICE_COLORS[n.color] || NOTICE_COLORS.blue;
+        const pts = noticePointsToList(n.points);
+        return `
+          <div class="bg-white rounded-2xl border ${c.border} shadow-sm p-3.5 flex gap-3">
+            <div class="w-10 h-10 rounded-xl ${c.badge} flex items-center justify-center text-lg shrink-0">${escapeHtml(n.icon || '📢')}</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="font-extrabold text-sm text-navy leading-snug break-words">${escapeHtml(n.title || '')}</div>
+                  ${n.tag ? `<span class="inline-block mt-1 px-2 py-0.5 rounded-full border text-[9px] font-extrabold tracking-wide ${c.pill}">${escapeHtml(n.tag)}</span>` : ''}
+                </div>
+                ${admin ? `
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="openNoticeForm('${escapeHtml(n.id)}')" aria-label="Edit notice" title="Edit"
+                      class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-navy-light text-xs flex items-center justify-center transition">✏️</button>
+                    <button type="button" onclick="deleteCustomNotice('${escapeHtml(n.id)}')" aria-label="Delete notice" title="Delete"
+                      class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 text-xs flex items-center justify-center transition">🗑️</button>
+                  </div>` : ''}
+              </div>
+              ${pts.length ? `<ul class="mt-2 space-y-1">${pts.map(p => `
+                <li class="flex gap-1.5 text-xs font-medium text-slate-600 leading-relaxed">
+                  <span class="${c.dot} w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"></span><span class="min-w-0 break-words">${escapeHtml(p)}</span>
+                </li>`).join('')}</ul>` : ''}
+            </div>
+          </div>`;
+      }).join('') : `
+          <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-4 text-center text-xs font-semibold text-slate-400">
+            No custom notices right now${admin ? ' — tap “+ Add Notice” to post one.' : '.'}
+          </div>`;
+
+      const latest = getLatestTests();
+      const testsHtml = latest.length ? latest.map(t => {
+        const isTech = (t.domain || 'technical') === 'technical';
+        const domPill = isTech ? 'bg-navy-light text-navy' : 'bg-brandOrange-light text-brandOrange-deep';
+        const domLabel = isTech ? 'Technical' : 'Non-Technical';
+        const typeLabel = (typeof TYPE_NAMES !== 'undefined' && TYPE_NAMES[t.testType]) ? TYPE_NAMES[t.testType] : '';
+        const meta = [];
+        if (t.qCount) meta.push(`${t.qCount} Qs`);
+        if (t.duration) meta.push(`${t.duration} min`);
+        let when = '';
+        if (t.startTime) {
+          const d = new Date(t.startTime);
+          if (!isNaN(d.getTime())) when = '🗓️ ' + d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5">
+            <div class="flex items-center flex-wrap gap-1.5 mb-1.5">
+              <span class="notice-new-flash">NEW</span>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide ${domPill}">${domLabel}</span>
+              ${typeLabel ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500">${escapeHtml(typeLabel)}</span>` : ''}
+            </div>
+            <div class="font-extrabold text-sm text-slate-900 leading-snug break-words">${escapeHtml(t.title || 'Untitled test')}</div>
+            <div class="flex items-center justify-between gap-2 mt-2">
+              <div class="text-[11px] font-semibold text-slate-400 min-w-0 truncate">${escapeHtml([meta.join(' • '), when].filter(Boolean).join('  ·  ') || 'Details pending')}</div>
+              <button type="button" onclick="openNoticeTest('${escapeHtml(t.folderId || '')}')"
+                class="px-3 py-1.5 rounded-xl bg-navy hover:bg-brandOrange text-white text-[11px] font-extrabold transition shrink-0">Open Test →</button>
+            </div>
+          </div>`;
+      }).join('') : `
+          <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-4 text-center text-xs font-semibold text-slate-400">No tests added yet.</div>`;
+
+      body.innerHTML = `
+        <section class="space-y-2.5">
+          <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-brandOrange"></span>Customized Notices</h4>
+          ${customHtml}
+        </section>
+        <section class="space-y-2.5">
+          <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-navy"></span>Latest Test Updates</h4>
+          ${testsHtml}
+        </section>`;
+    }
+
+    window.openImportantNotice = () => {
+      renderImportantNotice();
+      document.getElementById('importantNoticeModal').classList.remove('hidden');
+    };
+    window.closeImportantNotice = () => {
+      document.getElementById('importantNoticeModal').classList.add('hidden');
+    };
+    function refreshNoticeUi() {
+      updateNoticeBellDot();
+      const m = document.getElementById('importantNoticeModal');
+      if (m && !m.classList.contains('hidden')) renderImportantNotice();
+    }
+
+    window.openNoticeTest = (folderId) => {
+      closeImportantNotice();
+      document.getElementById('filterDomainSelect').value = 'all';
+      document.getElementById('filterTestTypeSelect').value = 'all';
+      document.getElementById('globalSearchInput').value = '';
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      if (folderId && getFolderPathTo(folderId).length) jumpToScheduledTest(folderId);
+      else goHomeRoot();
     };
 
-    window.savePinnedNoticeForm = async (e) => {
+    // Auto-open ONLY on a fresh load / refresh landing on the Home root (never sub-folders, other views, or return from exam)
+    function maybeAutoOpenImportantNotice() {
+      if (window.__ctNoticeAutoChecked) return;
+      window.__ctNoticeAutoChecked = true;
+      let fromExam = false;
+      try {
+        fromExam = sessionStorage.getItem(NOTICE_FROM_EXAM_KEY) === '1';
+        sessionStorage.removeItem(NOTICE_FROM_EXAM_KEY);
+      } catch (e) {}
+      if (fromExam) return;
+      if (currentView !== 'home' || folderPath.length !== 0) return;
+      if (!hasNoticeContent()) return;
+      setTimeout(() => {
+        if (currentView === 'home' && folderPath.length === 0 && !document.getElementById('appShell').classList.contains('hidden')) openImportantNotice();
+      }, 350);
+    }
+
+    // ---- Admin: add / edit / delete custom notices ----
+    function renderNoticeFormPickers(selIcon, selColor) {
+      document.getElementById('noticeIconPicker').innerHTML = NOTICE_ICONS.map(ic => `
+        <label class="cursor-pointer">
+          <input type="radio" name="noticeIconRadio" value="${ic}" ${ic === selIcon ? 'checked' : ''} class="peer hidden" />
+          <div class="w-11 h-11 rounded-xl border-2 border-slate-200 peer-checked:border-navy peer-checked:bg-navy-light flex items-center justify-center text-xl transition">${ic}</div>
+        </label>`).join('');
+      document.getElementById('noticeColorPicker').innerHTML = Object.keys(NOTICE_COLORS).map(k => `
+        <label class="cursor-pointer">
+          <input type="radio" name="noticeColorRadio" value="${k}" ${k === selColor ? 'checked' : ''} class="peer hidden" />
+          <div class="p-2 rounded-xl border-2 border-slate-200 ${NOTICE_COLORS[k].ring} text-center transition flex items-center justify-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full ${NOTICE_COLORS[k].dot}"></span>
+            <span class="text-[11px] font-extrabold text-navy">${NOTICE_COLORS[k].label}</span>
+          </div>
+        </label>`).join('');
+    }
+
+    window.openNoticeForm = (id) => {
+      if (!isAdmin()) { showToast('Only admin can manage notices'); return; }
+      const n = id ? getCustomNotices().find(x => x.id === id) : null;
+      document.getElementById('noticeEditId').value = n ? n.id : '';
+      document.getElementById('noticeFormTitle').textContent = n ? 'Edit Notice' : 'Add Notice';
+      document.getElementById('noticeTitleInput').value = n ? (n.title || '') : '';
+      document.getElementById('noticeTagInput').value = n ? (n.tag || '') : '';
+      document.getElementById('noticePointsInput').value = n ? (n.points || '') : '';
+      renderNoticeFormPickers(n && NOTICE_ICONS.includes(n.icon) ? n.icon : NOTICE_ICONS[0], n && NOTICE_COLORS[n.color] ? n.color : 'blue');
+      document.getElementById('noticeFormModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('noticeTitleInput').focus(), 60);
+    };
+
+    window.saveNoticeForm = async (e) => {
       e.preventDefault();
-      const text = document.getElementById('pinnedNoticeInput').value.trim();
-      const modeEl = document.querySelector('input[name="noticeModeRadio"]:checked');
-      const mode = (modeEl && modeEl.value === 'permanent') ? 'permanent' : 'flash';
-      const prof = sharedData.profiles?.[currentUser.email] || { name: currentUser.displayName || currentUser.email };
-      sharedData.pinnedNotice = {
-        text,
-        mode,
-        updatedBy: prof.name || currentUser.email,
-        updatedAt: text ? Date.now() : 0
+      if (!isAdmin()) { showToast('Only admin can manage notices'); return; }
+      const title = document.getElementById('noticeTitleInput').value.trim();
+      if (!title) { showToast('Title is required'); return; }
+      const iconEl = document.querySelector('input[name="noticeIconRadio"]:checked');
+      const colorEl = document.querySelector('input[name="noticeColorRadio"]:checked');
+      const editId = document.getElementById('noticeEditId').value;
+      const item = {
+        id: editId || ('n_' + Date.now()),
+        icon: iconEl ? iconEl.value : NOTICE_ICONS[0],
+        title,
+        tag: document.getElementById('noticeTagInput').value.trim().toUpperCase(),
+        color: colorEl && NOTICE_COLORS[colorEl.value] ? colorEl.value : 'blue',
+        points: document.getElementById('noticePointsInput').value.trim(),
+        updatedAt: Date.now()
       };
-      pinnedNoticeCollapsed = false;
-      await persistSharedFields({ pinnedNotice: sharedData.pinnedNotice });
-      closeModal('pinnedNoticeModal');
-      renderPinnedNoticeWidget();
-      showToast(text ? (mode === 'permanent' ? 'Notice pinned permanently' : 'Notice posted (3d NEW flash • 7d active)') : 'Notice cleared');
+      const list = getCustomNotices().slice();
+      const idx = list.findIndex(x => x.id === item.id);
+      if (idx >= 0) list[idx] = item; else list.unshift(item);
+      sharedData.customNotices = list;
+      const ok = await persistSharedFields({ customNotices: list });
+      closeModal('noticeFormModal');
+      refreshNoticeUi();
+      showToast(ok === false ? 'Saved on this device only - sync failed' : (editId ? 'Notice updated' : 'Notice added'));
+    };
+
+    window.deleteCustomNotice = async (id) => {
+      if (!isAdmin()) return;
+      if (!(await showCtConfirm('Delete this notice?', 'Delete', true))) return;
+      const list = getCustomNotices().filter(x => x.id !== id);
+      sharedData.customNotices = list;
+      const ok = await persistSharedFields({ customNotices: list });
+      refreshNoticeUi();
+      showToast(ok === false ? 'Deleted on this device only - sync failed' : 'Notice deleted');
     };
 
     function computeUserDailyStreak(resultsList) {
@@ -1937,7 +2192,7 @@
 
     function renderHomeDashboardWidgets() {
       renderUpcomingScheduleWidget();
-      renderPinnedNoticeWidget();
+      updateNoticeBellDot();
       const allResults = getCombinedResults();
       const myRes = getMyUserData().results || [];
       let myTestsCount = 0, myAccSum = 0, myRank1Count = 0;
@@ -2497,6 +2752,7 @@
             try { renderWorkspace(); } catch (e) {}
             try { renderHomeDashboardWidgets(); } catch (e) {}
             try { refreshSyllabusUI(); } catch (e) {}
+            try { refreshNoticeUi(); } catch (e) {}
           }
         }, (err) => console.warn("Live sync error:", err));
       } catch (e) { console.warn("Live sync not started:", e); }
@@ -2713,6 +2969,8 @@
       startPartnerProgressListener();
       updateDrawerSyllabusBadge();
       if (!restoreNavState()) showHomeView();
+      updateNoticeBellDot();
+      maybeAutoOpenImportantNotice();
     }
 
     window.handleLogout = async () => {
@@ -2916,7 +3174,7 @@
         if (testF !== 'all' && b.testId !== testF) return false;
         if (domF !== 'all' && (b.domain || 'technical') !== domF) return false;
         if (searchQ) {
-          const hay = `${b.preview || ''} ${b.topic || ''} ${b.testTitle || ''} ${b.section || ''}`.toLowerCase();
+          const hay = `${b.preview || ''} ${String(b.questionHtml || '').replace(/<[^>]*>/g, ' ')} ${b.topic || ''} ${b.testTitle || ''} ${b.section || ''}`.toLowerCase();
           if (!hay.includes(searchQ)) return false;
         }
         return true;
@@ -2927,32 +3185,244 @@
         return;
       }
 
-      listEl.innerHTML = filtered.map(b => {
-        const dt = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
-        return `
-          <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-2.5">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex items-center flex-wrap gap-1.5 min-w-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-navy text-white">Q${b.qNum || '?'}</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-navy-light text-navy truncate max-w-[180px]">${escapeHtml(b.testTitle)}</span>
-                ${b.topic ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-brandOrange-deep truncate max-w-[160px]">${escapeHtml(b.topic)}</span>` : ''}
-                ${dt ? `<span class="text-[10px] font-semibold text-slate-400">${dt}</span>` : ''}
-              </div>
-              <button type="button" onclick="removeBookmarkItem('${b.key}')" title="Remove bookmark"
-                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 text-xs font-bold flex items-center justify-center shrink-0 transition">✕</button>
+      // Cards are rebuilt on every filter change; selections / revealed state survive via REV_STATE.
+      window.__revItems = filtered;
+      listEl.innerHTML = filtered.map((b, idx) => revCardHtml(b, idx)).join('');
+      filtered.forEach((b, idx) => {
+        const st = REV_STATE[b.key];
+        if (st && (st.shown || (st.sel && st.sel.length) || st.nat)) revPaint(idx);
+      });
+      // MathJax v3 over the whole list (question, options and any already-revealed explanations)
+      if (window.ctTypesetRevision) window.ctTypesetRevision(listEl);
+    };
+
+    /* ------------------------------------------------------------------
+       Saved / Revision: spoiler-free interactive question cards
+       ------------------------------------------------------------------ */
+    const REV_STATE = (window.__revState = window.__revState || {});
+    const revGetState = (key) => (REV_STATE[key] = REV_STATE[key] || { sel: [], nat: '', shown: false });
+
+    // Light sanitiser for HTML that was captured from exam.html (own data, but never run scripts)
+    function revSafeHtml(html) {
+      return String(html || '')
+        .replace(/<script[\s\S]*?<\/script\s*>/gi, '')
+        .replace(/<(iframe|object|embed|style)\b[\s\S]*?<\/\1\s*>/gi, '')
+        .replace(/<(link|meta|base)\b[^>]*>/gi, '')
+        .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1=$2#$2')
+        .replace(/<img\b([^>]*?)(\/?)>/gi, (m, attrs, slash) => {
+          const a = attrs.replace(/\sreferrerpolicy\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/ig, '');
+          return `<img${a} referrerpolicy="no-referrer"${slash ? ' /' : ''}>`;
+        });
+    }
+
+    function revCorrectLetters(b) {
+      if (Array.isArray(b.correctLetters) && b.correctLetters.length) return b.correctLetters.map(x => String(x).trim().toUpperCase());
+      const t = String(b.correctAnswer || '').trim();
+      if (/^[A-F](\s*(,|&|and|\+|\/)\s*[A-F])*$/i.test(t)) return (t.toUpperCase().match(/[A-F]/g) || []);
+      return [];
+    }
+
+    function revIsNat(b) {
+      if (b.qType === 'nat') return true;
+      return !(Array.isArray(b.options) && b.options.length) && /\d/.test(String(b.correctAnswer || ''));
+    }
+
+    function revNatRange(b) {
+      const nums = (String(b.correctAnswer || '').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi) || []).map(Number).filter(n => !isNaN(n));
+      if (!nums.length) return null;
+      return { min: Math.min(nums[0], nums[nums.length - 1]), max: Math.max(nums[0], nums[nums.length - 1]) };
+    }
+
+    function revCardHtml(b, idx) {
+      const dt = b.savedAt ? new Date(b.savedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
+      const hasFull = !!(b.questionHtml && String(b.questionHtml).trim());
+      const nat = hasFull && revIsNat(b);
+      const letters = revCorrectLetters(b);
+      const multi = hasFull && !nat && (b.qType === 'multi' || letters.length > 1);
+      const st = REV_STATE[b.key] || {};
+      const typeChip = nat
+        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Numerical</span>`
+        : (multi ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Multi-select</span>` : '');
+
+      let body = '';
+      if (hasFull) {
+        const opts = Array.isArray(b.options) ? b.options : [];
+        let choices = '';
+        if (nat) {
+          choices = `
+            <div class="space-y-1.5">
+              <input type="text" inputmode="decimal" autocomplete="off" id="revnat_${idx}" class="rev-nat"
+                placeholder="Type your answer" value="${escapeHtml(st.nat || '')}" oninput="revNatInput(${idx}, this.value)" />
+            </div>`;
+        } else if (opts.length) {
+          choices = `
+            <div id="revopts_${idx}" class="space-y-2" role="${multi ? 'group' : 'radiogroup'}" aria-label="Answer options">
+              ${opts.map((o, i) => {
+                const L = String(o.letter || String.fromCharCode(65 + i)).trim().toUpperCase();
+                return `<div class="rev-opt" role="${multi ? 'checkbox' : 'radio'}" aria-checked="false" tabindex="0" data-letter="${escapeHtml(L)}"
+                          onclick="pickRevOption(${idx}, '${escapeHtml(L)}')"
+                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickRevOption(${idx}, '${escapeHtml(L)}');}">
+                          <span class="rev-opt-letter">${escapeHtml(L)}</span>
+                          <div class="rev-opt-body">${revSafeHtml(o.html)}</div>
+                        </div>`;
+              }).join('')}
+            </div>`;
+        }
+        const hint = nat ? 'Type your answer, then check it.' : (multi ? 'Select all that apply, then check the answer.' : 'Tap an option to test yourself first.');
+        body = `
+          <div class="rev-q">${revSafeHtml(b.questionHtml)}</div>
+          ${choices}
+          <p class="text-[11px] font-semibold text-slate-400">${hint}</p>
+          <div id="revans_${idx}" class="hidden"></div>`;
+      } else {
+        // Older bookmark (saved before full-question capture): graceful plain-text fallback
+        body = `
+          <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">${escapeHtml(b.preview || 'Bookmarked question')}</p>
+          <p class="text-[11px] font-semibold text-slate-400">Saved in the older format. Open it once in Solutions to enable the full question view here.</p>`;
+      }
+
+      return `
+        <div id="revcard_${idx}" class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center flex-wrap gap-1.5 min-w-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-navy text-white">Q${b.qNum || '?'}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-navy-light text-navy truncate max-w-[180px]">${escapeHtml(b.testTitle)}</span>
+              ${b.topic ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-brandOrange-deep truncate max-w-[160px]">${escapeHtml(b.topic)}</span>` : ''}
+              ${typeChip}
+              ${dt ? `<span class="text-[10px] font-semibold text-slate-400">${dt}</span>` : ''}
             </div>
-            <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">${escapeHtml(b.preview || 'Bookmarked question')}</p>
-            <div class="flex items-center justify-between gap-2 pt-1">
-              <span class="text-[11px] font-semibold text-slate-400 truncate">${escapeHtml(b.section || '')}</span>
+            <button type="button" onclick="removeBookmarkItem('${b.key}')" title="Remove bookmark"
+              class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 text-xs font-bold flex items-center justify-center shrink-0 transition">✕</button>
+          </div>
+          ${body}
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <span class="text-[11px] font-semibold text-slate-400 truncate min-w-0">${escapeHtml(b.section || '')}</span>
+            <div class="flex items-center flex-wrap justify-end gap-2">
+              ${hasFull ? `<button type="button" id="revtoggle_${idx}" onclick="toggleRevAnswer(${idx})" aria-expanded="false"
+                class="px-3.5 py-1.5 rounded-xl bg-brandOrange-light border border-brandOrange/40 hover:border-brandOrange text-brandOrange-deep text-xs font-extrabold transition shrink-0">👁️ Show Answer &amp; Explanation</button>` : ''}
               <button type="button" onclick="launchExam('${b.testId}', 'report', false, { focusSolId: '${b.solId}' })"
                 class="px-3.5 py-1.5 rounded-xl bg-navy hover:bg-navy-deep text-white text-xs font-extrabold transition shrink-0">
                 Open in Solutions →
               </button>
             </div>
           </div>
-        `;
-      }).join('');
+        </div>
+      `;
+    }
+
+    // Repaints option highlights, the NAT input and the answer box for one card from REV_STATE.
+    // Correctness is never written into the DOM until the user reveals the answer.
+    function revPaint(idx) {
+      const b = (window.__revItems || [])[idx];
+      const card = document.getElementById('revcard_' + idx);
+      if (!b || !card) return;
+      const st = revGetState(b.key);
+      const letters = revCorrectLetters(b);
+      const nat = revIsNat(b);
+
+      card.querySelectorAll('.rev-opt').forEach(row => {
+        const L = row.getAttribute('data-letter');
+        const isRight = letters.includes(L);
+        const picked = st.sel.includes(L);
+        row.classList.remove('is-picked', 'is-correct', 'is-wrong', 'bg-emerald-50', 'border-emerald-400', 'bg-red-50', 'border-red-300', 'rev-locked');
+        const oldTag = row.querySelector('.rev-opt-tag');
+        if (oldTag) oldTag.remove();
+        if (st.shown) {
+          row.classList.add('rev-locked');
+          if (isRight) {
+            row.classList.add('is-correct', 'bg-emerald-50', 'border-emerald-400');
+            row.insertAdjacentHTML('beforeend', '<span class="rev-opt-tag">✓ Correct</span>');
+          } else if (picked) {
+            row.classList.add('is-wrong', 'bg-red-50', 'border-red-300');
+            row.insertAdjacentHTML('beforeend', '<span class="rev-opt-tag">Your pick</span>');
+          }
+        } else if (picked) {
+          row.classList.add('is-picked');
+        }
+        row.setAttribute('aria-checked', picked ? 'true' : 'false');
+      });
+
+      const natEl = card.querySelector('.rev-nat');
+      let natVerdict = '';
+      if (natEl) {
+        natEl.classList.remove('is-correct', 'is-wrong');
+        natEl.readOnly = !!st.shown;
+        const rng = revNatRange(b);
+        const val = parseFloat(String(st.nat || '').trim());
+        if (st.shown && rng && String(st.nat || '').trim() !== '' && !isNaN(val)) {
+          const ok = val >= rng.min && val <= rng.max;
+          natEl.classList.add(ok ? 'is-correct' : 'is-wrong');
+          natVerdict = ok ? '✓ Your answer is within the accepted range.' : '✗ Your answer is outside the accepted range.';
+        }
+      }
+
+      const box = document.getElementById('revans_' + idx);
+      const btn = document.getElementById('revtoggle_' + idx);
+      if (box) {
+        if (st.shown) {
+          const correctText = String(b.correctAnswer || letters.join(', ') || '').trim();
+          const hasExpl = !!(b.explanationHtml && String(b.explanationHtml).replace(/<[^>]*>/g, '').trim()) || /<img/i.test(b.explanationHtml || '');
+          box.innerHTML = `
+            <details open class="rev-ans rounded-xl border border-emerald-200 bg-emerald-50/70 overflow-hidden">
+              <summary class="cursor-pointer select-none px-3.5 py-2.5 text-xs font-extrabold text-emerald-800 flex items-center justify-between gap-2">
+                <span>✅ Answer &amp; Explanation</span><span class="rev-chev">▾</span>
+              </summary>
+              <div class="px-3.5 py-3 space-y-2.5 border-t border-emerald-200 bg-white">
+                <div class="text-sm font-extrabold text-emerald-700">Correct Answer: <span class="text-navy">${escapeHtml(correctText || 'Not recorded')}</span></div>
+                ${natVerdict ? `<div class="text-xs font-bold text-slate-500">${natVerdict}</div>` : ''}
+                <div class="rev-expl">${hasExpl ? revSafeHtml(b.explanationHtml) : '<em>No explanation provided for this question.</em>'}</div>
+              </div>
+            </details>`;
+          box.classList.remove('hidden');
+        } else {
+          box.classList.add('hidden');
+          box.innerHTML = '';
+        }
+      }
+      if (btn) {
+        btn.innerHTML = st.shown ? '🙈 Hide Answer' : '👁️ Show Answer &amp; Explanation';
+        btn.setAttribute('aria-expanded', st.shown ? 'true' : 'false');
+      }
+    }
+
+    window.pickRevOption = (idx, letter) => {
+      const b = (window.__revItems || [])[idx];
+      if (!b) return;
+      const st = revGetState(b.key);
+      if (st.shown) return; // locked while the answer is revealed
+      const multi = b.qType === 'multi' || revCorrectLetters(b).length > 1;
+      if (multi) {
+        const at = st.sel.indexOf(letter);
+        if (at > -1) st.sel.splice(at, 1); else st.sel.push(letter);
+      } else {
+        st.sel = [letter];
+      }
+      revPaint(idx);
     };
+
+    window.revNatInput = (idx, value) => {
+      const b = (window.__revItems || [])[idx];
+      if (!b) return;
+      revGetState(b.key).nat = value;
+    };
+
+    window.toggleRevAnswer = (idx) => {
+      const b = (window.__revItems || [])[idx];
+      if (!b) return;
+      const st = revGetState(b.key);
+      st.shown = !st.shown;
+      revPaint(idx);
+      if (st.shown && window.ctTypesetRevision) {
+        const box = document.getElementById('revans_' + idx);
+        if (box) window.ctTypesetRevision(box);
+      }
+    };
+
+    window.debouncedRenderRevision = (() => {
+      let t = null;
+      return () => { clearTimeout(t); t = setTimeout(() => window.renderRevisionPage(), 220); };
+    })();
 
     window.setAnalysisDomain = (dom) => {
       if (!['all', 'technical', 'nontechnical'].includes(dom)) return;
@@ -2996,7 +3466,7 @@
 
       const domPrefix = analysisDomainFilter === 'technical' ? 'Technical' : (analysisDomainFilter === 'nontechnical' ? 'Non-Technical' : 'All');
       if (sel) {
-        sel.innerHTML = `<option value="__OVERALL__" ${isOverall ? 'selected' : ''}>📊 Overall Summary (${domPrefix} • ${myRes.length} Tests)</option>` +
+        sel.innerHTML = `<option value="__OVERALL__" ${isOverall ? 'selected' : ''}>Overall Summary (${myRes.length} Tests)</option>` +
           myRes.map(r => `<option value="${r.testId}" ${(!isOverall && r.testId === activeRec.testId) ? 'selected' : ''}>${escapeHtml(r.testTitle)} (${r.date || ''})</option>`).join('');
       }
 
@@ -3096,15 +3566,38 @@
           <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
             <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Overall Negative Impact &amp; Head-to-Head</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-950 leading-relaxed">
-                Across <b>${totAtt}</b> attempted questions, <b>${totWrong}</b> were wrong — costing <b>-${fmtMarks(totNeg)}</b> marks (avg <b>${avgNegPerAtt}</b> neg marks/attempt). Without negative marking, your cumulative score rises from <b>${fmtMarks(totScore)}</b> to <b>${fmtMarks(totScore + totNeg)}</b>.
-              </div>
-              <div class="p-3.5 rounded-xl bg-paper border border-slate-200 flex items-center justify-between">
-                <div>
-                  <div class="text-[11px] font-extrabold uppercase text-slate-400">Head-to-Head (${sharedCount} Shared)</div>
-                  <div class="text-sm font-extrabold text-navy mt-0.5">You ${myWins} — ${partnerWins} Partner</div>
+              <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/80 space-y-2">
+                <div class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Negative Marking Impact</div>
+                <div class="space-y-1.5 text-xs font-semibold text-slate-600">
+                  <div class="flex items-center justify-between gap-3">
+                    <span>Wrong / Attempted:</span>
+                    <b class="text-slate-900 tabular-nums">${totWrong} / ${totAtt}</b>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <span>Marks Lost:</span>
+                    <b class="text-red-600 tabular-nums">${totNeg > 0 ? '-' + fmtMarks(totNeg) : '0'}</b>
+                  </div>
+                  <div class="flex items-start justify-between gap-3">
+                    <span>Potential Score (No Neg.):</span>
+                    <span class="text-right">
+                      <b class="text-emerald-700 tabular-nums">${fmtMarks(totScore + totNeg)}</b>
+                      <span class="block text-[10px] font-semibold text-slate-400">(Actual: ${fmtMarks(totScore)})</span>
+                    </span>
+                  </div>
                 </div>
-                <span class="text-2xl">⚔️</span>
+              </div>
+              <div class="p-3.5 rounded-xl bg-paper border border-slate-200 space-y-2">
+                <div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Head-to-Head Duel</div>
+                <div class="flex items-center justify-between gap-3 text-xs font-semibold text-slate-600">
+                  <span>Shared Tests:</span>
+                  <b class="text-slate-900 tabular-nums">${sharedCount}</b>
+                </div>
+                <div class="text-base sm:text-lg font-extrabold text-navy leading-tight">You ${myWins} — ${partnerWins} Partner</div>
+                <div class="flex h-1.5 w-full rounded-full overflow-hidden bg-slate-200" role="img" aria-label="Wins: you ${myWins}, partner ${partnerWins}">
+                  ${(myWins + partnerWins) > 0
+                    ? `<div class="h-full bg-navy" style="width:${(myWins / (myWins + partnerWins) * 100).toFixed(1)}%"></div><div class="h-full bg-brandOrange" style="width:${(partnerWins / (myWins + partnerWins) * 100).toFixed(1)}%"></div>`
+                    : ''}
+                </div>
               </div>
             </div>
           </div>
@@ -3492,8 +3985,7 @@
       document.getElementById('fabAddTestBtn').classList.toggle('hidden', !info.canAddTest);
 
       document.getElementById('homeDashboardWidgets').classList.toggle('hidden', !isHomeRoot);
-      const pnCard = document.getElementById('pinnedNoticeCard');
-      if (pnCard) pnCard.classList.toggle('hidden', !isHomeRoot);
+      updateNoticeBellDot();
 
       if (isHomeRoot) {
         navHeader.classList.add('hidden');
@@ -4037,6 +4529,7 @@
         }
       }
 
+      try { sessionStorage.setItem(NOTICE_FROM_EXAM_KEY, '1'); } catch (e) {}
       window.__ctNav = true;
       window.location.href = "exam.html";
       } finally {
@@ -4222,6 +4715,7 @@
             t.testType = testType;
             t.startTime = startTime;
             t.syllabus = syllabus;
+            t.updatedAt = Date.now();
             delete t.endTime;
             if (githubFilePath) {
               if (t.githubFilePath) await deleteJsonFromGithubRepo(t.githubFilePath);
@@ -4247,13 +4741,16 @@
             calc: autoMeta.calc,
             startTime,
             syllabus,
-            githubFilePath
+            githubFilePath,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
           });
         }
 
         const cloudOk = await persistSharedFields({ tests: sharedData.tests });
         closeModal('testModal');
         renderWorkspace();
+        refreshNoticeUi();
         showToast(cloudOk === false ? "Saved on this device only - partner sync failed. Check connection and retry." : "Saved & synced");
       } catch (err) {
         showToast(err.message || "Error saving test");
@@ -4276,6 +4773,7 @@
       await persistSharedFields({ tests: sharedData.tests });
       await removeResultsForTests([id]);
       renderWorkspace();
+      refreshNoticeUi();
       showToast(ghOk ? "Deleted (test, JSON & results)" : "Test & results deleted, but the JSON file could not be removed from GitHub (token may be read-only)");
     };
 

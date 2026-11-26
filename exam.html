@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CivTrek Full-Length Mock Exam</title>
     <meta name="referrer" content="no-referrer">
+    <script>
+    /* Pre-render direct Solution Report detection: flag <html> before first paint so the live exam UI never flashes. */
+    (function () {
+        try {
+            var raw = localStorage.getItem('ACTIVE_EXAM_DATA');
+            if (!raw) return;
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.mode === 'report') document.documentElement.classList.add('ct-direct-report');
+        } catch (e) { /* ignore: fall back to normal boot */ }
+    })();
+    </script>
+    <style id="ctDirectReportStyle">
+        html.ct-direct-report #globalTestHeader,
+        html.ct-direct-report .portrait-palette-strip-wrapper,
+        html.ct-direct-report #examSectionTabs,
+        html.ct-direct-report #interactiveQuizForm,
+        html.ct-direct-report #sidebarContainerBlock,
+        html.ct-direct-report #paletteToggleHandle,
+        html.ct-direct-report #instructionsLayer { display: none !important; }
+        html.ct-direct-report body:not(.evaluation-completed) #ctEvalOverlay { display: flex !important; }
+        html.ct-direct-report #ctNoExamScreen.open { z-index: 2147483001; }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -216,6 +238,9 @@
             var ov = document.getElementById('ctEvalOverlay'); if (!ov) return;
             var t = document.getElementById('ctEvalText'); if (t && msg) t.textContent = msg;
             ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false');
+        };
+        window.ctClearDirectReport = function () {
+            try { document.documentElement.classList.remove('ct-direct-report'); } catch (e) { /* ignore */ }
         };
         window.ctHideEvalOverlay = function () {
             var ov = document.getElementById('ctEvalOverlay'); if (!ov) return;
@@ -3160,11 +3185,15 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
 /* Clean full-height split layout without top header */
 @media screen and (min-width: 901px) {
     body.exam-workspace-root.evaluation-completed.sol-split-lock #dashboard {
-        height: calc(100vh - 14px) !important;
-        height: calc(100dvh - 14px) !important;
-        margin: 7px auto !important;
+        height: calc(100vh - 76px) !important;
+        height: calc(100dvh - 76px) !important;
+        margin: 0 auto !important;
         max-width: 1360px;
         width: calc(100% - 24px);
+    }
+    body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-detail-pane,
+    body.exam-workspace-root.evaluation-completed.sol-split-lock #solDetailScroll {
+        min-height: 0;
     }
 }
 @media screen and (max-width: 900px) {
@@ -3321,6 +3350,17 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
 <div class="print-watermark-overlay" style="background-image:url('https://lh3.googleusercontent.com/d/1fNu9MVHI2xp_qqRNAyD2VoLdQVLwHWW0');"></div>
 
 <div id="ctEvalOverlay" role="status" aria-live="polite" aria-hidden="true"><div class="ct-eval-box"><div class="ct-eval-spinner"></div><div class="ct-eval-text" id="ctEvalText">Evaluating your responses...</div></div></div>
+<script>
+/* Direct report mode: show the right message from the very first paint of the body. */
+(function () {
+    try {
+        if (document.documentElement.classList.contains('ct-direct-report')) {
+            var t = document.getElementById('ctEvalText'); if (t) t.textContent = 'Loading Key & Solutions...';
+            var ov = document.getElementById('ctEvalOverlay'); if (ov) ov.setAttribute('aria-hidden', 'false');
+        }
+    } catch (e) { /* ignore */ }
+})();
+</script>
 
 <div class="custom-modal-overlay" id="customSubmissionModal">
     <div class="custom-modal-box">
@@ -6858,7 +6898,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
             kicked = true;
             setTimeout(function () {
                 try { ctRunFinalEvaluation(); }
-                catch (err) { console.error('Evaluation failed:', err); ctHideEvalOverlay(); ctEvalStarted = false; }
+                catch (err) { console.error('Evaluation failed:', err); ctClearDirectReport(); ctHideEvalOverlay(); ctEvalStarted = false; }
             }, 30);
         };
         requestAnimationFrame(kick);   // let the overlay paint first
@@ -6923,6 +6963,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         document.querySelector('body').style.height = 'auto';
         document.getElementById('quizContainerBlock').style.overflow = 'visible';
         document.getElementById('dashboard').style.display = 'block';
+        ctClearDirectReport();   // report is rendering: release the pre-render hide rules
 
         let correctTrack = 0;
         let incorrectTrack = 0;
@@ -7237,6 +7278,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
 
         // Analytics dashboard is ready: drop the overlay right away, then typeset the results panel
         // and build / typeset the solution cards in the background (chunked).
+        ctClearDirectReport();
         ctHideEvalOverlay();
         setTimeout(function () {
             if (window.typesetMathJax) typesetMathJax(document.getElementById('dashboard') || undefined);
@@ -9146,6 +9188,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 applySavedState();
             } catch (err) {
                 console.error('Report restore failed:', err);
+                try { ctClearDirectReport(); } catch (e) { /* ignore */ }
                 try { if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay(); } catch (e) { /* ignore */ }
                 try { showCustomAlert('Could not open this solution report: ' + (err && err.message ? err.message : err)); } catch (e) { /* ignore */ }
             }
@@ -9975,6 +10018,8 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
     };
 
     function showNoExam(msg) {
+        try { if (window.ctClearDirectReport) ctClearDirectReport(); } catch (e) {}
+        try { if (window.ctHideEvalOverlay) ctHideEvalOverlay(); } catch (e) {}
         var m = $('ctNoExamMsg');
         if (m && msg) m.textContent = msg;
         var s = $('ctNoExamScreen');
@@ -10227,6 +10272,178 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         } catch (e) { return []; }
     }
 
+    /* ---------------------------------------------------------------------
+       Bookmark payload builder: full question, options, correct answer and
+       explanation are stored with every bookmark so index.html (Saved /
+       Revision) can render a complete, spoiler-free self-test card.
+       Source of truth = quizMetadata (raw HTML, LaTeX still as $...$);
+       the .sol-item DOM is the fallback (MathJax output is converted back
+       to \( ... \) / \[ ... \] first).
+       --------------------------------------------------------------------- */
+    var CT_BM_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+    // <img> -> always carries referrerpolicy="no-referrer" (Drive / lh3 images)
+    function ctBmNormImgs(html) {
+        return String(html || '').replace(/<img\b([^>]*?)(\/?)>/gi, function (m, attrs, slash) {
+            var a = attrs.replace(/\sreferrerpolicy\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/ig, '');
+            return '<img' + a + ' referrerpolicy="no-referrer"' + (slash ? ' /' : '') + '>';
+        });
+    }
+
+    // innerHTML of a rendered node with MathJax output turned back into TeX source
+    function ctBmInnerHtml(el) {
+        if (!el) return '';
+        var clone = el.cloneNode(true);
+        try {
+            var origs = el.querySelectorAll('mjx-container');
+            if (origs.length) {
+                var lookup = new Map();
+                try {
+                    if (window.MathJax && MathJax.startup && MathJax.startup.document && MathJax.startup.document.math) {
+                        Array.from(MathJax.startup.document.math).forEach(function (mi) {
+                            if (mi && mi.typesetRoot) lookup.set(mi.typesetRoot, mi);
+                        });
+                    }
+                } catch (e0) {}
+                var cl = clone.querySelectorAll('mjx-container');
+                for (var i = 0; i < cl.length && i < origs.length; i++) {
+                    var mi2 = lookup.get(origs[i]);
+                    if (mi2 && typeof mi2.math === 'string') {
+                        cl[i].replaceWith(document.createTextNode(mi2.display ? ('\\[' + mi2.math + '\\]') : ('\\(' + mi2.math + '\\)')));
+                    }
+                }
+            }
+            clone.querySelectorAll('mjx-container, mjx-assistive-mml, .MJX_Assistive_MathML').forEach(function (n) { n.remove(); });
+        } catch (e) {}
+        return clone.innerHTML;
+    }
+
+    function ctBmPlainText(html, limit) {
+        var raw = '';
+        try {
+            var d = new DOMParser().parseFromString('<div>' + String(html || '') + '</div>', 'text/html');
+            d.querySelectorAll('mjx-container, mjx-assistive-mml, script, style, img, table').forEach(function (n) { n.remove(); });
+            raw = d.body.textContent || '';
+        } catch (e) { raw = String(html || '').replace(/<[^>]*>/g, ' '); }
+        raw = raw.replace(/\\[()\[\]]/g, '').replace(/\$+/g, '').replace(/\\[a-zA-Z]+/g, ' ').replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+        if (limit && raw.length > limit) raw = raw.slice(0, limit - 3) + '...';
+        return raw;
+    }
+
+    function ctBmMetaFor(solId) {
+        try {
+            var n = parseInt(String(solId || '').replace(/^solq_/, ''), 10);
+            if (!n || typeof quizMetadata === 'undefined' || !quizMetadata[n]) return null;
+            return quizMetadata[n];
+        } catch (e) { return null; }
+    }
+
+    function ctBmMatchingTableHtml(meta) {
+        if (!meta || !meta.isMatching || !meta.leftItems || !meta.rightItems) return '';
+        var rows = '';
+        var maxRows = Math.max(meta.leftItems.length, meta.rightItems.length);
+        for (var r = 0; r < maxRows; r++) {
+            rows += '<tr><td>' + (meta.leftItems[r] || '') + '</td><td>' + (meta.rightItems[r] || '') + '</td></tr>';
+        }
+        var lE = 'Column A', lT = 'కాలమ్ A', rE = 'Column B', rT = 'కాలమ్ B';
+        if (meta.headerLeft && meta.headerRight) {
+            lE = meta.headerLeft.eng; lT = meta.headerLeft.telugu;
+            rE = meta.headerRight.eng; rT = meta.headerRight.telugu;
+        }
+        return '<div class="table-responsive-wrapper"><table class="matching-table"><thead><tr>' +
+            '<th><span class="eng-text">' + lE + '</span><span class="telugu-text">' + lT + '</span></th>' +
+            '<th><span class="eng-text">' + rE + '</span><span class="telugu-text">' + rT + '</span></th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+
+    window.__ctBuildBookmarkPayload = function (item, solId) {
+        var out = {};
+        var meta = ctBmMetaFor(solId || (item && item.id));
+
+        // ---- question (+ matching table) ----
+        var qHtml = '';
+        if (meta && meta.text != null) {
+            qHtml = String(meta.text || '') + ctBmMatchingTableHtml(meta);
+        } else if (item) {
+            qHtml = ctBmInnerHtml(item.querySelector('.sol-q-title'));
+            var tblWrap = item.querySelector('.table-responsive-wrapper');
+            var tblEl = tblWrap || item.querySelector('.matching-table');
+            if (tblEl) {
+                // read from the live node so typeset math can be mapped back to its TeX source
+                qHtml += tblWrap
+                    ? '<div class="table-responsive-wrapper">' + ctBmInnerHtml(tblWrap) + '</div>'
+                    : '<table class="matching-table">' + ctBmInnerHtml(tblEl) + '</table>';
+            }
+        }
+        out.questionHtml = ctBmNormImgs(qHtml);
+
+        // ---- options ----
+        var options = [];
+        if (meta && Array.isArray(meta.options) && meta.options.length) {
+            meta.options.forEach(function (o, i) {
+                options.push({ letter: CT_BM_LETTERS[i] || String(i + 1), html: ctBmNormImgs(o) });
+            });
+        } else if (item) {
+            item.querySelectorAll('.sol-opts-list .sol-opt').forEach(function (li, i) {
+                var le = li.querySelector('.sol-opt-letter');
+                var bd = li.querySelector('.sol-opt-body');
+                options.push({
+                    letter: ((le && le.textContent) || CT_BM_LETTERS[i] || '').trim(),
+                    html: ctBmNormImgs(ctBmInnerHtml(bd))
+                });
+            });
+        }
+        out.options = options;
+
+        // ---- question type + correct answer ----
+        var qType = 'mcq', letters = [], correctText = '';
+        if (meta) {
+            var c = meta.correct;
+            if (meta.isNumerical) {
+                qType = 'nat';
+                if (c && typeof c === 'object') {
+                    correctText = (String(c.min) === String(c.max)) ? String(c.min) : (c.min + ' to ' + c.max);
+                } else if (c != null) { correctText = String(c); }
+            } else {
+                qType = meta.isMultiSelect ? 'multi' : (meta.isMatching ? 'matching' : 'mcq');
+                letters = Array.isArray(c) ? c.slice() : (c ? [String(c)] : []);
+                correctText = letters.join(', ');
+            }
+        } else if (item) {
+            var natBox = item.querySelector('.sol-nat-box');
+            if (natBox) {
+                qType = 'nat';
+                correctText = (natBox.textContent || '').replace(/^\s*Correct Answer Range:\s*/i, '').replace(/\s+/g, ' ').trim();
+            } else {
+                item.querySelectorAll('.sol-opts-list .sol-opt.is-correct-opt .sol-opt-letter').forEach(function (l) {
+                    letters.push((l.textContent || '').trim());
+                });
+                correctText = letters.join(', ');
+                if (letters.length > 1) qType = 'multi';
+            }
+            if (!correctText) {
+                var cv = item.querySelector('.sol-answer-row .sol-ans-box:not(.yours) .val');
+                if (cv) correctText = (cv.textContent || '').trim();
+            }
+        }
+        out.qType = qType;
+        out.correctLetters = letters;
+        out.correctAnswer = correctText;
+
+        // ---- explanation ----
+        var expl = '';
+        if (meta && meta.sol != null) {
+            var plain = String(meta.sol || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+            if (plain || /<img/i.test(meta.sol || '')) expl = String(meta.sol);
+        } else if (item) {
+            var eb = item.querySelector('.sol-expl-body');
+            if (eb && !eb.querySelector(':scope > em:only-child')) expl = ctBmInnerHtml(eb);
+        }
+        out.explanationHtml = ctBmNormImgs(expl);
+
+        return out;
+    }
+
     window.__ctSyncBookmarkToggle = function (item, isNow) {
         try {
             var active = readActiveMeta();
@@ -10235,10 +10452,16 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             var bKey = active.testId + '__' + item.id;
             list = list.filter(function (x) { return x && x.key !== bKey; });
             if (isNow) {
-                var titleEl = item.querySelector('.sol-q-title');
-                var rawTxt = titleEl ? (titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+                // Clean plain-text preview (kept as the fallback for old / minimal bookmarks)
+                var rawTxt = item.getAttribute('data-prev');
+                if (rawTxt === null || rawTxt === '') {
+                    var titleEl = item.querySelector('.sol-q-title');
+                    rawTxt = ctBmPlainText(titleEl ? ctBmInnerHtml(titleEl) : '', 0);
+                }
+                rawTxt = String(rawTxt || '').replace(/\s+/g, ' ').trim();
                 if (rawTxt.length > 140) rawTxt = rawTxt.slice(0, 137) + '...';
-                list.unshift({
+
+                var entry = {
                     key: bKey,
                     testId: active.testId,
                     testTitle: active.title || 'Test',
@@ -10250,7 +10473,19 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                     topic: item.getAttribute('data-topic') || '',
                     preview: rawTxt || ('Question #' + (item.getAttribute('data-qnum') || '')),
                     savedAt: Date.now()
-                });
+                };
+                try {
+                    var payload = window.__ctBuildBookmarkPayload(item, item.id);
+                    if (payload && payload.questionHtml) {
+                        entry.questionHtml = payload.questionHtml;
+                        entry.options = payload.options;
+                        entry.qType = payload.qType;
+                        entry.correctLetters = payload.correctLetters;
+                        entry.correctAnswer = payload.correctAnswer;
+                        entry.explanationHtml = payload.explanationHtml;
+                    }
+                } catch (pe) { console.warn('Bookmark payload error:', pe); }
+                list.unshift(entry);
             }
             localStorage.setItem(ctBookmarkStoreKey(active.userEmail), JSON.stringify(list));
             localStorage.setItem('CIVTREK_PENDING_BOOKMARKS_SYNC', String(Date.now()));
@@ -10266,6 +10501,27 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 list = active.savedBookmarks;
                 try { localStorage.setItem(ctBookmarkStoreKey(active.userEmail), JSON.stringify(list)); } catch (e) {}
             }
+            // Upgrade older bookmarks of this test (saved before full-question capture) in place
+            try {
+                var upgraded = 0;
+                list.forEach(function (b) {
+                    if (!b || b.testId !== active.testId || !b.solId || b.questionHtml) return;
+                    var pl = window.__ctBuildBookmarkPayload(document.getElementById(b.solId), b.solId);
+                    if (pl && pl.questionHtml) {
+                        b.questionHtml = pl.questionHtml;
+                        b.options = pl.options;
+                        b.qType = pl.qType;
+                        b.correctLetters = pl.correctLetters;
+                        b.correctAnswer = pl.correctAnswer;
+                        b.explanationHtml = pl.explanationHtml;
+                        upgraded++;
+                    }
+                });
+                if (upgraded) {
+                    localStorage.setItem(ctBookmarkStoreKey(active.userEmail), JSON.stringify(list));
+                    localStorage.setItem('CIVTREK_PENDING_BOOKMARKS_SYNC', String(Date.now()));
+                }
+            } catch (ue) {}
             var wanted = {};
             list.forEach(function (b) {
                 if (b && b.testId === active.testId && b.solId) wanted[b.solId] = true;
@@ -10537,7 +10793,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 try { bootFromPortal(); }
                 finally {
                     setTimeout(function () {
-                        try { if (!(typeof ctEvalStarted !== 'undefined' && ctEvalStarted) && window.ctHideEvalOverlay) ctHideEvalOverlay(); } catch (e) {}
+                        try { if (!(typeof ctEvalStarted !== 'undefined' && ctEvalStarted) && window.ctHideEvalOverlay) { if (window.ctClearDirectReport) ctClearDirectReport(); ctHideEvalOverlay(); } } catch (e) {}
                     }, 120);
                 }
             });
@@ -10636,6 +10892,53 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             margin-top: 0 !important;
             border-top-left-radius: 0;
             border-top-right-radius: 0;
+        }
+    }
+
+    /* Solutions split view (desktop / landscape): the detail pane and its scroller stretch to the
+       bottom edge, so no dead space is left under the footer bar. The ← Portal | Results | Solutions
+       strip lives inside #dashboard, so the panels below it simply take the remaining height. */
+    @media screen and (min-width: 901px) {
+        body.exam-workspace-root.evaluation-completed.sol-split-lock #dashboard {
+            padding-bottom: 0 !important;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock #solutionsReportSectionPanel.active {
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-bottom: 0;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock #allSolutionsBox {
+            flex: 1 1 auto;
+            min-height: 0;
+            margin: 0;
+            padding-bottom: 0;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-master-detail {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: auto;
+            margin-bottom: 0;
+            align-items: stretch;
+            grid-template-rows: minmax(0, 1fr);
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-master-pane,
+        body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-detail-pane {
+            height: 100%;
+            min-height: 0;
+            margin-bottom: 0;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-detail-pane {
+            display: flex !important;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock #solDetailScroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-detail-footer {
+            flex: 0 0 auto;
         }
     }
 </style>
