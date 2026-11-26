@@ -268,7 +268,8 @@
     #revisionListContainer .rev-opt-body img,
     #revisionListContainer .rev-expl img { max-width: 100%; max-height: 300px; height: auto; width: auto; display: block; margin: 8px 0; object-fit: contain; background: #fff; border-radius: 6px; }
     #revisionListContainer .eng-text { display: block; }
-    #revisionListContainer .telugu-text { display: block; margin-top: 6px; line-height: 1.5; }
+    /* English is the default view (same as exam.html); the Telugu copy of each text is hidden */
+    #revisionListContainer .telugu-text { display: none !important; }
     #revisionListContainer .table-responsive-wrapper { overflow-x: auto; width: 100%; margin: 10px 0 4px; -webkit-overflow-scrolling: touch; }
     #revisionListContainer .matching-table { width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 14px; }
     #revisionListContainer .matching-table th { background: #e6f0fa; color: #0b3c70; font-weight: 700; text-align: left; border: 1px solid #cbd5e1; padding: 7px 10px; }
