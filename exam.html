@@ -10026,6 +10026,23 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         if (s) s.classList.add('open');
     }
 
+    // Fills the (mobile-only) single-line test title shown in the compact report header.
+    function ctSyncInlineReportTitle() {
+        var el = $('ctInlineReportTitle');
+        if (!el) return;
+        var t = '';
+        try { if (typeof examNameValue !== 'undefined' && examNameValue) t = String(examNameValue).trim(); } catch (e) {}
+        if (!t) {
+            try {
+                var am = JSON.parse(localStorage.getItem('ACTIVE_EXAM_DATA') || 'null');
+                if (am && am.title) t = String(am.title).trim();
+            } catch (e) {}
+        }
+        if (!t) t = 'Solution Report';
+        el.textContent = t;
+        el.title = t;
+    }
+
     function injectCleanReportNav() {
         var dash = $('dashboard');
         if (!dash || $('ctInlineReportNav')) return;
@@ -10034,8 +10051,9 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         nav.id = 'ctInlineReportNav';
         nav.className = 'ct-inline-report-nav';
         nav.innerHTML =
-            '<button type="button" class="ct-back-portal-btn" onclick="this.disabled=true;this.textContent=\'Returning...\';ctGoBackToPortal()">← Portal</button>' +
-            '<div class="ct-inline-tabs-pill" role="tablist">' +
+            '<button type="button" class="ct-back-portal-btn" id="ctInlineBackBtn" onclick="this.disabled=true;this.textContent=\'Returning...\';ctGoBackToPortal()">← Portal</button>' +
+            '<div class="ct-inline-report-title" id="ctInlineReportTitle"></div>' +
+            '<div class="ct-inline-tabs-pill ct-inline-report-tabs" role="tablist">' +
                 '<button type="button" class="ct-inline-tab-btn active" id="ctInlineResTab" onclick="ctSwitchCleanTab(\'results\')">Results</button>' +
                 '<button type="button" class="ct-inline-tab-btn" id="ctInlineSolTab" onclick="ctSwitchCleanTab(\'solutions\')">Solutions</button>' +
             '</div>' +
@@ -10051,6 +10069,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 '</button>' +
             '</div>';
         dash.insertBefore(nav, dash.firstChild);
+        ctSyncInlineReportTitle();
 
         var resPanel = $('resultsReportSectionPanel');
         if (resPanel && !$('ctCleanReportActions')) {
@@ -10143,6 +10162,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             var rBtn = $('ctInlineResTab'), sBtn = $('ctInlineSolTab');
             if (rBtn) rBtn.classList.toggle('active', tab === 'results');
             if (sBtn) sBtn.classList.toggle('active', tab === 'solutions');
+            ctSyncInlineReportTitle();
             return out;
         };
     }
@@ -10959,6 +10979,74 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         }
         body.exam-workspace-root.evaluation-completed.sol-split-lock .sol-detail-footer {
             flex: 0 0 auto;
+        }
+    }
+
+    /* ===== Compact 2-row mobile Solution Report header (<= 768px only; desktop/landscape untouched) =====
+       Row 1: [← Portal] [single-line test title] [Re-attempt, if present] [language]
+       Row 2: full-width segmented Results | Solutions switcher */
+    .ct-inline-report-title { display: none; }
+    @media screen and (max-width: 768px) {
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            padding: 8px 12px 0 12px !important;
+            box-sizing: border-box !important;
+        }
+        /* Row 1 */
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav #ctInlineBackBtn {
+            order: 1; flex: 0 0 auto; min-height: 32px; padding: 6px 12px !important;
+            border-radius: 999px !important; font-size: 0.78rem !important; gap: 4px !important; line-height: 1;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-report-title {
+            order: 2; display: block !important; flex: 1 1 auto; min-width: 0; max-width: 55vw;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 0.86rem; font-weight: 800; color: #0b3c70; line-height: 1.2; text-align: left;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav #ctInlineReattemptBtn,
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav #btnReattempt {
+            order: 3; flex: 0 0 auto; min-height: 32px; padding: 6px 12px !important;
+            border-radius: 999px !important; font-size: 0.78rem !important; font-weight: 800; white-space: nowrap;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav #ctInlineReattemptBtn[hidden],
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav #btnReattempt[hidden] { display: none !important; }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-right-tools {
+            order: 4; flex: 0 0 auto; gap: 6px !important;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-right-tools .overlay-select {
+            height: 32px !important; max-width: 84px; padding: 0 6px !important; font-size: 0.74rem !important;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-right-tools .fullscreen-btn { display: none !important; }
+
+        /* Row 2: full-width segmented tab track */
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-report-tabs {
+            order: 10; display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px;
+            flex: 0 0 calc(100% + 24px); width: auto; margin: 0 -12px !important;
+            padding: 0 12px 8px !important; background: transparent !important; border-radius: 0 !important;
+            box-sizing: border-box;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-report-tabs .ct-inline-tab-btn {
+            display: flex; align-items: center; justify-content: center; width: 100%; min-height: 36px;
+            padding: 0 10px !important; box-sizing: border-box; border-radius: 999px !important;
+            background: #eef3f9 !important; border: 1px solid #dbe4f0 !important; color: #475569 !important;
+            font-size: 0.86rem !important; font-weight: 700 !important; box-shadow: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body.exam-workspace-root.evaluation-completed .ct-inline-report-nav .ct-inline-report-tabs .ct-inline-tab-btn.active {
+            background: #0b3c70 !important; border-color: #0b3c70 !important; color: #ffffff !important;
+            font-weight: 800 !important; box-shadow: 0 4px 10px -4px rgba(11, 60, 112, 0.55);
+        }
+
+        /* No duplicate summary/title banners under the compact header (screen only; print cover is unaffected) */
+        body.exam-workspace-root.evaluation-completed #dashboard > .ct-inline-report-nav ~ .print-cover,
+        body.exam-workspace-root.evaluation-completed #dashboard > .ct-inline-report-nav ~ .report-actions-header,
+        body.exam-workspace-root.evaluation-completed #dashboard > .ct-inline-report-nav ~ .report-switcher-tabs,
+        body.exam-workspace-root.evaluation-completed #globalTestHeader,
+        body.exam-workspace-root.evaluation-completed #postExamTabs {
+            display: none !important;
         }
     }
 </style>
