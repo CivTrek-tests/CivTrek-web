@@ -259,6 +259,8 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+  <!-- Chart.js v4 for the Head-to-Head Performance Trends in Test Analysis -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style id="revisionCardStyles">
     /* ---- Saved / Revision: question content (HTML coming from exam.html) ---- */
@@ -413,7 +415,7 @@
         <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-2.5">
           <div class="sm:col-span-5">
             <input type="search" id="globalSearchInput" oninput="renderWorkspace()"
-              placeholder="Search folders or tests..."
+              placeholder="Search folders, tests or questions..."
               class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
           </div>
           <div class="sm:col-span-3">
@@ -475,6 +477,9 @@
 
       <!-- TESTS GRID -->
       <div id="testsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+      <!-- QUESTIONS matched by the global search -->
+      <div id="globalQuestionResults" class="hidden space-y-2.5"></div>
 
       <!-- Empty State -->
       <div id="emptyWorkspaceState" class="hidden py-16 text-center">
@@ -3432,10 +3437,177 @@
       renderTestAnalysisPage('__OVERALL__');
     };
 
+    /* ------------------------------------------------------------------
+       Head-to-Head Performance Trends (Chart.js) - You vs Partner
+       ------------------------------------------------------------------ */
+    const H2H_NAVY = '#0b3c70';
+    const H2H_ORANGE = '#e58e26';
+    window.__h2hCharts = window.__h2hCharts || {};
+
+    function destroyH2HCharts() {
+      Object.keys(window.__h2hCharts).forEach(k => {
+        try { window.__h2hCharts[k].destroy(); } catch (e) {}
+        delete window.__h2hCharts[k];
+      });
+    }
+
+    function h2hShort(str, n) {
+      const t = String(str || '').trim();
+      return t.length > n ? t.slice(0, n - 1) + '…' : t;
+    }
+
+    function h2hSectionHtml() {
+      return `
+        <div class="space-y-3">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-navy">Head-to-Head Performance Trends</h3>
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Score % Progression</span>
+              <span id="h2hLineNote" class="text-[10px] font-bold text-slate-400"></span>
+            </div>
+            <div class="relative w-full h-56 sm:h-64"><canvas id="h2hLineChart"></canvas></div>
+          </div>
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <span id="h2hBarTitle" class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Section Accuracy % Comparison</span>
+              <span id="h2hBarNote" class="text-[10px] font-bold text-slate-400"></span>
+            </div>
+            <div class="relative w-full h-56 sm:h-64"><canvas id="h2hBarChart"></canvas></div>
+          </div>
+        </div>`;
+    }
+
+    function h2hAggregate(list, field) {
+      const m = new Map();
+      list.forEach(r => (Array.isArray(r[field]) ? r[field] : []).forEach(x => {
+        if (!x || !x.name) return;
+        const p = m.get(x.name) || { att: 0, corr: 0 };
+        p.att += Number(x.attempted || 0);
+        p.corr += Number(x.correct || 0);
+        m.set(x.name, p);
+      }));
+      return m;
+    }
+
+    function renderH2HCharts(myRes) {
+      const lineEl = document.getElementById('h2hLineChart');
+      const barEl = document.getElementById('h2hBarChart');
+      if (!lineEl || !barEl) return;
+      if (typeof Chart === 'undefined') {
+        [lineEl, barEl].forEach(c => { c.parentElement.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-bold text-slate-400">Charts could not load (check your connection).</div>'; });
+        return;
+      }
+      [lineEl, barEl].forEach(c => { const old = Chart.getChart(c); if (old) old.destroy(); });
+
+      const me = (currentUser?.email || '').toLowerCase();
+      const pe = ALLOWED_EMAILS.map(e => e.toLowerCase()).find(e => e !== me) || '';
+      const inDomain = (r) => analysisDomainFilter === 'all' || (r.domain || 'technical') === analysisDomainFilter;
+      const pAll = pe ? ((usersDataMap[pe] && usersDataMap[pe].results) || []).filter(r => r && r.testId && inDomain(r) && (!window.__ctSharedLoaded || sharedData.tests.some(t => t.id === r.testId))) : [];
+
+      // ---- 1. Score % progression ----
+      const pByTest = new Map();
+      pAll.forEach(r => { const prev = pByTest.get(r.testId); if (!prev || (r.timestamp || 0) > (prev.timestamp || 0)) pByTest.set(r.testId, r); });
+      const chrono = [...myRes].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      const pct = (r) => (r && Number(r.maxMarks) > 0) ? Math.round((Number(r.marks || 0) / Number(r.maxMarks)) * 1000) / 10 : null;
+      const labels = chrono.map(r => h2hShort(r.testTitle, 14));
+      const fullTitles = chrono.map(r => r.testTitle || 'Test');
+      const youData = chrono.map(r => pct(r));
+      const partnerData = chrono.map(r => pct(pByTest.get(r.testId)));
+      const partnerHas = partnerData.some(v => v !== null);
+      const noteEl = document.getElementById('h2hLineNote');
+      if (noteEl) noteEl.textContent = partnerHas ? `${chrono.length} tests` : 'Partner has no matching attempts yet';
+
+      const legend = { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11, weight: 'bold' } } };
+      const pctTick = (v) => v + '%';
+
+      window.__h2hCharts.line = new Chart(lineEl, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'You', data: youData, borderColor: H2H_NAVY, backgroundColor: H2H_NAVY, pointBackgroundColor: H2H_NAVY, tension: 0.35, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, spanGaps: true, fill: false },
+            { label: 'Partner', data: partnerData, borderColor: H2H_ORANGE, backgroundColor: H2H_ORANGE, pointBackgroundColor: H2H_ORANGE, tension: 0.35, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6, spanGaps: true, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend,
+            tooltip: {
+              callbacks: {
+                title: (items) => fullTitles[items[0].dataIndex] || '',
+                label: (c) => c.parsed.y == null ? '' : `${c.dataset.label}: ${c.parsed.y}%`
+              }
+            }
+          },
+          scales: {
+            y: { suggestedMin: 0, suggestedMax: 100, ticks: { callback: pctTick, font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.2)' } },
+            x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0, autoSkip: true }, grid: { display: false } }
+          }
+        }
+      });
+
+      // ---- 2. Section / subject accuracy % (grouped bars) ----
+      let field = 'sectionsSummary';
+      let mine = h2hAggregate(myRes, field);
+      let theirs = h2hAggregate(pAll, field);
+      if (!mine.size && !theirs.size) {
+        field = 'topicsSummary';
+        mine = h2hAggregate(myRes, field);
+        theirs = h2hAggregate(pAll, field);
+      }
+      const titleEl = document.getElementById('h2hBarTitle');
+      if (titleEl) titleEl.textContent = field === 'topicsSummary' ? 'Topic Accuracy % Comparison' : 'Section Accuracy % Comparison';
+
+      const names = Array.from(new Set([...mine.keys(), ...theirs.keys()]))
+        .sort((a, b) => ((mine.get(b)?.att || 0) + (theirs.get(b)?.att || 0)) - ((mine.get(a)?.att || 0) + (theirs.get(a)?.att || 0)))
+        .slice(0, 8);
+      const acc = (m, n) => { const v = m.get(n); return v && v.att > 0 ? Math.round((v.corr / v.att) * 1000) / 10 : null; };
+      const barNote = document.getElementById('h2hBarNote');
+      if (barNote) barNote.textContent = names.length ? `Top ${names.length} by attempts` : '';
+
+      if (!names.length) {
+        barEl.parentElement.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-bold text-slate-400 text-center px-4">Section-level accuracy will appear for tests submitted after section tracking was added.</div>';
+        return;
+      }
+
+      window.__h2hCharts.bar = new Chart(barEl, {
+        type: 'bar',
+        data: {
+          labels: names.map(n => h2hShort(n, 12)),
+          datasets: [
+            { label: 'You', data: names.map(n => acc(mine, n)), backgroundColor: H2H_NAVY, borderRadius: 6, maxBarThickness: 28 },
+            { label: 'Partner', data: names.map(n => acc(theirs, n)), backgroundColor: H2H_ORANGE, borderRadius: 6, maxBarThickness: 28 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend,
+            tooltip: {
+              callbacks: {
+                title: (items) => names[items[0].dataIndex] || '',
+                label: (c) => c.parsed.y == null ? `${c.dataset.label}: no attempts` : `${c.dataset.label}: ${c.parsed.y}%`
+              }
+            }
+          },
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: pctTick, font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.2)' } },
+            x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0, autoSkip: false }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
     window.renderTestAnalysisPage = (selectedTestId) => {
       const sel = document.getElementById('analysisTestSelect');
       const area = document.getElementById('analysisContentArea');
       const myEmail = (currentUser?.email || '').toLowerCase();
+      destroyH2HCharts(); // never leave a Chart.js instance bound to a canvas that is about to be replaced
 
       // Sync domain filter pills UI
       const domMap = { all: 'anDomainAll', technical: 'anDomainTechnical', nontechnical: 'anDomainNontechnical' };
@@ -3603,6 +3775,8 @@
             </div>
           </div>
 
+          ${h2hSectionHtml()}
+
           ${aggTopicsHtml}
 
           <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm">
@@ -3633,6 +3807,7 @@
             </div>
           </div>
         `;
+        renderH2HCharts(myRes);
         return;
       }
 
@@ -3645,7 +3820,8 @@
       const posMarks = Number(activeRec.positiveMarks || 0);
       const negLost = Number(activeRec.negativeMarksLost || 0);
       const wrongRate = att > 0 ? Math.round((wrong / att) * 100) : 0;
-      const avgNegPerAtt = att > 0 ? (negLost / att).toFixed(2) : '0.00';
+      const avgNegPerAtt = att > 0 ? fmtMarks(negLost / att) : '0';
+      const score = Number(activeRec.marks || 0);
       const potentialScore = Math.round((Number(activeRec.marks || 0) + negLost) * 100) / 100;
 
       const barTotal = Math.max(1, corr + wrong + skip);
@@ -3815,10 +3991,13 @@
               <div class="text-[10px] font-bold text-indigo-500 mt-0.5">Score Without Neg.</div>
             </div>
           </div>
-          <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-xs font-semibold text-amber-950 leading-relaxed">
+          <div class="rounded-xl border border-amber-200/80 bg-amber-50/70 p-3 space-y-2 text-xs text-slate-700">
             ${att > 0
-              ? `Out of <b>${att}</b> attempted questions, <b>${wrong}</b> were wrong — losing <b>-${fmtMarks(negLost)}</b> marks (avg <b>${avgNegPerAtt}</b> neg marks/attempt). Skipping those wrong guesses would have lifted your score from <b>${fmtMarks(activeRec.marks)}</b> to <b>${fmtMarks(potentialScore)}</b>.`
-              : `Detailed question-level negative breakdown will appear for tests submitted after this update.`}
+              ? `<div>📉 <b>Guess Penalty:</b> <b class="text-red-600">${avgNegPerAtt}</b> avg marks lost per attempted question (${wrong}/${att} wrong)</div>
+                 <div>${negLost > 0
+                   ? `🚀 <b>Skip Impact:</b> Avoiding wrong guesses boosts your score <b class="text-slate-800">${fmtMarks(score)}</b> → <b class="text-emerald-700">${fmtMarks(score + negLost)}</b> (<b class="text-emerald-700">+${fmtMarks(negLost)}</b> gain)`
+                   : `🎉 <b>Zero Negative Penalty:</b> Clean attempt — no marks lost to wrong answers!`}</div>`
+              : `<div class="font-semibold">Detailed question-level negative breakdown will appear for tests submitted after this update.</div>`}
           </div>
         </div>
 
@@ -3964,6 +4143,254 @@
       }
       return info;
     }
+
+    /* ------------------------------------------------------------------
+       Global question & concept search (Questions section under the search bar)
+       Sources: (1) the user's saved bookmarks (full question text),
+                (2) question text of every test that either user has a result for,
+                    read from the test JSON on GitHub once per session, in the background.
+       Result records themselves hold only counts / answers, never question text.
+       ------------------------------------------------------------------ */
+    const QSEARCH_MAX = 15;
+    const qIndex = (window.__qIndex = window.__qIndex || { tests: new Map(), failed: new Set(), running: false, total: 0, done: 0, noGithub: false });
+    const qsBmCache = new Map();
+
+    function qsPlain(html, keepTelugu) {
+      let t = '';
+      try {
+        const d = new DOMParser().parseFromString('<div>' + String(html || '') + '</div>', 'text/html');
+        d.querySelectorAll('script, style, mjx-container, mjx-assistive-mml, table, img').forEach(n => n.remove());
+        if (!keepTelugu) d.querySelectorAll('.telugu-text').forEach(n => n.remove());
+        t = d.body.textContent || '';
+      } catch (e) { t = String(html || '').replace(/<[^>]*>/g, ' '); }
+      return t.replace(/\\[()\[\]]/g, ' ').replace(/\$+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    // Mirrors exam.html's normalize(): same section order, so "solq_N" matches the Solutions card ids
+    function qsFlatten(p) {
+      const cfg = Array.isArray(p) ? { baseQuestions: p } : p;
+      if (!cfg || typeof cfg !== 'object') return [];
+      let sections = [];
+      const grouped = {};
+      const secName = (x, i) => typeof x === 'string'
+        ? (x.trim() || ('Section ' + (i + 1)))
+        : (x && typeof x === 'object' ? String(x.name || x.title || x.section || ('Section ' + (i + 1))).trim() : 'Section ' + (i + 1));
+      const rawSecs = cfg.examSections || cfg.sections;
+      if (Array.isArray(rawSecs)) {
+        rawSecs.forEach((x, i) => {
+          const n = secName(x, i);
+          if (!sections.includes(n)) sections.push(n);
+          if (x && typeof x === 'object' && Array.isArray(x.questions)) grouped[n] = (grouped[n] || []).concat(x.questions);
+        });
+      }
+      if (cfg.allQuestions && typeof cfg.allQuestions === 'object' && !Array.isArray(cfg.allQuestions)) {
+        Object.keys(cfg.allQuestions).forEach(k => {
+          if (!Array.isArray(cfg.allQuestions[k])) return;
+          if (!sections.includes(k)) sections.push(k);
+          grouped[k] = (grouped[k] || []).concat(cfg.allQuestions[k]);
+        });
+      }
+      const flatIn = Array.isArray(cfg.baseQuestions) ? cfg.baseQuestions : (Array.isArray(cfg.questions) ? cfg.questions : null);
+      if (flatIn) {
+        flatIn.forEach(q => {
+          if (!q || typeof q !== 'object') return;
+          let n = (q.section && String(q.section).trim()) || sections[0] || 'Section 1';
+          if (!sections.includes(n)) { if (rawSecs && sections.length) n = sections[0]; else sections.push(n); }
+          (grouped[n] = grouped[n] || []).push(q);
+        });
+      }
+      if (!sections.length) sections = ['Section 1'];
+      const out = [];
+      let g = 0;
+      sections.forEach(sec => {
+        let local = 0;
+        (grouped[sec] || []).forEach(q => {
+          if (!q || typeof q !== 'object') return;
+          g++; local++;
+          out.push({ q, section: sec, globalN: g, localN: local });
+        });
+      });
+      return out;
+    }
+
+    function qsBuildEntries(testId, parsed) {
+      return qsFlatten(parsed).map(it => {
+        const q = it.q;
+        const plainEng = qsPlain(q.text, false);
+        const plainAll = qsPlain(q.text, true);
+        const expl = qsPlain(q.explanation != null && q.explanation !== '' ? q.explanation : (q.sol || ''), false).slice(0, 600);
+        const topic = String(q.topic || q.subTopic || q.concept || '').trim();
+        return {
+          testId, solId: 'solq_' + it.globalN, qNum: it.localN, section: it.section, topic,
+          textEng: plainEng, textAll: plainAll,
+          hay: (plainAll + ' ' + topic + ' ' + it.section + ' ' + expl).toLowerCase(),
+          bookmarked: false
+        };
+      });
+    }
+
+    async function qsEnsureIndex() {
+      if (qIndex.running) return;
+      if (typeof isGithubReady !== 'function' || !isGithubReady()) { qIndex.noGithub = true; return; }
+      qIndex.noGithub = false;
+      const ids = Array.from(new Set(getCombinedResults().map(c => c.testId)))
+        .filter(id => !qIndex.tests.has(id) && !qIndex.failed.has(id))
+        .filter(id => { const t = sharedData.tests.find(x => x.id === id); return t && t.githubFilePath; });
+      if (!ids.length) return;
+      qIndex.running = true;
+      qIndex.total = ids.length;
+      qIndex.done = 0;
+      let cursor = 0;
+      let timer = null;
+      const refresh = () => {
+        if (timer) return;
+        timer = setTimeout(() => { timer = null; if (typeof window.renderQuestionSearch === 'function') window.renderQuestionSearch(); }, 150);
+      };
+      const worker = async () => {
+        while (cursor < ids.length) {
+          const id = ids[cursor++];
+          try {
+            const t = sharedData.tests.find(x => x.id === id);
+            const txt = await fetchJsonFromGithubRepo(t.githubFilePath);
+            qIndex.tests.set(id, qsBuildEntries(id, JSON.parse(txt)));
+          } catch (e) {
+            qIndex.failed.add(id);
+          }
+          qIndex.done++;
+          refresh();
+        }
+      };
+      try { await Promise.all([worker(), worker(), worker()]); }
+      finally { qIndex.running = false; refresh(); }
+    }
+
+    function qsHighlight(text, q) {
+      const lo = text.toLowerCase();
+      let out = '', i = 0, idx;
+      while ((idx = lo.indexOf(q, i)) > -1) {
+        out += escapeHtml(text.slice(i, idx)) + '<mark class="bg-amber-200/80 text-slate-900 rounded px-0.5">' + escapeHtml(text.slice(idx, idx + q.length)) + '</mark>';
+        i = idx + q.length;
+      }
+      return out + escapeHtml(text.slice(i));
+    }
+
+    function qsSnippet(text, q) {
+      const idx = text.toLowerCase().indexOf(q);
+      if (idx < 0) return { html: escapeHtml(text.length > 170 ? text.slice(0, 167) + '...' : text), matched: false };
+      const start = Math.max(0, idx - 60);
+      const end = Math.min(text.length, start + 170);
+      const piece = (start > 0 ? '...' : '') + text.slice(start, end) + (end < text.length ? '...' : '');
+      return { html: qsHighlight(piece, q), matched: true };
+    }
+
+    function qsCollect(q, domainFilter) {
+      const hits = [];
+      const seen = new Set();
+      let total = 0;
+      const testById = (id) => sharedData.tests.find(t => t.id === id);
+
+      // (1) my bookmarks
+      (getMyUserData().bookmarks || []).forEach(b => {
+        if (!b || !b.testId) return;
+        if (window.__ctSharedLoaded && !testById(b.testId)) return;
+        const dom = b.domain || (testById(b.testId)?.domain) || 'technical';
+        if (domainFilter !== 'all' && dom !== domainFilter) return;
+        let c = qsBmCache.get(b.key);
+        if (!c || c.src !== (b.questionHtml || b.preview || '')) {
+          const eng = b.questionHtml ? qsPlain(b.questionHtml, false) : String(b.preview || '');
+          const all = b.questionHtml ? qsPlain(b.questionHtml, true) : eng;
+          c = { src: b.questionHtml || b.preview || '', eng, all, hay: (all + ' ' + (b.topic || '') + ' ' + (b.section || '') + ' ' + (b.testTitle || '')).toLowerCase() };
+          qsBmCache.set(b.key, c);
+        }
+        if (!c.hay.includes(q)) return;
+        seen.add(b.testId + '|' + (b.solId || ''));
+        total++;
+        if (hits.length < QSEARCH_MAX) {
+          hits.push({ testId: b.testId, solId: b.solId || '', qNum: b.qNum || '?', title: b.testTitle || testById(b.testId)?.title || 'Test', domain: dom, section: b.section || '', textEng: c.eng, textAll: c.all, bookmarked: true });
+        }
+      });
+
+      // (2) indexed test questions
+      qIndex.tests.forEach((entries, testId) => {
+        const t = testById(testId);
+        if (!t) return;
+        const dom = t.domain || 'technical';
+        if (domainFilter !== 'all' && dom !== domainFilter) return;
+        entries.forEach(e => {
+          if (!e.hay.includes(q)) return;
+          if (seen.has(testId + '|' + e.solId)) return;
+          total++;
+          if (hits.length < QSEARCH_MAX) hits.push({ testId, solId: e.solId, qNum: e.qNum, title: t.title, domain: dom, section: e.section, textEng: e.textEng, textAll: e.textAll, bookmarked: false });
+        });
+      });
+      return { hits, total };
+    }
+
+    window.renderQuestionSearch = (searchQ) => {
+      const box = document.getElementById('globalQuestionResults');
+      if (!box) return;
+      const q = String(searchQ != null ? searchQ : (document.getElementById('globalSearchInput')?.value || '')).trim().toLowerCase();
+      const emptyEl = document.getElementById('emptyWorkspaceState');
+      if (q.length < 2) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        window.__qHits = [];
+        return;
+      }
+      qsEnsureIndex();
+      const domainFilter = document.getElementById('filterDomainSelect')?.value || 'all';
+      const { hits, total } = qsCollect(q, domainFilter);
+      window.__qHits = hits;
+
+      const indexing = qIndex.running && qIndex.total > 0;
+      if (!hits.length && !indexing) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        if (emptyEl) emptyEl.classList.toggle('hidden', !window.__lastWsEmpty);
+        return;
+      }
+      if (emptyEl) emptyEl.classList.toggle('hidden', !(window.__lastWsEmpty && hits.length === 0));
+
+      const status = indexing
+        ? `Searching question bank… ${qIndex.done}/${qIndex.total} tests`
+        : (total > hits.length ? `Showing ${hits.length} of ${total}` : `${total} found`);
+
+      box.innerHTML = `
+        <div class="flex items-center justify-between pt-1">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-navy">Questions</h2>
+          <span class="text-[10px] font-bold text-slate-400">${status}</span>
+        </div>
+        ${hits.map((h, i) => {
+          const useEng = h.textEng && h.textEng.toLowerCase().includes(q);
+          const sn = qsSnippet(useEng ? h.textEng : (h.textAll || h.textEng || ''), q);
+          const isTech = h.domain === 'technical';
+          const domBadge = isTech
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-navy-light text-navy">Technical</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brandOrange-light text-brandOrange-deep">Non-Technical</span>';
+          return `
+            <button type="button" onclick="openQuestionHit(${i})"
+              class="w-full text-left bg-white rounded-2xl p-3.5 border border-slate-200/90 hover:border-navy shadow-sm transition space-y-1.5">
+              <div class="flex items-center flex-wrap gap-1.5">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-navy text-white">Q${escapeHtml(String(h.qNum))}</span>
+                ${domBadge}
+                ${h.bookmarked ? '<span class="text-[11px]" title="Saved question">⭐</span>' : ''}
+                <span class="text-[11px] font-bold text-slate-500 truncate max-w-[220px] sm:max-w-sm">${escapeHtml(h.title)}</span>
+              </div>
+              <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">${sn.html}</p>
+              ${sn.matched ? '' : '<p class="text-[10px] font-bold text-slate-400">Matched in the explanation or topic</p>'}
+            </button>`;
+        }).join('')}
+      `;
+      box.classList.remove('hidden');
+    };
+
+    // Opens the test's Solution Report directly at the matched question
+    window.openQuestionHit = (i) => {
+      const h = (window.__qHits || [])[i];
+      if (!h) return;
+      const opts = h.solId ? { focusSolId: h.solId } : {};
+      window.launchExam(h.testId, 'report', false, opts);
+    };
 
     window.renderWorkspace = () => {
       const searchQ = (document.getElementById('globalSearchInput').value || '').trim().toLowerCase();
@@ -4174,6 +4601,8 @@
         else if (canEdit && info.canAddTest) hint = 'Tap + to upload a test';
         document.getElementById('emptyWorkspaceHint').textContent = hint;
       }
+      window.__lastWsEmpty = isEmpty;
+      if (typeof window.renderQuestionSearch === 'function') window.renderQuestionSearch(searchQ);
     };
 
     // ---------------- RENDER PAST RESULTS ----------------

@@ -10611,6 +10611,21 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 ctAlertAndReturnToPortal('Your answers for this attempt were not saved, so wrong/skipped questions cannot be picked. Please use "Re-attempt Full Test".');
                 return;
             }
+            // Capture the ORIGINAL full-test size and duration BEFORE the questions are filtered down.
+            // A value saved on the first launch (origDurationSec) wins, so a page reload of the
+            // re-attempt never scales an already-scaled duration a second time.
+            var origTotalQ = cN.flat.length;
+            var origDurationSec = parseFloat(active.origDurationSec) || 0;
+            if (!(origDurationSec > 0)) {
+                var aDurMin = parseFloat(active.duration);
+                var jObj = Array.isArray(parsedAll) ? null : parsedAll;
+                var jDurMin = jObj ? parseFloat(jObj.duration) : NaN;
+                var jTotSec = jObj ? parseFloat(jObj.totalTimeInSeconds) : NaN;
+                if (aDurMin > 0) origDurationSec = aDurMin * 60;
+                else if (jDurMin > 0) origDurationSec = jDurMin * 60;
+                else if (jTotSec > 0) origDurationSec = jTotSec;
+                else origDurationSec = (parseFloat(cN.duration) || 20) * 60;
+            }
             var wrongQs = [], usedSecs = {};
             cN.flat.forEach(function (q, idx) {
                 var r = ans.q[idx + 1];
@@ -10627,7 +10642,12 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
                 if (['allQuestions', 'examSections', 'sections', 'baseQuestions', 'questions'].indexOf(k) < 0) cfg2[k] = parsedAll[k];
             });
             active.isReattempt = true;
-            active.duration = Math.max(5, Math.round(wrongQs.length * 1.2));
+            // Pro-rata timer: same per-question pace as the original test, rounded to whole minutes.
+            var filteredCount = wrongQs.length;
+            var scaledSec = Math.max(60, Math.round((origDurationSec / Math.max(1, origTotalQ)) * filteredCount));
+            scaledSec = Math.max(1, Math.round(scaledSec / 60)) * 60;
+            active.origDurationSec = origDurationSec;
+            active.duration = scaledSec / 60;   // minutes; apply() sets totalTimeInSeconds / timeLeft from this
             active.title = (active.title || 'Test') + ' (Mistakes Re-attempt)';
             try { localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(active)); } catch (e) {}
             cfg2.examName = active.title; cfg2.examSections = secs; cfg2.markingSchemes = cN.schemes;
