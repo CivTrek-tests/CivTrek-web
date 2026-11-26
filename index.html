@@ -126,6 +126,23 @@
       color: #be123c;
       border: 1px solid #fecdd3;
     }
+    @keyframes ctNewFlash {
+      0%, 100% { background-color: #e58e26; box-shadow: 0 0 0 0 rgba(229, 142, 38, 0.55); transform: scale(1); }
+      50% { background-color: #dc2626; box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); transform: scale(1.04); }
+    }
+    .notice-new-flash {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #e58e26;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      animation: ctNewFlash 1.3s ease-in-out infinite;
+    }
     .sched-pill-track {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -330,6 +347,9 @@
         </button>
       </div>
 
+      <!-- 1b. Top Notice Board (Home root only; 3-day NEW flash -> 7-day auto-close / Permanent) -->
+      <div id="pinnedNoticeCard" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm transition-all"></div>
+
       <!-- Back / Breadcrumb Header (Inside sub-folders or search) -->
       <div id="navHeaderBar" class="hidden flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
@@ -397,41 +417,14 @@
           <div id="scheduleTabList" class="max-h-[345px] overflow-y-auto pr-1 space-y-2"></div>
         </div>
 
-        <!-- Shared Pinned Notice / Formula Board -->
-        <div id="pinnedNoticeCard" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
-            <button type="button" onclick="togglePinnedNoticeCollapse()" class="flex items-center gap-2 text-left min-w-0">
-              <span class="w-8 h-8 rounded-xl bg-amber-50 text-brandOrange-deep flex items-center justify-center text-sm shrink-0">📌</span>
-              <div class="min-w-0">
-                <h2 class="text-sm sm:text-base font-extrabold text-navy leading-tight truncate">Pinned Notice &amp; Formulas</h2>
-                <p id="pinnedNoticeMeta" class="text-[10px] font-semibold text-slate-400 truncate">Shared with partner</p>
-              </div>
-            </button>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button type="button" onclick="openPinnedNoticeModal()" class="px-2.5 py-1 rounded-lg bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-bold transition">Edit</button>
-              <button type="button" id="pinnedNoticeChevron" onclick="togglePinnedNoticeCollapse()" aria-label="Toggle Notice" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center transition">▾</button>
-            </div>
-          </div>
-          <div id="pinnedNoticeBodyWrap">
-            <div id="pinnedNoticeText" class="text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed"></div>
-          </div>
-        </div>
-
-        <!-- 4-Box Quick Stats + Streak & Weekly Target -->
+        <!-- Daily Streak Comparison (Option 1) + 4-Box Quick Stats -->
         <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3.5">
-          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
-            <div class="flex items-center gap-2">
-              <span class="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-brandOrange-deep text-xs font-extrabold inline-flex items-center gap-1">
-                🔥 <span id="statStreakDays">0</span> Day Streak
-              </span>
+          <div class="pb-3 border-b border-slate-100 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-navy">🔥 Daily Streak Comparison</span>
+              <span class="text-[10px] font-semibold text-slate-400">Active tests only</span>
             </div>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="font-bold text-slate-500">🎯 This Week: <b id="statWeeklyProgress" class="text-navy">0 / 5</b></span>
-              <button type="button" onclick="promptWeeklyTarget()" class="text-[10px] font-extrabold text-navy hover:text-brandOrange underline">Goal</button>
-            </div>
-            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div id="statWeeklyBar" class="h-full bg-gradient-to-r from-navy to-brandOrange rounded-full transition-all duration-300" style="width:0%"></div>
-            </div>
+            <div id="dailyStreakCompareGrid" class="grid grid-cols-2 gap-2.5"></div>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
             <div class="bg-paper rounded-xl p-3">
@@ -985,45 +978,39 @@
   <!-- Syllabus print area (only visible in print) -->
   <div id="syllabusPrintArea"></div>
 
-  <!-- Shared Pinned Notice Editor Modal -->
+  <!-- Shared Notice Board Editor Modal -->
   <div id="pinnedNoticeModal" onclick="if(event.target===this) closeModal('pinnedNoticeModal')"
     class="hidden fixed inset-0 z-[75] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange animate-pop">
       <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-extrabold text-navy">📌 Pinned Notice &amp; Formulas</h3>
+        <h3 class="text-lg font-extrabold text-navy">📌 Notice Board</h3>
         <button onclick="closeModal('pinnedNoticeModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
       </div>
-      <form onsubmit="savePinnedNoticeForm(event)" class="space-y-3">
-        <textarea id="pinnedNoticeInput" rows="6" placeholder="e.g., Tomorrow 7 AM: SOM Full-Length Test&#10;IS 456 min steel = 0.85bd/fy..."
+      <form onsubmit="savePinnedNoticeForm(event)" class="space-y-3.5">
+        <div class="grid grid-cols-2 gap-2">
+          <label class="cursor-pointer">
+            <input type="radio" name="noticeModeRadio" id="noticeModeFlash" value="flash" checked class="peer hidden" />
+            <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-brandOrange peer-checked:bg-brandOrange-light/60 text-center transition">
+              <div class="text-xs font-extrabold text-navy">⚡ 7-Day Update</div>
+              <div class="text-[10px] font-semibold text-slate-500 mt-0.5">3d NEW flash • Auto-close</div>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="noticeModeRadio" id="noticeModePermanent" value="permanent" class="peer hidden" />
+            <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-navy peer-checked:bg-navy-light/70 text-center transition">
+              <div class="text-xs font-extrabold text-navy">📌 Permanent Pin</div>
+              <div class="text-[10px] font-semibold text-slate-500 mt-0.5">Stays until cleared</div>
+            </div>
+          </label>
+        </div>
+        <textarea id="pinnedNoticeInput" rows="5" placeholder="Write an update or notice for both of you..."
           class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-navy resize-y"></textarea>
         <div class="flex items-center justify-between gap-2 pt-1">
           <button type="button" onclick="document.getElementById('pinnedNoticeInput').value=''" class="text-xs font-bold text-slate-400 hover:text-red-500">Clear</button>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('pinnedNoticeModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
-            <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Save &amp; Pin</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy text-white font-bold text-xs">Post Notice</button>
           </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Weekly Target Modal -->
-  <div id="weeklyGoalModal" onclick="if(event.target===this) closeModal('weeklyGoalModal')"
-    class="hidden fixed inset-0 z-[75] bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl border-t-4 border-navy animate-pop">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-base font-extrabold text-navy">🎯 Weekly Test Goal</h3>
-        <button onclick="closeModal('weeklyGoalModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
-      </div>
-      <form onsubmit="saveWeeklyGoalForm(event)" class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Tests per week (1 – 30)</label>
-          <input type="number" id="weeklyGoalInput" min="1" max="30" required
-            class="w-full px-3.5 py-2.5 text-sm font-bold border border-slate-300 rounded-xl focus:outline-none focus:border-navy" />
-        </div>
-        <div class="flex justify-end gap-2 pt-1">
-          <button type="button" onclick="closeModal('weeklyGoalModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-brandOrange text-white font-bold text-xs">Save</button>
         </div>
       </form>
     </div>
@@ -1183,7 +1170,7 @@
           "jahnavisai29@gmail.com": { name: "Jahnavi Sai", targetExam: "APPSC AEE", lang: "eng" }
         },
         examTargets: [],
-        pinnedNotice: { text: '', updatedBy: '', updatedAt: 0 },
+        pinnedNotice: { text: '', updatedBy: '', updatedAt: 0, mode: 'flash' },
         folders: [
           { id: 'root_tech', parentId: null, domain: 'technical', name: 'Technical', desc: 'Civil Engineering', isRootDomain: true },
           { id: 'root_nontech', parentId: null, domain: 'nontechnical', name: 'Non-Technical', desc: 'GS & Mental Ability', isRootDomain: true }
@@ -1683,33 +1670,86 @@
     let pinnedNoticeCollapsed = false;
     window.togglePinnedNoticeCollapse = () => {
       pinnedNoticeCollapsed = !pinnedNoticeCollapsed;
-      const body = document.getElementById('pinnedNoticeBodyWrap');
-      const chev = document.getElementById('pinnedNoticeChevron');
-      if (body) body.classList.toggle('hidden', pinnedNoticeCollapsed);
-      if (chev) chev.textContent = pinnedNoticeCollapsed ? '▸' : '▾';
+      renderPinnedNoticeWidget();
     };
 
     function renderPinnedNoticeWidget() {
-      const textEl = document.getElementById('pinnedNoticeText');
-      const metaEl = document.getElementById('pinnedNoticeMeta');
-      if (!textEl || !metaEl) return;
+      const card = document.getElementById('pinnedNoticeCard');
+      if (!card) return;
       const pn = sharedData.pinnedNotice || {};
       const txt = String(pn.text || '').trim();
-      if (txt) {
-        textEl.textContent = txt;
-        textEl.className = 'text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed';
-        const when = pn.updatedAt ? new Date(pn.updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
-        metaEl.textContent = pn.updatedBy ? `Updated by ${pn.updatedBy}${when ? ' • ' + when : ''}` : 'Shared with partner';
-      } else {
-        textEl.textContent = 'Pin study reminders, exam alerts, or key IS code formulas for both of you.';
-        textEl.className = 'text-xs font-semibold text-slate-400 bg-paper rounded-xl p-3 italic';
-        metaEl.textContent = 'Shared with partner';
+      const mode = pn.mode === 'permanent' ? 'permanent' : 'flash';
+      const updatedAt = Number(pn.updatedAt || 0);
+      const ageMs = updatedAt ? Math.max(0, Date.now() - updatedAt) : 0;
+      const THREE_DAYS = 3 * 86400000;
+      const SEVEN_DAYS = 7 * 86400000;
+
+      const isExpired = Boolean(txt) && mode === 'flash' && updatedAt > 0 && ageMs > SEVEN_DAYS;
+      const isActive = Boolean(txt) && !isExpired;
+
+      // Compact slim 1-line bar when there is no active notice (or after 7-day auto-close)
+      if (!isActive) {
+        card.className = 'bg-white rounded-2xl px-4 py-2.5 border border-slate-200/90 shadow-sm flex items-center justify-between gap-2';
+        card.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-sm">📌</span>
+            <span class="text-xs sm:text-sm font-extrabold text-navy truncate">Notice Board</span>
+            <span class="text-[11px] font-semibold text-slate-400 truncate hidden sm:inline">• No active updates</span>
+          </div>
+          <button type="button" onclick="openPinnedNoticeModal()"
+            class="px-3 py-1 rounded-xl bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-extrabold transition shrink-0">
+            + Add
+          </button>
+        `;
+        return;
       }
+
+      const isNewFlash = mode === 'flash' && ageMs <= THREE_DAYS;
+      const daysLeft = mode === 'flash' ? Math.max(1, Math.ceil((SEVEN_DAYS - ageMs) / 86400000)) : 0;
+      const when = updatedAt ? new Date(updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+      const metaText = pn.updatedBy ? `By ${pn.updatedBy}${when ? ' • ' + when : ''}` : (when || 'Shared notice');
+
+      let badgeHtml = '';
+      if (isNewFlash) {
+        badgeHtml = `<span class="notice-new-flash">NEW</span>`;
+      } else if (mode === 'permanent') {
+        badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-navy-light text-navy tracking-wide">PINNED</span>`;
+      } else {
+        badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500">${daysLeft}d left</span>`;
+      }
+
+      card.className = `bg-white rounded-2xl p-3.5 sm:p-4 border ${isNewFlash ? 'border-brandOrange/70 ring-1 ring-amber-200/70' : 'border-slate-200/90'} shadow-sm space-y-2.5`;
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <button type="button" onclick="togglePinnedNoticeCollapse()" class="flex items-center gap-2 text-left min-w-0">
+            <span class="w-8 h-8 rounded-xl ${isNewFlash ? 'bg-brandOrange-light text-brandOrange-deep' : 'bg-navy-light text-navy'} flex items-center justify-center text-sm shrink-0">📌</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h2 class="text-sm sm:text-base font-extrabold text-navy leading-tight">Notice Board</h2>
+                ${badgeHtml}
+              </div>
+              <p class="text-[10px] font-semibold text-slate-400 truncate">${escapeHtml(metaText)}</p>
+            </div>
+          </button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="openPinnedNoticeModal()" class="px-2.5 py-1 rounded-lg bg-navy-light hover:bg-navy text-navy hover:text-white text-[11px] font-bold transition">Edit</button>
+            <button type="button" onclick="togglePinnedNoticeCollapse()" aria-label="Toggle Notice" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold flex items-center justify-center transition">${pinnedNoticeCollapsed ? '▸' : '▾'}</button>
+          </div>
+        </div>
+        ${pinnedNoticeCollapsed ? '' : `<div class="text-xs sm:text-sm font-medium text-slate-700 bg-paper rounded-xl p-3 whitespace-pre-wrap break-words leading-relaxed">${escapeHtml(txt)}</div>`}
+      `;
     }
 
     window.openPinnedNoticeModal = () => {
       const pn = sharedData.pinnedNotice || {};
-      document.getElementById('pinnedNoticeInput').value = pn.text || '';
+      const updatedAt = Number(pn.updatedAt || 0);
+      const mode = pn.mode === 'permanent' ? 'permanent' : 'flash';
+      const isExpired = Boolean((pn.text || '').trim()) && mode === 'flash' && updatedAt > 0 && (Date.now() - updatedAt) > 7 * 86400000;
+      document.getElementById('pinnedNoticeInput').value = isExpired ? '' : (pn.text || '');
+      const flashEl = document.getElementById('noticeModeFlash');
+      const permEl = document.getElementById('noticeModePermanent');
+      if (mode === 'permanent' && !isExpired && permEl) permEl.checked = true;
+      else if (flashEl) flashEl.checked = true;
       document.getElementById('pinnedNoticeModal').classList.remove('hidden');
       setTimeout(() => document.getElementById('pinnedNoticeInput').focus(), 60);
     };
@@ -1717,47 +1757,35 @@
     window.savePinnedNoticeForm = async (e) => {
       e.preventDefault();
       const text = document.getElementById('pinnedNoticeInput').value.trim();
+      const modeEl = document.querySelector('input[name="noticeModeRadio"]:checked');
+      const mode = (modeEl && modeEl.value === 'permanent') ? 'permanent' : 'flash';
       const prof = sharedData.profiles?.[currentUser.email] || { name: currentUser.displayName || currentUser.email };
       sharedData.pinnedNotice = {
         text,
+        mode,
         updatedBy: prof.name || currentUser.email,
-        updatedAt: Date.now()
+        updatedAt: text ? Date.now() : 0
       };
+      pinnedNoticeCollapsed = false;
       await persistSharedFields({ pinnedNotice: sharedData.pinnedNotice });
       closeModal('pinnedNoticeModal');
       renderPinnedNoticeWidget();
-      showToast(text ? 'Notice pinned & synced' : 'Notice cleared');
+      showToast(text ? (mode === 'permanent' ? 'Notice pinned permanently' : 'Notice posted (3d NEW flash • 7d active)') : 'Notice cleared');
     };
 
-    window.promptWeeklyTarget = () => {
-      const prof = sharedData.profiles?.[currentUser.email] || {};
-      document.getElementById('weeklyGoalInput').value = Number(prof.weeklyTarget) || 5;
-      document.getElementById('weeklyGoalModal').classList.remove('hidden');
-    };
-
-    window.saveWeeklyGoalForm = async (e) => {
-      e.preventDefault();
-      const val = Math.max(1, Math.min(30, parseInt(document.getElementById('weeklyGoalInput').value, 10) || 5));
-      if (!sharedData.profiles[currentUser.email]) {
-        sharedData.profiles[currentUser.email] = { name: currentUser.displayName || 'Candidate', targetExam: 'APPSC AEE', lang: 'eng' };
-      }
-      sharedData.profiles[currentUser.email].weeklyTarget = val;
-      await persistSharedFields({ profiles: sharedData.profiles });
-      closeModal('weeklyGoalModal');
-      renderHomeDashboardWidgets();
-      showToast(`Weekly goal set to ${val} tests`);
-    };
-
-    function computeStudyStreakAndWeekly(myResults) {
-      const liveSet = window.__ctSharedLoaded ? new Set((sharedData.tests || []).map(t => t.id)) : null;
-      const valid = (myResults || []).filter(r => r && r.timestamp && (!liveSet || liveSet.has(r.testId)));
+    function computeUserDailyStreak(resultsList) {
+      // Strictly count only currently active (non-deleted) tests in the portal
+      const activeTestIds = new Set((sharedData.tests || []).map(t => t.id));
+      const valid = (resultsList || []).filter(r => r && r.timestamp && activeTestIds.has(r.testId));
       const daySet = new Set(valid.map(r => getLocalIsoDate(new Date(Number(r.timestamp)))));
 
-      // Consecutive streak ending today or yesterday
+      const todayIso = getLocalIsoDate(new Date());
+      const doneToday = daySet.has(todayIso);
+
       let streak = 0;
       const cursor = new Date();
-      let iso = getLocalIsoDate(cursor);
-      if (!daySet.has(iso)) {
+      let iso = todayIso;
+      if (!doneToday) {
         cursor.setDate(cursor.getDate() - 1);
         iso = getLocalIsoDate(cursor);
       }
@@ -1766,13 +1794,7 @@
         cursor.setDate(cursor.getDate() - 1);
         iso = getLocalIsoDate(cursor);
       }
-
-      // Weekly tests count (Monday 00:00 local time to now)
-      const now = new Date();
-      const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0 ... Sun=6
-      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0).getTime();
-      const weeklyDone = valid.filter(r => Number(r.timestamp) >= weekStart).length;
-      return { streak, weeklyDone };
+      return { streak, doneToday };
     }
 
     function renderHomeDashboardWidgets() {
@@ -1809,16 +1831,44 @@
       if (negEl) negEl.textContent = totalNegLost > 0 ? `-${fmtMarks(totalNegLost)}` : '0';
       if (negSub) negSub.textContent = `${totalWrong} wrong / ${totalAttempted} att.`;
 
-      const sw = computeStudyStreakAndWeekly(myRes);
-      const prof = sharedData.profiles?.[currentUser.email] || {};
-      const goal = Math.max(1, Number(prof.weeklyTarget) || 5);
-      const pct = Math.min(100, Math.round((sw.weeklyDone / goal) * 100));
-      const stEl = document.getElementById('statStreakDays');
-      const wkEl = document.getElementById('statWeeklyProgress');
-      const wkBar = document.getElementById('statWeeklyBar');
-      if (stEl) stEl.textContent = sw.streak;
-      if (wkEl) wkEl.textContent = `${sw.weeklyDone} / ${goal}`;
-      if (wkBar) wkBar.style.width = `${pct}%`;
+      const streakGrid = document.getElementById('dailyStreakCompareGrid');
+      if (streakGrid && currentUser) {
+        const meKey = currentUser.email.toLowerCase();
+        const partnerEmail = getPartnerEmail();
+        const partnerKey = partnerEmail ? partnerEmail.toLowerCase() : null;
+
+        const myName = (sharedData.profiles?.[meKey]?.name || currentUser.displayName || 'You').split(' ')[0];
+        const partnerName = partnerKey
+          ? (sharedData.profiles?.[partnerKey]?.name || partnerKey.split('@')[0]).split(' ')[0]
+          : 'Partner';
+
+        const mySt = computeUserDailyStreak(usersDataMap[meKey]?.results || []);
+        const ptSt = computeUserDailyStreak(partnerKey ? (usersDataMap[partnerKey]?.results || []) : []);
+
+        const myLeads = mySt.streak > ptSt.streak;
+        const ptLeads = ptSt.streak > mySt.streak;
+
+        const buildStreakBox = (label, isMe, st, leads) => {
+          const dayLbl = st.streak === 1 ? '1 Day' : `${st.streak} Days`;
+          const todayBadge = st.doneToday
+            ? `<span class="text-[10px] font-bold text-emerald-600">✓ Done today</span>`
+            : `<span class="text-[10px] font-semibold text-amber-600">⏳ Pending today</span>`;
+          return `
+            <div class="rounded-xl p-3 border ${leads ? 'bg-amber-50/70 border-brandOrange/60' : 'bg-paper border-slate-200/70'} flex flex-col gap-1">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[11px] font-extrabold text-navy truncate">${escapeHtml(label)}${isMe ? ' (You)' : ''}</span>
+                ${leads ? '<span class="text-xs" title="Leading streak">👑</span>' : ''}
+              </div>
+              <div class="text-base sm:text-lg font-extrabold text-brandOrange-deep leading-tight">🔥 ${dayLbl}</div>
+              <div>${todayBadge}</div>
+            </div>
+          `;
+        };
+
+        streakGrid.innerHTML =
+          buildStreakBox(myName, true, mySt, myLeads) +
+          buildStreakBox(partnerName, false, ptSt, ptLeads);
+      }
     }
 
     // ---------------- MULTI-EXAM COUNTDOWN STRIP ----------------
@@ -3246,6 +3296,8 @@
       document.getElementById('fabAddTestBtn').classList.toggle('hidden', !info.canAddTest);
 
       document.getElementById('homeDashboardWidgets').classList.toggle('hidden', !isHomeRoot);
+      const pnCard = document.getElementById('pinnedNoticeCard');
+      if (pnCard) pnCard.classList.toggle('hidden', !isHomeRoot);
 
       if (isHomeRoot) {
         navHeader.classList.add('hidden');
