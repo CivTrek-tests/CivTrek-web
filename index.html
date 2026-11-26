@@ -683,13 +683,13 @@
             class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
         </div>
         <div class="sm:col-span-4">
-          <select id="revTestFilter" onchange="renderRevisionPage()"
+          <select id="revTestFilter" onchange="resetRevisionLimitAndRender()"
             class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
             <option value="all">All Tests</option>
           </select>
         </div>
         <div class="sm:col-span-3">
-          <select id="revDomainFilter" onchange="renderRevisionPage()"
+          <select id="revDomainFilter" onchange="resetRevisionLimitAndRender()"
             class="w-full py-2 px-3 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-200 rounded-xl focus:outline-none">
             <option value="all">All Subjects</option>
             <option value="technical">Technical</option>
@@ -699,6 +699,13 @@
       </div>
 
       <div id="revisionListContainer" class="space-y-3"></div>
+
+      <div id="loadMoreRevisionWrap" class="hidden text-center pt-2">
+        <button id="loadMoreRevisionBtn" type="button" onclick="loadMoreRevision()"
+          class="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-navy font-bold text-xs border border-slate-200 shadow-sm transition">
+          Show More
+        </button>
+      </div>
     </main>
 
     <!-- VIEW E: SYLLABUS COVERAGE TRACKER -->
@@ -3157,9 +3164,22 @@
       }
     }
 
+    let revisionVisibleLimit = 15;
+
+    window.resetRevisionLimitAndRender = () => {
+      revisionVisibleLimit = 15;
+      renderRevisionPage();
+    };
+
+    window.loadMoreRevision = () => {
+      revisionVisibleLimit += 15;
+      renderRevisionPage();
+    };
+
     window.openRevisionPage = () => {
       closeDrawer();
       currentView = 'revision';
+      revisionVisibleLimit = 15;
       document.getElementById('searchFilterDrawer').classList.add('hidden');
       document.getElementById('searchToggleBtn').classList.add('hidden');
       document.getElementById('fabContainer').classList.add('hidden');
@@ -3209,6 +3229,7 @@
       if (!bmKey) return;
       const my = getMyUserData();
       my.bookmarks = (my.bookmarks || []).filter(b => b.key !== bmKey);
+      revisionVisibleLimit = Math.max(15, revisionVisibleLimit);
       await persistMyUserData(true);
       updateDrawerBookmarkBadge();
       renderRevisionPage();
@@ -3253,19 +3274,32 @@
         return true;
       });
 
+      const loadMoreWrap = document.getElementById('loadMoreRevisionWrap');
+      const loadMoreBtn = document.getElementById('loadMoreRevisionBtn');
+
       if (filtered.length === 0) {
+        window.__revItems = [];
         listEl.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/90 shadow-sm"><div class="text-4xl mb-2">⭐</div><p class="text-sm font-bold text-slate-600">${allBm.length === 0 ? 'No Bookmarked Questions Yet' : 'No matching saved questions'}</p><p class="text-xs text-slate-400 mt-1">${allBm.length === 0 ? 'Open any test solution report and tap ☆ Bookmark on important questions to collect them here.' : 'Try clearing your search or filter.'}</p></div>`;
+        if (loadMoreWrap) loadMoreWrap.classList.add('hidden');
         return;
       }
 
-      // Cards are rebuilt on every filter change; selections / revealed state survive via REV_STATE.
-      window.__revItems = filtered;
-      listEl.innerHTML = filtered.map((b, idx) => revCardHtml(b, idx)).join('');
-      filtered.forEach((b, idx) => {
+      // Slice to current batch so large bookmark lists never freeze mobile browsers or overload MathJax.
+      const visible = filtered.slice(0, revisionVisibleLimit);
+      window.__revItems = visible;
+      listEl.innerHTML = visible.map((b, idx) => revCardHtml(b, idx)).join('');
+      visible.forEach((b, idx) => {
         const st = REV_STATE[b.key];
         if (st && (st.shown || (st.sel && st.sel.length) || st.nat)) revPaint(idx);
       });
-      // MathJax v3 over the whole list (question, options and any already-revealed explanations)
+      if (loadMoreWrap) {
+        const hasMore = filtered.length > visible.length;
+        loadMoreWrap.classList.toggle('hidden', !hasMore);
+        if (hasMore && loadMoreBtn) {
+          loadMoreBtn.textContent = `Show More (${visible.length} of ${filtered.length})`;
+        }
+      }
+      // MathJax v3 only over the currently rendered batch
       if (window.ctTypesetRevision) window.ctTypesetRevision(listEl);
     };
 
@@ -3494,7 +3528,7 @@
 
     window.debouncedRenderRevision = (() => {
       let t = null;
-      return () => { clearTimeout(t); t = setTimeout(() => window.renderRevisionPage(), 220); };
+      return () => { clearTimeout(t); t = setTimeout(() => window.resetRevisionLimitAndRender(), 220); };
     })();
 
     window.setAnalysisDomain = (dom) => {
