@@ -740,6 +740,137 @@
       <div id="syllabusContentArea" class="space-y-3"></div>
     </main>
 
+    <!-- VIEW F: COMPLETE PORTAL & EXAM GUIDE BOOK -->
+    <main id="guideView" class="hidden flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-20 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button onclick="showHomeView()"
+            class="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-navy text-navy flex items-center justify-center font-bold shadow-sm">
+            ←
+          </button>
+          <div>
+            <h1 class="text-lg sm:text-xl font-extrabold text-navy leading-tight">CivTrek Portal Guide Book</h1>
+            <p class="text-[11px] font-semibold text-slate-400">Complete manual for Tests, Analytics, Revision, Offline Mode &amp; Admin tools</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Search inside Guide -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
+        <input type="search" id="guideSearchInput" oninput="filterGuideSections()"
+          placeholder="Search guide topics (e.g., Live, Pending, Offline, Streak, Calculator, Move)..."
+          class="w-full px-3.5 py-2 text-sm bg-paper border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-navy" />
+      </div>
+
+      <div id="guideSectionsContainer" class="space-y-3.5">
+
+        <!-- Section 1: Test Status Badges -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-base shrink-0">🏷️</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">1. Test Status Badges (READY, LIVE, PENDING, UPCOMING)</h2>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">READY</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Test ki <b>Start Time emi pettakapothe (Anytime)</b> mariyu meeru inka attempt cheyakapothe idi kanipisthundi. Eppudaina start cheyochu.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="live-blink-badge px-2 py-0.5 rounded-full text-[10px] font-extrabold"><span class="live-blink-dot"></span>LIVE / LIVE NOW</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Test <b>eroju (Today)</b> scheduled ayi undi, aa start time daatipoyina tarvata (and meeru inka rayakapothe) red blinking badge tho LIVE chupisthundi.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="pending-highlight-badge px-2 py-0.5 rounded-full text-[10px] font-extrabold">PENDING</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Gatham lo (yesterday or earlier) scheduled ayina test ni meeru aa roju rayakunda miss ayithe, attempt chese varaku <b>PENDING</b> ga untundi.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">UPCOMING / TODAY</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Future date/time set chesina test. Start button aa time vache varaku locked lo untundi; syllabus unte chusukovachu.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800">IN PROGRESS</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Test start chesi madhyalo save &amp; exit ayithe answered count &amp; remaining time tho <b>Resume Test</b> button vasthundi.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-paper border border-slate-200/70 space-y-1">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800">COMPLETED / DONE</span>
+              <p class="text-slate-600 font-semibold leading-relaxed">Test submit chesaka unlock avuthundi — <b>View Key</b>, <b>Analysis</b>, mariyu <b>Re-attempt</b> options kanipisthayi.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Home Dashboard & Schedule -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-brandOrange-light text-brandOrange-deep flex items-center justify-center text-base shrink-0">🏠</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">2. Home Screen, Countdowns &amp; Test Schedule</h2>
+          </div>
+          <ul class="space-y-1.5 text-xs font-semibold text-slate-600 leading-relaxed list-disc pl-5">
+            <li><b>Exam Countdowns &amp; Calendar (📅):</b> Top strip lo nearest target exam ki enni rojulu unnavo chupisthundi. Calendar icon tap chesthe monthly view lo exam dates &amp; scheduled mock tests chudochu.</li>
+            <li><b>Important Notice Bell (🔔):</b> Page refresh chesinappudu kotha test updates mariyu admin notices popup lo chupisthundi (scroll chesi anni updates chudochu).</li>
+            <li><b>Test Schedule Tabs:</b> <b>Today's</b> (eroju live/upcoming), <b>Upcoming</b> (future tests), mariyu <b>Pending</b> (rayalsina unattempted tests) tabs tho quick ga test start cheyochu.</li>
+            <li><b>Daily Streak Comparison (🔥):</b> Active tests lo roju kanisam okka test submit chesthe mee daily streak peruguthundi — mee partner tho side-by-side streak &amp; crown (👑) compare avuthundi.</li>
+            <li><b>Partner Status Pill:</b> Prathi test card meeda mee partner aa test complete chesaro ledo (<i>Done ✓</i> leda <i>Pending</i>) live ga telusthundi.</li>
+          </ul>
+        </div>
+
+        <!-- Section 3: Folders & Global Search -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-navy-light text-navy flex items-center justify-center text-base shrink-0">📂</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">3. Subjects, Folders &amp; Global Question Search</h2>
+          </div>
+          <ul class="space-y-1.5 text-xs font-semibold text-slate-600 leading-relaxed list-disc pl-5">
+            <li><b>🏗️ Technical &amp; 📰 Non-Technical:</b> Prathi domain lopala <i>Topic-wise, Chapter-wise, Subject-wise, Multi-Subject, Full-Length</i> categories untayi. Folder progress bar enni tests complete ayyayo chupisthundi.</li>
+            <li><b>Search (🔍):</b> Top search bar lo folder name, test name matrame kakunda, <b>question text leda concept</b> type chesthe direct ga aa question unna test &amp; solution card loki jump avvochu.</li>
+          </ul>
+        </div>
+
+        <!-- Section 4: Live Exam & Offline Mode -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base shrink-0">📝</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">4. Exam Interface, Offline Mode &amp; Question Palette</h2>
+          </div>
+          <ul class="space-y-1.5 text-xs font-semibold text-slate-600 leading-relaxed list-disc pl-5">
+            <li><b>Offline Exam Support:</b> Start Test nokkagane test JSON file phone Cache &amp; RAM lo load avuthundi. Tarvata internet off chesina (Airplane mode lo kuda) motham exam rayochu &amp; accidental ga refresh chesina test pothundi ani bhayam ledu. Online vachaka result automatic ga sync avuthundi.</li>
+            <li><b>Question Palette Colors:</b> Green = Answered, Orange = Not Answered, Grey = Not Visited, Purple = Marked for Review, Purple + Green Dot = Answered &amp; Marked for Review (idi evaluation lo count avuthundi).</li>
+            <li><b>Scientific Calculator:</b> Test lo calculator enabled unte desktop/landscape top bar lo calculator icon kanipisthundi (mobile portrait lo screen space kosam hide avuthundi).</li>
+            <li><b>Bilingual Toggle &amp; Image Zoom:</b> Top dropdown nundi English / Telugu switch cheyochu; ye diagram/image meeda tap chesina full-screen lightbox lo zoom avuthundi.</li>
+          </ul>
+        </div>
+
+        <!-- Section 5: Solution Report, Results, Analysis & Revision -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-base shrink-0">📊</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">5. Solution Report, Past Results, Analysis &amp; Revision</h2>
+          </div>
+          <ul class="space-y-1.5 text-xs font-semibold text-slate-600 leading-relaxed list-disc pl-5">
+            <li><b>Detailed Solution Breakdown:</b> Left navigator lo <b>Subject / Topic dropdown</b>, Search box, <i>All / Mistakes / ★ Saved</i> pills, mariyu <i>Next Mistake ⚡</i> button tho fast ga review cheyochu.</li>
+            <li><b>PDF &amp; Score Card:</b> Results tab nundi Full Report, Mistakes Only, Bookmarked Only PDFs leda official Score Card download chesukovachu.</li>
+            <li><b>Past Results (🏆):</b> <i>All Results</i>, <i>My Tests</i>, mariyu <i>Both Attempted</i> filters tho iddari ranks &amp; scores compare cheyochu (partner score chudalante meeru kuda aa test attempt cheyali).</li>
+            <li><b>Test Analysis (📊):</b> Overall Summary &amp; individual test negative marking impact, potential score without negatives, section speed, mariyu Head-to-Head trend charts chupisthundi.</li>
+            <li><b>Saved / Revision (⭐):</b> Solutions lo star (☆) chesina questions anni ikkada collect avuthayi — answer hide chesi malli practice chesukovachu.</li>
+            <li><b>Syllabus Coverage (📚):</b> Prathi chapter ki <b>📖 Read (50%)</b> mariyu <b>✅ Tested (100%)</b> mark chesi mee partner tho syllabus completion % live ga compare cheyochu.</li>
+          </ul>
+        </div>
+
+        <!-- Section 6: Admin Controls -->
+        <div class="guide-card bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base shrink-0">🛠️</span>
+            <h2 class="text-sm sm:text-base font-extrabold text-navy">6. Admin Controls (Folders, Tests, Move &amp; Cleanup)</h2>
+          </div>
+          <ul class="space-y-1.5 text-xs font-semibold text-slate-600 leading-relaxed list-disc pl-5">
+            <li><b>Flexible Folders &amp; Tests (+):</b> Technical / Non-Technical lopala ye level lo unna <b>+</b> button tho kotha subfolders leda JSON tests upload cheyochu.</li>
+            <li><b>Test Card Menu (⋮):</b> Test ni vere folder loki shift cheyadaniki <b>Move Test</b>, details/JSON file marchadaniki <b>Edit</b> (attached filename akkade kanipisthundi), leda <b>Delete</b> (GitHub JSON + results saha clean avuthundi) vadukovachu.</li>
+            <li><b>Settings → Scan &amp; Clean:</b> GitHub <code>tests/</code> folder lo unused JSON files emaina migilipothe okka tap tho scan chesi delete cheyochu.</li>
+          </ul>
+        </div>
+
+      </div>
+    </main>
+
     <!-- Single Floating '+' Action Button -->
     <div id="fabContainer" class="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
       <div id="fabMenu" class="hidden flex flex-col items-end gap-2 mb-1 animate-pop">
@@ -841,6 +972,14 @@
           <div class="flex items-center gap-3">
             <span class="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-base">📅</span>
             <span class="font-bold text-sm text-slate-800">Calendar &amp; Dates</span>
+          </div>
+          <span class="text-slate-400">›</span>
+        </button>
+
+        <button onclick="openGuideBookPage()" class="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-base">📖</span>
+            <span class="font-bold text-sm text-slate-800">Portal Guide Book</span>
           </div>
           <span class="text-slate-400">›</span>
         </button>
@@ -1017,8 +1156,16 @@
             <label class="block text-xs font-bold text-slate-600">Questions JSON File</label>
             <span id="jsonAutoDetectTag" class="hidden text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded"></span>
           </div>
+          <div id="existingJsonFileBox" class="hidden mb-2 px-3 py-2 rounded-xl bg-navy-light/70 border border-navy/20 flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0">
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-navy/70">Currently Attached File</div>
+              <div id="existingJsonFileName" class="font-bold text-navy truncate"></div>
+            </div>
+            <span id="existingJsonFileMeta" class="text-[10px] font-extrabold text-slate-500 shrink-0"></span>
+          </div>
           <input type="file" id="newTestJsonFile" accept=".json,application/json" onchange="previewJsonStats(this)"
             class="w-full p-2 border border-dashed border-slate-300 rounded-xl text-xs bg-slate-50" />
+          <p id="replaceJsonHint" class="hidden text-[10px] text-slate-400 mt-1">Leave empty to keep the attached file above, or choose a new JSON to replace it.</p>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Test Name</label>
@@ -1412,6 +1559,10 @@
         }
         if (st.view === 'syllabus') {
           openSyllabusCoveragePage();
+          return true;
+        }
+        if (st.view === 'guide') {
+          openGuideBookPage();
           return true;
         }
         showHomeView();
@@ -3140,6 +3291,7 @@
       document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
       document.getElementById('syllabusView').classList.add('hidden');
+      document.getElementById('guideView').classList.add('hidden');
       document.getElementById('homeView').classList.remove('hidden');
       document.getElementById('searchToggleBtn').classList.remove('hidden');
       document.getElementById('fabContainer').classList.toggle('hidden', !canManageContent());
@@ -3158,6 +3310,7 @@
       document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
       document.getElementById('syllabusView').classList.add('hidden');
+      document.getElementById('guideView').classList.add('hidden');
       document.getElementById('resultsView').classList.remove('hidden');
       saveNavState();
       resultsVisibleLimit = 10;
@@ -3179,6 +3332,7 @@
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('revisionView').classList.add('hidden');
       document.getElementById('syllabusView').classList.add('hidden');
+      document.getElementById('guideView').classList.add('hidden');
       const av = document.getElementById('analysisView');
       av.classList.remove('hidden');
       av.classList.remove('view-fade'); void av.offsetWidth; av.classList.add('view-fade');
@@ -3232,6 +3386,7 @@
       document.getElementById('resultsView').classList.add('hidden');
       document.getElementById('analysisView').classList.add('hidden');
       document.getElementById('syllabusView').classList.add('hidden');
+      document.getElementById('guideView').classList.add('hidden');
       const rv = document.getElementById('revisionView');
       rv.classList.remove('hidden');
       rv.classList.remove('view-fade'); void rv.offsetWidth; rv.classList.add('view-fade');
@@ -4601,7 +4756,7 @@
       foldersGrid.innerHTML = folders.map(f => {
         const isTech = f.domain === 'technical';
         const catDef = f.categoryType ? CATEGORY_DEFS.find(c => c.type === f.categoryType) : null;
-        const icon = f.isRootDomain ? (isTech ? '🏗️' : '🧠') : (catDef ? catDef.icon : '📁');
+        const icon = f.isRootDomain ? (isTech ? '🏗️' : '📰') : (catDef ? catDef.icon : '📁');
         const isLocked = f.isRootDomain || f.isSystem;
         const prog = getFolderProgress(f.id);
 
@@ -5216,6 +5371,8 @@
       setTestTypeDisplay(info.categoryType);
       document.getElementById('newTestJsonFile').value = '';
       document.getElementById('jsonAutoDetectTag').classList.add('hidden');
+      document.getElementById('existingJsonFileBox').classList.add('hidden');
+      document.getElementById('replaceJsonHint').classList.add('hidden');
       document.getElementById('testModal').classList.remove('hidden');
     };
 
@@ -5232,6 +5389,23 @@
       document.getElementById('newTestSyllabus').value = t.syllabus || '';
       document.getElementById('newTestJsonFile').value = '';
       document.getElementById('jsonAutoDetectTag').classList.add('hidden');
+
+      const exBox = document.getElementById('existingJsonFileBox');
+      const exName = document.getElementById('existingJsonFileName');
+      const exMeta = document.getElementById('existingJsonFileMeta');
+      const repHint = document.getElementById('replaceJsonHint');
+      if (t.githubFilePath) {
+        const rawBase = t.githubFilePath.split('/').pop() || t.githubFilePath;
+        const cleanName = rawBase.replace(/^test_\d+_/, '');
+        exName.textContent = '📄 ' + cleanName;
+        exName.title = rawBase;
+        exMeta.textContent = `${t.qCount || 0} Qs • ${t.duration || 60}m`;
+        exBox.classList.remove('hidden');
+        repHint.classList.remove('hidden');
+      } else {
+        exBox.classList.add('hidden');
+        repHint.classList.add('hidden');
+      }
       document.getElementById('testModal').classList.remove('hidden');
     };
 
@@ -5594,7 +5768,7 @@
       document.getElementById('searchFilterDrawer').classList.add('hidden');
       document.getElementById('searchToggleBtn').classList.add('hidden');
       document.getElementById('fabContainer').classList.add('hidden');
-      ['homeView', 'resultsView', 'analysisView', 'revisionView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      ['homeView', 'resultsView', 'analysisView', 'revisionView', 'guideView'].forEach(id => document.getElementById(id).classList.add('hidden'));
       const v = document.getElementById('syllabusView');
       v.classList.remove('hidden');
       v.classList.remove('view-fade'); void v.offsetWidth; v.classList.add('view-fade');
@@ -5602,6 +5776,29 @@
       renderSyllabusPage();
       loadAllUsersData().then(() => {
         if (currentView === 'syllabus' && !v.classList.contains('hidden')) renderSyllabusPage();
+      });
+    };
+
+    window.openGuideBookPage = () => {
+      closeDrawer();
+      currentView = 'guide';
+      document.getElementById('searchFilterDrawer').classList.add('hidden');
+      document.getElementById('searchToggleBtn').classList.add('hidden');
+      document.getElementById('fabContainer').classList.add('hidden');
+      ['homeView', 'resultsView', 'analysisView', 'revisionView', 'syllabusView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      const gv = document.getElementById('guideView');
+      gv.classList.remove('hidden');
+      gv.classList.remove('view-fade'); void gv.offsetWidth; gv.classList.add('view-fade');
+      const inp = document.getElementById('guideSearchInput');
+      if (inp) { inp.value = ''; filterGuideSections(); }
+      saveNavState();
+    };
+
+    window.filterGuideSections = () => {
+      const q = (document.getElementById('guideSearchInput')?.value || '').trim().toLowerCase();
+      document.querySelectorAll('#guideSectionsContainer .guide-card').forEach(card => {
+        const match = !q || card.textContent.toLowerCase().includes(q);
+        card.classList.toggle('hidden', !match);
       });
     };
 
