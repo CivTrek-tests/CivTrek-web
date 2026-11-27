@@ -1089,11 +1089,6 @@
             <option value="telugu">Telugu</option>
           </select>
         </div>
-        <div id="collabToggleBox" class="p-3 rounded-xl bg-paper border border-slate-200 flex items-center justify-between gap-3">
-          <span class="font-bold text-xs text-navy">Allow Friend to Add/Edit Tests</span>
-          <input type="checkbox" id="profCollabToggle" class="w-5 h-5 accent-navy cursor-pointer" />
-        </div>
-
         <div id="settingsGhRow" class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
           <span id="settingsGhStatusLabel" class="font-semibold text-slate-400">GitHub: Not connected</span>
           <button type="button" id="settingsGhChangeBtn" onclick="closeModal('profileModal'); openGithubSettingsModal();"
@@ -1915,10 +1910,24 @@
         return;
       }
 
+      const partnerEmail = getPartnerEmail();
+      const partnerKey = partnerEmail ? partnerEmail.toLowerCase() : null;
+      const partnerResults = partnerKey ? (usersDataMap[partnerKey]?.results || []) : [];
+      const partnerDoneIds = new Set(partnerResults.map(r => r && r.testId).filter(Boolean));
+      const partnerFirstName = partnerKey
+        ? ((sharedData.profiles?.[partnerKey]?.name || partnerKey.split('@')[0]).trim().split(' ')[0] || 'Partner')
+        : 'Partner';
+
       listEl.innerHTML = items.map(({ t, st, attempted }) => {
         const typeLabel = TYPE_NAMES[t.testType] || 'Test';
         const resumeSnap = !attempted ? getResumeSnapshot(t.id) : null;
         const hasSyllabus = Boolean((t.syllabus || '').trim());
+        const partnerDone = partnerKey ? partnerDoneIds.has(t.id) : false;
+        const partnerPill = (partnerKey && !st.isUpcoming)
+          ? (partnerDone
+              ? `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">${escapeHtml(partnerFirstName)}: Done ✓</span>`
+              : `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">${escapeHtml(partnerFirstName)}: Pending</span>`)
+          : '';
 
         let badgeHtml = '';
         let rightActionHtml = '';
@@ -1958,6 +1967,7 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
                 ${badgeHtml}
+                ${partnerPill}
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white text-navy border border-slate-200">${typeLabel}</span>
                 <span class="text-[10px] font-semibold text-slate-400 truncate">${timeSub}</span>
               </div>
@@ -2050,10 +2060,7 @@
                 </li>`).join('')}</ul>` : ''}
             </div>
           </div>`;
-      }).join('') : `
-          <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-4 text-center text-xs font-semibold text-slate-400">
-            No custom notices right now${admin ? ' — tap “+ Add Notice” to post one.' : '.'}
-          </div>`;
+      }).join('') : '';
 
       const latest = getLatestTests();
       const testsHtml = latest.length ? latest.map(t => {
@@ -2086,11 +2093,14 @@
       }).join('') : `
           <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-4 text-center text-xs font-semibold text-slate-400">No tests added yet.</div>`;
 
-      body.innerHTML = `
+      const customSectionHtml = customs.length ? `
         <section class="space-y-2.5">
           <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-brandOrange"></span>Customized Notices</h4>
           ${customHtml}
-        </section>
+        </section>` : '';
+
+      body.innerHTML = `
+        ${customSectionHtml}
         <section class="space-y-2.5">
           <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-navy"></span>Latest Test Updates</h4>
           ${testsHtml}
@@ -4602,12 +4612,26 @@
       const maxMarksByTest = new Map();
       getCombinedResults().forEach(r => maxMarksByTest.set(r.testId, r.maxMarks));
 
+      const partnerEmail = getPartnerEmail();
+      const partnerKey = partnerEmail ? partnerEmail.toLowerCase() : null;
+      const partnerResults = partnerKey ? (usersDataMap[partnerKey]?.results || []) : [];
+      const partnerDoneIds = new Set(partnerResults.map(r => r && r.testId).filter(Boolean));
+      const partnerFirstName = partnerKey
+        ? ((sharedData.profiles?.[partnerKey]?.name || partnerKey.split('@')[0]).trim().split(' ')[0] || 'Partner')
+        : 'Partner';
+
       const testsGrid = document.getElementById('testsGrid');
       const now = Date.now();
       testsGrid.innerHTML = tests.map(t => {
         const st = getTestTimeState(t, now);
         const typeLabel = TYPE_NAMES[t.testType] || 'Test';
         const attempted = hasUserAttemptedTest(t.id);
+        const partnerDone = partnerKey ? partnerDoneIds.has(t.id) : false;
+        const partnerPill = partnerKey
+          ? (partnerDone
+              ? `<span class="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full">${escapeHtml(partnerFirstName)}: Done ✓</span>`
+              : `<span class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded-full">${escapeHtml(partnerFirstName)}: Pending</span>`)
+          : '';
         const marks = Number(t.totalMarks) > 0 ? Number(t.totalMarks) : Number(maxMarksByTest.get(t.id));
         const metaParts = [`${t.qCount || 0} Qs`, `${t.duration || 60} Mins`];
         if (marks > 0) metaParts.push(`${fmtMarks(marks)} Marks`);
@@ -4672,6 +4696,7 @@
                 <div class="flex items-center flex-wrap gap-1.5">
                   <span class="px-2 py-0.5 text-[10px] font-extrabold rounded bg-navy-light text-navy">${typeLabel}</span>
                   ${statusPill}
+                  ${partnerPill}
                 </div>
                 <div class="relative shrink-0">
                   <button onclick="toggleItemMenu(event, 'menu_${t.id}')" class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-navy flex items-center justify-center font-bold">⋮</button>
@@ -5415,8 +5440,14 @@
         partnerProgUnsub = onSnapshot(doc(db, "civtrek_portal", "user_" + emailDocKey(key)), (snap) => {
           if (!snap.exists()) return;
           if (!usersDataMap[key]) usersDataMap[key] = { results: [], bookmarks: [], syllabusProgress: {} };
-          usersDataMap[key].syllabusProgress = mergeSyllabusProgress(snap.data().syllabusProgress, null);
+          const d = snap.data();
+          if (Array.isArray(d.results)) usersDataMap[key].results = mergeResultLists(d.results, []);
+          usersDataMap[key].syllabusProgress = mergeSyllabusProgress(d.syllabusProgress, null);
           refreshSyllabusUI();
+          if (currentView === 'home' && !document.getElementById('appShell').classList.contains('hidden')) {
+            try { renderWorkspace(); } catch (e) {}
+            try { renderHomeDashboardWidgets(); } catch (e) {}
+          }
         }, (err) => console.warn("Partner progress sync error:", err));
       } catch (e) { console.warn("Partner progress listener not started:", e); }
     }
@@ -5785,8 +5816,6 @@
       document.getElementById('profNameInput').value = prof.name || '';
       document.getElementById('profTargetInput').value = prof.targetExam || '';
       document.getElementById('profLangInput').value = prof.lang || 'eng';
-      document.getElementById('profCollabToggle').checked = Boolean(sharedData.settings && sharedData.settings.collaborativeMode);
-      document.getElementById('collabToggleBox').classList.toggle('hidden', !isAdmin());
       document.getElementById('profileModal').classList.remove('hidden');
     };
 
@@ -5797,12 +5826,7 @@
         targetExam: document.getElementById('profTargetInput').value.trim(),
         lang: document.getElementById('profLangInput').value
       };
-      const patch = { profiles: sharedData.profiles };
-      if (isAdmin()) {
-        sharedData.settings.collaborativeMode = document.getElementById('profCollabToggle').checked;
-        patch.settings = sharedData.settings;
-      }
-      await persistSharedFields(patch);
+      await persistSharedFields({ profiles: sharedData.profiles });
       updateProfileUI();
       renderWorkspace();
       closeModal('profileModal');
