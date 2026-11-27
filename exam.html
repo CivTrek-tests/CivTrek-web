@@ -10241,6 +10241,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
     }
 
     function readActiveMeta() {
+        if (window.__ctActiveMeta) return window.__ctActiveMeta;
         try { return JSON.parse(localStorage.getItem('ACTIVE_EXAM_DATA') || 'null'); } catch (e) { return null; }
     }
 
@@ -10632,17 +10633,122 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         } catch (e) {}
     };
 
+    function ctLoadActiveFromIdb() {
+        return new Promise(function (resolve) {
+            if (!window.indexedDB) return resolve(null);
+            try {
+                var req = indexedDB.open('CivTrekExamDB', 1);
+                req.onupgradeneeded = function () {
+                    var db = req.result;
+                    if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+                };
+                req.onsuccess = function () {
+                    var db = req.result;
+                    try {
+                        var tx = db.transaction('kv', 'readonly');
+                        var g = tx.objectStore('kv').get('ACTIVE_EXAM_DATA');
+                        g.onsuccess = function () { try { db.close(); } catch (e) {} resolve(g.result || null); };
+                        g.onerror = function () { try { db.close(); } catch (e) {} resolve(null); };
+                    } catch (e) {
+                        try { db.close(); } catch (e2) {}
+                        resolve(null);
+                    }
+                };
+                req.onerror = function () { resolve(null); };
+            } catch (e) { resolve(null); }
+        });
+    }
+
+    function ctFetchExamJsonDirect(active) {
+        var gh = active && active.ghConfig;
+        var fp = active && active.githubFilePath;
+        if (!gh || !gh.owner || !gh.repo || !gh.token || !fp) {
+            return Promise.reject(new Error('Missing GitHub details for direct load.'));
+        }
+        var cacheKey = 'https://civtrek.local/exam-json/' + encodeURIComponent((active.testId || '') + '_' + fp);
+        var url = 'https://api.github.com/repos/' + gh.owner + '/' + gh.repo + '/contents/' + fp;
+
+        function readCache() {
+            if (!window.caches) return Promise.resolve(null);
+            return caches.open('civtrek-exam-json-v1').then(function (cache) {
+                return cache.match(cacheKey);
+            }).then(function (resp) {
+                return resp ? resp.text() : null;
+            }).catch(function () { return null; });
+        }
+
+        function writeCache(text) {
+            if (!window.caches || !text) return;
+            caches.open('civtrek-exam-json-v1').then(function (cache) {
+                // Keep only the current test in cache so phone storage never grows
+                return cache.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return cache.delete(k); }));
+                }).then(function () {
+                    return cache.put(cacheKey, new Response(text, { headers: { 'Content-Type': 'application/json' } }));
+                });
+            }).catch(function () {});
+        }
+
+        return readCache().then(function (cachedText) {
+            if (cachedText) return cachedText;
+            return fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'Authorization': 'Bearer ' + gh.token,
+                    'Accept': 'application/vnd.github.raw+json'
+                }
+            }).then(function (res) {
+                if (!res.ok) throw new Error('Failed to load test file from GitHub (HTTP ' + res.status + ').');
+                return res.text();
+            }).then(function (text) {
+                writeCache(text);
+                return text;
+            });
+        });
+    }
+
     function bootFromPortal() {
-        var activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA');
+        var activeRaw = null;
+        try { activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA'); } catch (e) {}
         if (!activeRaw) {
-            showNoExam('No active test selected. Please open a test from the CivTrek Portal.');
+            try { activeRaw = sessionStorage.getItem('ACTIVE_EXAM_DATA'); } catch (e) {}
+        }
+        var active = null;
+        if (activeRaw) {
+            try { active = JSON.parse(activeRaw); } catch (e) { active = null; }
+        }
+        if (active && active.__directFetch && !active.questionsJson && active.githubFilePath && active.ghConfig) {
+            if (typeof ctShowEvalOverlay === 'function') {
+                ctShowEvalOverlay(active.mode === 'report' ? 'Loading Key & Solutions...' : 'Loading test...');
+            }
+            ctFetchExamJsonDirect(active).then(function (rawJson) {
+                active.questionsJson = rawJson;
+                if (typeof ctHideEvalOverlay === 'function' && active.mode !== 'report') ctHideEvalOverlay();
+                bootFromPortalWithData(active);
+            }).catch(function (err) {
+                if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+                if (typeof ctClearDirectReport === 'function') ctClearDirectReport();
+                showNoExam((err && err.message) ? err.message : 'Could not load test JSON from GitHub.');
+            });
             return;
         }
-        var active;
-        try { active = JSON.parse(activeRaw); } catch (e) {
-            showNoExam('Invalid test session data.');
+        if (!active || active.__inIdb || !active.questionsJson) {
+            ctLoadActiveFromIdb().then(function (idbData) {
+                if (idbData && idbData.questionsJson) {
+                    bootFromPortalWithData(idbData);
+                } else if (active && active.questionsJson) {
+                    bootFromPortalWithData(active);
+                } else {
+                    showNoExam('No active test selected. Please open a test from the CivTrek Portal.');
+                }
+            });
             return;
         }
+        bootFromPortalWithData(active);
+    }
+
+    function bootFromPortalWithData(active) {
+        window.__ctActiveMeta = active;
 
         var candName = (active.userName || 'STUDENT').toUpperCase();
         document.querySelectorAll('.display-user-fullname').forEach(function (el) {
@@ -10742,7 +10848,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             active.origDurationSec = origDurationSec;
             active.duration = scaledSec / 60;   // minutes; apply() sets totalTimeInSeconds / timeLeft from this
             active.title = (active.title || 'Test') + ' (Mistakes Re-attempt)';
-            try { localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(active)); } catch (e) {}
+            window.__ctActiveMeta = active; try { localStorage.setItem('ACTIVE_EXAM_DATA', JSON.stringify(Object.assign({}, active, { questionsJson: null, savedBookmarks: null, __inIdb: true }))); } catch (e) {}
             cfg2.examName = active.title; cfg2.examSections = secs; cfg2.markingSchemes = cN.schemes;
             cfg2.duration = active.duration; cfg2.questions = wrongQs;
             applyParsedJsonUsingEngine(cfg2, active, true);

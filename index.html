@@ -5061,67 +5061,57 @@
       }
 
       const prof = sharedData.profiles[currentUser.email] || { name: currentUser.displayName, lang: 'eng' };
-      let resolvedJson = null;
+      const gh = getGithubConfig();
+      if (!gh || !gh.owner || !gh.repo || !gh.token) {
+        showToast("Connect GitHub first");
+        return;
+      }
       let savedAnswers = null;
       if (mode === 'report' || mode === 'reattempt_wrong') {
         const rec = (getMyUserData().results || []).find(r => r.testId === testId);
         if (rec && rec.answersJson) { try { savedAnswers = JSON.parse(rec.answersJson); } catch (e) {} }
       }
 
-      try {
-        showToast("Loading test...");
-        resolvedJson = await fetchJsonFromGithubRepo(test.githubFilePath);
-      } catch (err) {
-        showToast(err.message);
-        return;
-      }
+      // Pass only lightweight metadata (~1-5 KB) — exam.html fetches the 6MB+ JSON directly into RAM (zero storage quota used)
+      var __lightPayload = {
+        testId: test.id,
+        title: test.title,
+        domain: test.domain || 'technical',
+        testType: test.testType || 'topic',
+        duration: test.duration,
+        mode,
+        isReattempt: Boolean(isReattempt),
+        resume: Boolean(opts && opts.resume),
+        restart: Boolean(opts && opts.restart),
+        wantFullscreen: mode !== 'report',
+        userEmail: currentUser.email,
+        userName: prof.name || currentUser.displayName,
+        defaultLang: prof.lang || 'eng',
+        githubFilePath: test.githubFilePath,
+        ghConfig: { owner: gh.owner, repo: gh.repo, token: gh.token },
+        questionsJson: null,
+        __directFetch: true,
+        photoURL: currentUser.photoURL || '',
+        savedAnswers,
+        focusSolId: (opts && opts.focusSolId) ? opts.focusSolId : null
+      };
 
-      // Backfill card meta (marks) for tests uploaded before it was tracked
+      const serialized = JSON.stringify(__lightPayload);
+      let stored = false;
       try {
-        if (!(Number(test.totalMarks) > 0) || test.scheme === undefined) {
-          const meta = extractMetaFromExamJson(JSON.parse(resolvedJson));
-          if (meta.totalMarks > 0) {
-            test.totalMarks = meta.totalMarks;
-            test.scheme = meta.scheme;
-            test.calc = meta.calc;
-            if (canManageContent()) persistSharedFields({ tests: sharedData.tests });
-          }
-        }
-      } catch (e) {}
-
-      try {
-        var __payload = ({
-          testId: test.id,
-          title: test.title,
-          domain: test.domain || 'technical',
-          testType: test.testType || 'topic',
-          duration: test.duration,
-          mode,
-          isReattempt: Boolean(isReattempt),
-          resume: Boolean(opts && opts.resume),
-          restart: Boolean(opts && opts.restart),
-          wantFullscreen: mode !== 'report',
-          userEmail: currentUser.email,
-          userName: prof.name || currentUser.displayName,
-          defaultLang: prof.lang || 'eng',
-          questionsJson: resolvedJson,
-          photoURL: currentUser.photoURL || '',
-          savedAnswers,
-          savedBookmarks: getMyUserData().bookmarks || [],
-          focusSolId: (opts && opts.focusSolId) ? opts.focusSolId : null
-        });
-        localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify(__payload));
-      } catch (e) {
-        // Phones have little storage: free old heavy leftovers and retry once
+        localStorage.removeItem('CIVTREK_TEST_ATTEMPTS_V1');
+        localStorage.setItem("ACTIVE_EXAM_DATA", serialized);
+        stored = true;
+      } catch (e1) {
         try {
-          localStorage.removeItem('CIVTREK_TEST_ATTEMPTS_V1');
-          localStorage.removeItem('ACTIVE_EXAM_DATA');
-          localStorage.setItem("ACTIVE_EXAM_DATA", JSON.stringify(__payload));
+          sessionStorage.setItem("ACTIVE_EXAM_DATA", serialized);
+          stored = true;
         } catch (e2) {
-          showToast("Phone storage is full. Clear this site's data in browser settings and try again.");
+          showToast("Browser storage is completely full. Free up device space and retry.");
           return;
         }
       }
+      if (!stored) return;
 
       try { sessionStorage.setItem(NOTICE_FROM_EXAM_KEY, '1'); } catch (e) {}
       window.__ctNav = true;
