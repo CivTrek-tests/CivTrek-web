@@ -6,10 +6,11 @@
     <title>CivTrek Full-Length Mock Exam</title>
     <meta name="referrer" content="no-referrer">
     <script>
-    /* Pre-render direct Solution Report detection: flag <html> before first paint so the live exam UI never flashes. */
+    /* Pre-render boot shield: keep loading overlay visible from first paint so the empty exam UI never flashes. */
     (function () {
+        document.documentElement.classList.add('ct-booting');
         try {
-            var raw = localStorage.getItem('ACTIVE_EXAM_DATA');
+            var raw = localStorage.getItem('ACTIVE_EXAM_DATA') || sessionStorage.getItem('ACTIVE_EXAM_DATA');
             if (!raw) return;
             var parsed = JSON.parse(raw);
             if (parsed && parsed.mode === 'report') document.documentElement.classList.add('ct-direct-report');
@@ -17,6 +18,13 @@
     })();
     </script>
     <style id="ctDirectReportStyle">
+        html.ct-booting #globalTestHeader,
+        html.ct-booting .portrait-palette-strip-wrapper,
+        html.ct-booting #examSectionTabs,
+        html.ct-booting #interactiveQuizForm,
+        html.ct-booting #sidebarContainerBlock,
+        html.ct-booting #paletteToggleHandle,
+        html.ct-booting #instructionsLayer,
         html.ct-direct-report #globalTestHeader,
         html.ct-direct-report .portrait-palette-strip-wrapper,
         html.ct-direct-report #examSectionTabs,
@@ -24,7 +32,9 @@
         html.ct-direct-report #sidebarContainerBlock,
         html.ct-direct-report #paletteToggleHandle,
         html.ct-direct-report #instructionsLayer { display: none !important; }
+        html.ct-booting #ctEvalOverlay,
         html.ct-direct-report body:not(.evaluation-completed) #ctEvalOverlay { display: flex !important; }
+        html.ct-booting #ctNoExamScreen.open,
         html.ct-direct-report #ctNoExamScreen.open { z-index: 2147483001; }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -243,6 +253,7 @@
             try { document.documentElement.classList.remove('ct-direct-report'); } catch (e) { /* ignore */ }
         };
         window.ctHideEvalOverlay = function () {
+            try { document.documentElement.classList.remove('ct-booting'); } catch (e) {}
             var ov = document.getElementById('ctEvalOverlay'); if (!ov) return;
             ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true');
         };
@@ -3388,13 +3399,14 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
 
 <div id="ctEvalOverlay" role="status" aria-live="polite" aria-hidden="true"><div class="ct-eval-box"><div class="ct-eval-spinner"></div><div class="ct-eval-text" id="ctEvalText">Evaluating your responses...</div></div></div>
 <script>
-/* Direct report mode: show the right message from the very first paint of the body. */
+/* Set the right loading message from the very first paint of the body. */
 (function () {
     try {
-        if (document.documentElement.classList.contains('ct-direct-report')) {
-            var t = document.getElementById('ctEvalText'); if (t) t.textContent = 'Loading Key & Solutions...';
-            var ov = document.getElementById('ctEvalOverlay'); if (ov) ov.setAttribute('aria-hidden', 'false');
-        }
+        var isRep = document.documentElement.classList.contains('ct-direct-report');
+        var t = document.getElementById('ctEvalText');
+        if (t) t.textContent = isRep ? 'Loading Key & Solutions...' : 'Loading test...';
+        var ov = document.getElementById('ctEvalOverlay');
+        if (ov) ov.setAttribute('aria-hidden', 'false');
     } catch (e) { /* ignore */ }
 })();
 </script>
@@ -10087,10 +10099,11 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
     var $ = function (id) { return document.getElementById(id); };
 
     window.ctGoBackToPortal = function () {
+        if (typeof ctShowEvalOverlay === 'function') ctShowEvalOverlay('Returning to Portal...');
         window.location.href = 'index.html';
     };
 
-    function showNoExam(msg) {
+    function showNoExam(msg) { if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
         try { if (window.ctClearDirectReport) ctClearDirectReport(); } catch (e) {}
         try { if (window.ctHideEvalOverlay) ctHideEvalOverlay(); } catch (e) {}
         var m = $('ctNoExamMsg');
@@ -10723,8 +10736,12 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             }
             ctFetchExamJsonDirect(active).then(function (rawJson) {
                 active.questionsJson = rawJson;
-                if (typeof ctHideEvalOverlay === 'function' && active.mode !== 'report') ctHideEvalOverlay();
                 bootFromPortalWithData(active);
+                if (active.mode !== 'report') {
+                    requestAnimationFrame(function () {
+                        if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+                    });
+                }
             }).catch(function (err) {
                 if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
                 if (typeof ctClearDirectReport === 'function') ctClearDirectReport();
@@ -10745,6 +10762,11 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             return;
         }
         bootFromPortalWithData(active);
+        if (active && active.mode !== 'report') {
+            requestAnimationFrame(function () {
+                if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+            });
+        }
     }
 
     function bootFromPortalWithData(active) {
