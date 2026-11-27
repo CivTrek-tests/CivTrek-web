@@ -3874,33 +3874,110 @@
         return;
       }
 
+      // Dynamic height so rows breathe cleanly even when 6-8 sections/topics are shown
+      const barWrap = barEl.parentElement;
+      if (barWrap) {
+        barWrap.style.height = Math.max(230, names.length * 36 + 64) + 'px';
+      }
+
+      const youWing = names.map(n => { const v = acc(mine, n); return v == null ? null : -v; });
+      const partnerWing = names.map(n => acc(theirs, n));
+
+      const butterflyLabelsPlugin = {
+        id: 'h2hButterflyLabels',
+        afterDatasetsDraw(chart) {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = '700 10px "Plus Jakarta Sans", system-ui, sans-serif';
+          ctx.textBaseline = 'middle';
+          [0, 1].forEach(dsIdx => {
+            const meta = chart.getDatasetMeta(dsIdx);
+            const rawArr = chart.data.datasets[dsIdx].data;
+            meta.data.forEach((bar, i) => {
+              const raw = rawArr[i];
+              if (raw == null) return;
+              const absVal = Math.abs(raw);
+              const txt = absVal + '%';
+              if (dsIdx === 0) {
+                ctx.fillStyle = H2H_NAVY;
+                ctx.textAlign = 'right';
+                ctx.fillText(txt, bar.x - 5, bar.y);
+              } else {
+                ctx.fillStyle = '#b45309';
+                ctx.textAlign = 'left';
+                ctx.fillText(txt, bar.x + 5, bar.y);
+              }
+            });
+          });
+          ctx.restore();
+        }
+      };
+
       window.__h2hCharts.bar = new Chart(barEl, {
         type: 'bar',
         data: {
-          labels: names.map(n => h2hShort(n, 12)),
+          labels: names.map(n => h2hShort(n, 16)),
           datasets: [
-            { label: 'You', data: names.map(n => acc(mine, n)), backgroundColor: H2H_NAVY, borderRadius: 6, maxBarThickness: 28 },
-            { label: 'Partner', data: names.map(n => acc(theirs, n)), backgroundColor: H2H_ORANGE, borderRadius: 6, maxBarThickness: 28 }
+            {
+              label: 'You (Left)',
+              data: youWing,
+              backgroundColor: H2H_NAVY,
+              borderRadius: { topLeft: 6, bottomLeft: 6, topRight: 0, bottomRight: 0 },
+              borderSkipped: false,
+              maxBarThickness: 22
+            },
+            {
+              label: 'Partner (Right)',
+              data: partnerWing,
+              backgroundColor: H2H_ORANGE,
+              borderRadius: { topRight: 6, bottomRight: 6, topLeft: 0, bottomLeft: 0 },
+              borderSkipped: false,
+              maxBarThickness: 22
+            }
           ]
         },
         options: {
+          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          layout: { padding: { left: 28, right: 28 } },
+          interaction: { mode: 'index', axis: 'y', intersect: false },
           plugins: {
             legend,
             tooltip: {
               callbacks: {
                 title: (items) => names[items[0].dataIndex] || '',
-                label: (c) => c.parsed.y == null ? `${c.dataset.label}: no attempts` : `${c.dataset.label}: ${c.parsed.y}%`
+                label: (c) => {
+                  const val = c.parsed.x;
+                  const cleanName = c.dataset.label.replace(/\s*\((Left|Right)\)/, '');
+                  return val == null ? `${cleanName}: no attempts` : `${cleanName}: ${Math.abs(val)}%`;
+                }
               }
             }
           },
           scales: {
-            y: { min: 0, max: 100, ticks: { callback: pctTick, font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.2)' } },
-            x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0, autoSkip: false }, grid: { display: false } }
+            x: {
+              stacked: true,
+              min: -100,
+              max: 100,
+              ticks: {
+                stepSize: 50,
+                callback: (v) => Math.abs(v) + '%',
+                font: { size: 10, weight: 'bold' }
+              },
+              grid: {
+                color: (ctx) => ctx.tick && ctx.tick.value === 0 ? '#64748b' : 'rgba(148,163,184,0.2)',
+                lineWidth: (ctx) => ctx.tick && ctx.tick.value === 0 ? 1.5 : 1
+              }
+            },
+            y: {
+              stacked: true,
+              ticks: { font: { size: 10, weight: 'bold' }, color: '#0e2742' },
+              grid: { display: false }
+            }
           }
-        }
+        },
+        plugins: [butterflyLabelsPlugin]
       });
     }
 
