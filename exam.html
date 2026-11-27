@@ -3211,6 +3211,43 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
     }
 }
 
+/* Hide calculator completely on mobile portrait screens even if enabled in JSON */
+@media (max-width: 768px), (orientation: portrait) and (max-width: 900px) {
+    #calcToggleBtn,
+    #keyPad {
+        display: none !important;
+    }
+}
+
+/* Solution Navigator: Subject / Topic Filter Dropdown */
+.sol-topic-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0b3c70;
+    background-color: #ffffff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sol-topic-select:focus {
+    border-color: #0b3c70;
+    box-shadow: 0 0 0 3px #e6f0fa;
+}
+.sol-topic-select.is-filtered {
+    border-color: #0b3c70;
+    background-color: #eef6ff;
+}
+/* Keep topic filter strictly as dropdown (no tag pill chip) */
+#solTopicChip {
+    display: none !important;
+}
+
 /* Early Submission / Key Locked Screen & No-Data Fallback Screen */
 #ctEarlySubmitScreen, #ctNoExamScreen {
     display: none;
@@ -3827,6 +3864,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
 
                                 <div class="sol-master-filters">
                                     <input type="search" class="sol-search" id="solSearchInput" placeholder="Search questions, options or explanations…" oninput="onSolSearch(this.value)" aria-label="Search solutions">
+                                    <select id="solTopicSelect" class="sol-topic-select" onchange="onSolTopicSelect(this.value)" aria-label="Filter by subject or topic"><option value="">All Subjects / Topics</option></select>
                                     <div class="sol-pill-row">
                                         <button type="button" class="sol-pill active" id="solAllBtn" onclick="solResetAllFilters()">All</button>
                                         <button type="button" class="sol-pill" id="solMistakeBtn" onclick="toggleMistakeMode()">Mistakes <span class="sol-pill-count" id="solMistakeCount">0</span></button> <button type="button" class="sol-pill" id="solRepeatedMistakesBtn" hidden onclick="ctToggleRepeatedMistakes()">Repeated Mistakes <span class="sol-pill-count" id="solRepeatedCount">0</span></button>
@@ -5480,6 +5518,11 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         const chip = document.getElementById('solTopicChip'), chipTxt = document.getElementById('solTopicChipText');
         if (chip) chip.classList.toggle('visible', !!solTopicFilter);
         if (chipTxt) chipTxt.textContent = 'Topic: ' + solTopicFilter;
+        const topicSel = document.getElementById('solTopicSelect');
+        if (topicSel) {
+            topicSel.value = solTopicFilter || '';
+            topicSel.classList.toggle('is-filtered', !!solTopicFilter);
+        }
         const banner = document.getElementById('solModeBanner');
         if (banner) {
             if (solMistakeMode) {
@@ -5509,8 +5552,37 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         renderFilteredSolutions();
     };
 
+    window.populateSolTopicSelect = function() {
+        const sel = document.getElementById('solTopicSelect');
+        if (!sel) return;
+        const counts = new Map();
+        let secTotal = 0;
+        document.querySelectorAll('#solutionsList .sol-item').forEach(el => {
+            if (el.getAttribute('data-section') !== currentSolSection) return;
+            secTotal++;
+            const tp = (el.getAttribute('data-topic') || '').trim();
+            if (tp) counts.set(tp, (counts.get(tp) || 0) + 1);
+        });
+        if (solTopicFilter && !counts.has(solTopicFilter)) {
+            solTopicFilter = '';
+        }
+        const sortedTopics = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b));
+        sel.innerHTML = `<option value="">All Subjects / Topics (${secTotal})</option>` +
+            sortedTopics.map(tp => `<option value="${escHTML(tp)}">${escHTML(tp)} (${counts.get(tp)})</option>`).join('');
+        sel.value = solTopicFilter || '';
+        sel.classList.toggle('is-filtered', !!solTopicFilter);
+        sel.style.display = sortedTopics.length > 0 ? '' : 'none';
+    };
+
+    window.onSolTopicSelect = function(val) {
+        solTopicFilter = val || '';
+        renderFilteredSolutions();
+    };
+
     window.clearTopicFilter = function() {
         solTopicFilter = '';
+        const sel = document.getElementById('solTopicSelect');
+        if (sel) { sel.value = ''; sel.classList.remove('is-filtered'); }
         renderFilteredSolutions();
     };
 
@@ -6760,6 +6832,7 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
         const cL = document.getElementById('solFilterCountCorrect'); if (cL) cL.innerText = corrCount;
         const iL = document.getElementById('solFilterCountIncorrect'); if (iL) iL.innerText = incorrCount;
 
+        if (typeof populateSolTopicSelect === 'function') populateSolTopicSelect();
         renderSolSectionSummary();
         refreshSolBookmarkUI();
     }

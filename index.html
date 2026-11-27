@@ -593,7 +593,7 @@
       <div class="sched-pill-track max-w-md" role="tablist" aria-label="Filter past results">
         <button type="button" id="resScopeAll" onclick="setResultsScope('all')" class="sched-pill-btn active">All Results</button>
         <button type="button" id="resScopeMine" onclick="setResultsScope('mine')" class="sched-pill-btn">My Tests</button>
-        <button type="button" id="resScopeShared" onclick="setResultsScope('shared')" class="sched-pill-btn">Shared (2)</button>
+        <button type="button" id="resScopeShared" onclick="setResultsScope('shared')" class="sched-pill-btn">Both Attempted</button>
       </div>
 
       <!-- Search & Filter Bar -->
@@ -977,6 +977,32 @@
     </div>
   </div>
 
+  <!-- Move Test Modal (Admin Only) -->
+  <div id="moveTestModal" onclick="if(event.target===this) closeModal('moveTestModal')"
+    class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-t-4 border-navy animate-pop">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-extrabold text-navy">Move Test</h3>
+        <button type="button" onclick="closeModal('moveTestModal')" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+      </div>
+      <p id="moveTestNameLabel" class="text-xs font-extrabold text-slate-700 mb-1 truncate"></p>
+      <p id="moveTestCurrentPath" class="text-[11px] font-semibold text-slate-400 mb-4 truncate"></p>
+      <form onsubmit="saveMoveTestForm(event)" class="space-y-4">
+        <input type="hidden" id="moveTestId" />
+        <div>
+          <label for="moveTestTargetFolder" class="block text-xs font-bold text-slate-600 mb-1.5">Destination Folder</label>
+          <select id="moveTestTargetFolder" required
+            class="w-full px-3 py-2.5 text-xs sm:text-sm font-bold text-navy bg-paper border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-navy">
+          </select>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" onclick="closeModal('moveTestModal')" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy hover:bg-navy-deep text-white font-bold text-xs shadow-sm transition">Move Here</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Add / Edit Test Modal (Type auto-set from folder; Optional Start Time; Optional Syllabus) -->
   <div id="testModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-t-4 border-brandOrange my-auto animate-pop">
@@ -1001,9 +1027,14 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Test Type</label>
-          <input type="hidden" id="newTestType" value="subject" />
-          <div id="newTestTypeLabel" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs sm:text-sm font-bold text-navy">Subject-wise</div>
-          <p class="text-[10px] text-slate-400 mt-1">Set automatically from the folder you are in.</p>
+          <select id="newTestType" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-xs sm:text-sm font-bold text-navy focus:outline-none focus:border-navy">
+            <option value="topic">Topic-wise</option>
+            <option value="chapter">Chapter-wise</option>
+            <option value="subject">Subject-wise</option>
+            <option value="multi">Multi-Subject</option>
+            <option value="fulllength">Full-Length</option>
+          </select>
+          <p id="newTestTypeHint" class="text-[10px] text-slate-400 mt-1">Auto-selected from folder; you can change it if needed.</p>
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -1149,7 +1180,15 @@
         <button type="button" onclick="closeImportantNotice()" aria-label="Close"
           class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white text-sm font-bold flex items-center justify-center transition shrink-0">✕</button>
       </div>
-      <div id="importantNoticeBody" class="p-4 sm:p-5 overflow-y-auto space-y-5 bg-paper"></div>
+      <div class="relative flex-1 min-h-0 flex flex-col overflow-hidden bg-paper">
+        <div id="importantNoticeBody" onscroll="updateNoticeScrollHint()" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-5 bg-paper"></div>
+        <div id="noticeScrollHintWrap" class="hidden pointer-events-none absolute inset-x-0 bottom-0 pt-8 pb-2.5 bg-gradient-to-t from-[#f3f6fb] via-[#f3f6fb]/90 to-transparent flex justify-center">
+          <button type="button" onclick="scrollNoticeDown()"
+            class="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-navy hover:bg-brandOrange text-white text-[11px] font-extrabold shadow-md transition">
+            <span>↓</span><span>Scroll down to view more</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1458,37 +1497,13 @@
         });
       });
 
-      // Legacy: custom folders created directly under a domain become Subject folders under Topic-wise
-      data.folders.forEach(f => {
-        if (f.isRootDomain || f.isSystem) return;
-        const root = roots.find(r => r.id === f.parentId);
-        if (root) { f.parentId = catFolderId(root.domain, 'topic'); out.foldersChanged = true; }
-      });
-
-      // Legacy: tests that sit directly on a domain root move into the category matching their type
-      const addGeneral = (id, parentId, domain) => {
-        if (!data.folders.some(f => f.id === id)) {
-          data.folders.push({ id, parentId, domain, name: 'General', desc: '' });
-          out.foldersChanged = true;
-        }
-      };
+      // Repair only orphan tests that have no folderId at all
       data.tests.forEach(t => {
-        const root = roots.find(r => r.id === t.folderId) ||
-          (!t.folderId ? roots.find(r => r.domain === (t.domain || 'technical')) : null);
+        if (t.folderId && data.folders.some(f => f.id === t.folderId)) return;
+        const root = roots.find(r => r.domain === (t.domain || 'technical')) || roots[0];
         if (!root) return;
         const type = CATEGORY_DEFS.some(c => c.type === t.testType) ? t.testType : 'subject';
-        let target = catFolderId(root.domain, type);
-        if (type === 'topic' || type === 'chapter') {
-          const subId = `gen_${root.domain}_${type}_s`;
-          addGeneral(subId, target, root.domain);
-          target = subId;
-          if (type === 'topic') {
-            const chId = `gen_${root.domain}_topic_c`;
-            addGeneral(chId, subId, root.domain);
-            target = chId;
-          }
-        }
-        t.folderId = target;
+        t.folderId = catFolderId(root.domain, type);
         t.testType = type;
         out.testsChanged = true;
       });
@@ -2004,8 +2019,7 @@
       return (sharedData.tests || [])
         .filter(t => t && t.id)
         .slice()
-        .sort((a, b) => getTestStamp(b) - getTestStamp(a))
-        .slice(0, 3);
+        .sort((a, b) => getTestStamp(b) - getTestStamp(a));
     }
 
     function hasNoticeContent() {
@@ -2102,14 +2116,35 @@
       body.innerHTML = `
         ${customSectionHtml}
         <section class="space-y-2.5">
-          <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-navy"></span>Latest Test Updates</h4>
+          <div class="flex items-center justify-between gap-2">
+            <h4 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><span class="w-1.5 h-4 rounded-full bg-navy"></span>Latest Test Updates</h4>
+            ${latest.length ? `<span class="text-[10px] font-extrabold text-slate-400">${latest.length} Test${latest.length === 1 ? '' : 's'}</span>` : ''}
+          </div>
           ${testsHtml}
         </section>`;
+      requestAnimationFrame(() => updateNoticeScrollHint());
     }
+
+    window.updateNoticeScrollHint = () => {
+      const body = document.getElementById('importantNoticeBody');
+      const wrap = document.getElementById('noticeScrollHintWrap');
+      if (!body || !wrap) return;
+      const remaining = body.scrollHeight - body.scrollTop - body.clientHeight;
+      wrap.classList.toggle('hidden', remaining <= 18);
+    };
+
+    window.scrollNoticeDown = () => {
+      const body = document.getElementById('importantNoticeBody');
+      if (!body) return;
+      body.scrollBy({ top: 240, behavior: 'smooth' });
+    };
 
     window.openImportantNotice = () => {
       renderImportantNotice();
       document.getElementById('importantNoticeModal').classList.remove('hidden');
+      const body = document.getElementById('importantNoticeBody');
+      if (body) body.scrollTop = 0;
+      setTimeout(updateNoticeScrollHint, 60);
     };
     window.closeImportantNotice = () => {
       document.getElementById('importantNoticeModal').classList.add('hidden');
@@ -4235,22 +4270,24 @@
     //   Subject/Multi/Full-Length -> Tests directly
     function getLevelInfo() {
       const info = { level: folderPath.length, categoryType: null, canAddFolder: false, canAddTest: false, folderLabel: '' };
-      if (folderPath.length >= 2) {
-        const catF = sharedData.folders.find(f => f.id === folderPath[1].id);
-        info.categoryType = catF ? (catF.categoryType || null) : null;
+      if (folderPath.length === 0) return info;
+      for (let i = 1; i < folderPath.length; i++) {
+        const anc = sharedData.folders.find(f => f.id === folderPath[i].id);
+        if (anc && anc.categoryType) {
+          info.categoryType = anc.categoryType;
+          break;
+        }
       }
+      // Inside Technical or Non-Technical (at any folder depth), admin can freely add subfolders or tests
+      info.canAddFolder = true;
+      info.canAddTest = true;
       const L = folderPath.length;
       const ct = info.categoryType;
-      if (L < 2 || !ct) return info;
       if (ct === 'topic') {
-        if (L === 2) { info.canAddFolder = true; info.folderLabel = 'Subject'; }
-        else if (L === 3) { info.canAddFolder = true; info.folderLabel = 'Chapter'; }
-        else if (L === 4) { info.canAddTest = true; }
-      } else if (ct === 'chapter') {
-        if (L === 2) { info.canAddFolder = true; info.folderLabel = 'Subject'; }
-        else if (L === 3) { info.canAddTest = true; }
-      } else if (L === 2) {
-        info.canAddTest = true;
+        if (L === 2) info.folderLabel = 'Subject';
+        else if (L === 3) info.folderLabel = 'Chapter';
+      } else if (ct === 'chapter' && L === 2) {
+        info.folderLabel = 'Subject';
       }
       return info;
     }
@@ -4704,6 +4741,7 @@
                     ${hasSyllabus ? `<button onclick="openSyllabusModal('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">View Syllabus</button>` : ''}
                     <button onclick="downloadOriginalJson('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Download JSON</button>
                     ${canEdit ? `
+                      <button onclick="openMoveTestModal('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-navy">Move Test</button>
                       <button onclick="editTest('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-700">Edit</button>
                       <button onclick="deleteTest('${t.id}')" class="w-full px-3.5 py-2 text-left hover:bg-red-50 text-red-600">Delete</button>
                     ` : ''}
@@ -5098,8 +5136,8 @@
       if (!isAdmin()) return;
       const info = getLevelInfo();
       if (!info.canAddFolder) { showToast("Folders can't be created here"); return; }
-      document.getElementById('folderModalTitle').textContent = `New ${info.folderLabel} Folder`;
-      document.getElementById('folderNameLabel').textContent = `${info.folderLabel} Name`;
+      document.getElementById('folderModalTitle').textContent = info.folderLabel ? `New ${info.folderLabel} Folder` : 'New Folder';
+      document.getElementById('folderNameLabel').textContent = info.folderLabel ? `${info.folderLabel} Name` : 'Folder Name';
       document.getElementById('newFolderName').placeholder = info.folderLabel === 'Chapter' ? 'e.g., Shear Force & Bending Moment' : 'e.g., Strength of Materials';
       document.getElementById('editFolderId').value = '';
       document.getElementById('newFolderName').value = '';
@@ -5172,8 +5210,8 @@
 
     // ---------------- TEST CRUD ----------------
     function setTestTypeDisplay(type) {
-      document.getElementById('newTestType').value = type;
-      document.getElementById('newTestTypeLabel').textContent = TYPE_NAMES[type] || 'Test';
+      const sel = document.getElementById('newTestType');
+      if (sel) sel.value = TYPE_NAMES[type] ? type : 'subject';
     }
 
     window.openTestModal = () => {
@@ -5221,8 +5259,8 @@
         const syllabus = document.getElementById('newTestSyllabus').value.trim();
         const info = getLevelInfo();
         const existing = editId ? sharedData.tests.find(x => x.id === editId) : null;
-        // Test type always comes from the category folder (kept as-is when editing)
-        const testType = existing ? (existing.testType || 'topic') : info.categoryType;
+        const chosenType = document.getElementById('newTestType')?.value;
+        const testType = TYPE_NAMES[chosenType] ? chosenType : (existing ? (existing.testType || 'subject') : (info.categoryType || 'subject'));
         if (!editId && !info.canAddTest) {
           showToast("Tests can't be added here");
           return;
@@ -5339,6 +5377,75 @@
       renderWorkspace();
       refreshNoticeUi();
       showToast(ghOk ? "Deleted (test, JSON & results)" : "Test & results deleted, but the JSON file could not be removed from GitHub (token may be read-only)");
+    };
+
+    function buildOrderedFolderOptions() {
+      const result = [];
+      const walk = (parentId, depth, trail) => {
+        const children = (sharedData.folders || [])
+          .filter(f => (f.parentId || null) === parentId)
+          .sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || String(a.name || '').localeCompare(String(b.name || '')));
+        children.forEach(f => {
+          const nextTrail = [...trail, f.name];
+          result.push({ id: f.id, domain: f.domain || 'technical', label: nextTrail.join(' › '), depth });
+          walk(f.id, depth + 1, nextTrail);
+        });
+      };
+      walk(null, 0, []);
+      return result;
+    }
+
+    function getCategoryTypeForFolder(folderId) {
+      let cur = (sharedData.folders || []).find(f => f.id === folderId);
+      let guard = 0;
+      while (cur && guard++ < 12) {
+        if (cur.categoryType) return cur.categoryType;
+        cur = cur.parentId ? sharedData.folders.find(f => f.id === cur.parentId) : null;
+      }
+      return null;
+    }
+
+    window.openMoveTestModal = (testId) => {
+      closeAllMenus();
+      if (!isAdmin()) return;
+      const t = (sharedData.tests || []).find(x => x.id === testId);
+      if (!t) return;
+      document.getElementById('moveTestId').value = t.id;
+      document.getElementById('moveTestNameLabel').textContent = t.title || 'Test';
+      const curPath = getFolderPathTo(t.folderId).map(x => x.name).join(' › ');
+      document.getElementById('moveTestCurrentPath').textContent = curPath ? `Current: ${curPath}` : '';
+
+      const opts = buildOrderedFolderOptions();
+      const sel = document.getElementById('moveTestTargetFolder');
+      sel.innerHTML = opts.map(o => `<option value="${escapeHtml(o.id)}" ${o.id === t.folderId ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
+      document.getElementById('moveTestModal').classList.remove('hidden');
+    };
+
+    window.saveMoveTestForm = async (e) => {
+      e.preventDefault();
+      if (!isAdmin()) return;
+      const testId = document.getElementById('moveTestId').value;
+      const targetFolderId = document.getElementById('moveTestTargetFolder').value;
+      const t = (sharedData.tests || []).find(x => x.id === testId);
+      const targetFolder = (sharedData.folders || []).find(f => f.id === targetFolderId);
+      if (!t || !targetFolder) return;
+
+      if (t.folderId === targetFolderId) {
+        closeModal('moveTestModal');
+        showToast("Already in this folder");
+        return;
+      }
+      t.folderId = targetFolder.id;
+      t.domain = targetFolder.domain || t.domain || 'technical';
+      const targetCat = getCategoryTypeForFolder(targetFolder.id);
+      if (targetCat) t.testType = targetCat;
+      t.updatedAt = Date.now();
+
+      const ok = await persistSharedFields({ tests: sharedData.tests });
+      closeModal('moveTestModal');
+      renderWorkspace();
+      refreshNoticeUi();
+      showToast(ok === false ? "Moved locally - cloud sync failed" : "Test moved!");
     };
 
     // ---------------- SYLLABUS VIEW & PRINT ----------------
