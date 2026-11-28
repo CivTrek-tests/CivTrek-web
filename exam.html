@@ -10821,6 +10821,14 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         });
     }
 
+    function finishBootOverlay(active) {
+        if (active && active.mode === 'report') return;
+        requestAnimationFrame(function () {
+            if (typeof ctClearDirectReport === 'function') ctClearDirectReport();
+            if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+        });
+    }
+
     function bootFromPortal() {
         var activeRaw = null;
         try { activeRaw = localStorage.getItem('ACTIVE_EXAM_DATA'); } catch (e) {}
@@ -10835,15 +10843,17 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             if (typeof ctShowEvalOverlay === 'function') {
                 ctShowEvalOverlay(active.mode === 'report' ? 'Loading Key & Solutions...' : 'Loading test...');
             }
+            var safetyTimer = setTimeout(function () {
+                if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
+                if (typeof ctClearDirectReport === 'function') ctClearDirectReport();
+            }, 20000);
             ctFetchExamJsonDirect(active).then(function (rawJson) {
+                clearTimeout(safetyTimer);
                 active.questionsJson = rawJson;
                 bootFromPortalWithData(active);
-                if (active.mode !== 'report') {
-                    requestAnimationFrame(function () {
-                        if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
-                    });
-                }
+                finishBootOverlay(active);
             }).catch(function (err) {
+                clearTimeout(safetyTimer);
                 if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
                 if (typeof ctClearDirectReport === 'function') ctClearDirectReport();
                 showNoExam((err && err.message) ? err.message : 'Could not load test JSON from GitHub.');
@@ -10854,20 +10864,22 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
             ctLoadActiveFromIdb().then(function (idbData) {
                 if (idbData && idbData.questionsJson) {
                     bootFromPortalWithData(idbData);
+                    finishBootOverlay(idbData);
                 } else if (active && active.questionsJson) {
                     bootFromPortalWithData(active);
+                    finishBootOverlay(active);
                 } else {
+                    finishBootOverlay(null);
                     showNoExam('No active test selected. Please open a test from the CivTrek Portal.');
                 }
+            }).catch(function () {
+                finishBootOverlay(null);
+                showNoExam('Could not load saved test data.');
             });
             return;
         }
         bootFromPortalWithData(active);
-        if (active && active.mode !== 'report') {
-            requestAnimationFrame(function () {
-                if (typeof ctHideEvalOverlay === 'function') ctHideEvalOverlay();
-            });
-        }
+        finishBootOverlay(active);
     }
 
     function bootFromPortalWithData(active) {
@@ -11132,12 +11144,7 @@ body.exam-workspace-root.evaluation-completed #globalTestHeader .header-right-co
         try { if (window.ctShowEvalOverlay) ctShowEvalOverlay('Loading test...'); } catch (e) {}
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-                try { bootFromPortal(); }
-                finally {
-                    setTimeout(function () {
-                        try { if (!(typeof ctEvalStarted !== 'undefined' && ctEvalStarted) && window.ctHideEvalOverlay) { if (window.ctClearDirectReport) ctClearDirectReport(); ctHideEvalOverlay(); } } catch (e) {}
-                    }, 120);
-                }
+                bootFromPortal();
             });
         });
     });
