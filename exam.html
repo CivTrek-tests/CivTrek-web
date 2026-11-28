@@ -7372,176 +7372,75 @@ body.exam-workspace-root.evaluation-completed #dashboard > .report-switcher-tabs
     }
 
     function renderPerformanceCharts(stateCounters) {
-        const canvasEl = document.getElementById('statusMetricsBarChart');
-        if (!canvasEl) return;
-        const barCtx = canvasEl.getContext('2d');
+        const barCtx = document.getElementById('statusMetricsBarChart').getContext('2d');
         const prevStatusChart = Chart.getChart ? Chart.getChart('statusMetricsBarChart') : null;
         if (prevStatusChart) prevStatusChart.destroy();
         const th = chartTheme();
-
-        // Build per-section Correct (Right Wing, +) vs Incorrect (Left Wing, -) butterfly data
-        const secStats = {};
-        examSectionsArray.forEach(sec => { secStats[sec] = { c: 0, w: 0, s: 0 }; });
-        for (let i = 1; i <= totalSteps; i++) {
-            const m = quizMetadata[i];
-            if (!m) continue;
-            const sec = m.section || examSectionsArray[0] || 'Section 1';
-            if (!secStats[sec]) secStats[sec] = { c: 0, w: 0, s: 0 };
-            const hasAns = (m.state === 'answered' || m.state === 'answered-review') && hasValidSelection(m.selection);
-            if (!hasAns) {
-                secStats[sec].s++;
-                continue;
-            }
-            let isRight = false;
-            if (m.isNumerical) {
-                const rawAns = String(m.selection).trim();
-                const corrStr = String(m.correct || '').trim();
-                const numAns = parseFloat(rawAns);
-                const rangeParts = corrStr.split(/to|-/i).map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-                if (rangeParts.length === 2 && !isNaN(numAns)) {
-                    isRight = numAns >= Math.min(rangeParts[0], rangeParts[1]) && numAns <= Math.max(rangeParts[0], rangeParts[1]);
-                } else {
-                    const numCorr = parseFloat(corrStr);
-                    isRight = (!isNaN(numAns) && !isNaN(numCorr)) ? Math.abs(numAns - numCorr) <= 0.01 : (rawAns === corrStr);
-                }
-            } else if (m.isMultiSelect && Array.isArray(m.selection)) {
-                const corrArr = Array.isArray(m.correct) ? m.correct.map(x => String(x).trim().toUpperCase())
-                    : String(m.correct || '').toUpperCase().split(/[^A-F]+/).filter(Boolean);
-                const selArr = m.selection.map(x => String(x).trim().toUpperCase());
-                isRight = corrArr.length > 0 && corrArr.length === selArr.length && corrArr.every(c => selArr.includes(c));
-            } else {
-                isRight = String(m.selection).trim().toUpperCase() === String(m.correct || '').trim().toUpperCase();
-            }
-            if (isRight) secStats[sec].c++;
-            else secStats[sec].w++;
-        }
-
-        const labels = Object.keys(secStats).map(s => s.length > 16 ? s.slice(0, 15) + '…' : s);
-        const fullLabels = Object.keys(secStats);
-        const wrongWing = fullLabels.map(s => -(secStats[s].w));
-        const correctWing = fullLabels.map(s => secStats[s].c);
-        const skippedCounts = fullLabels.map(s => secStats[s].s);
-
-        const maxSide = Math.max(3, ...correctWing, ...wrongWing.map(v => Math.abs(v)));
-        const axisBound = Math.ceil(maxSide * 1.22);
-
-        const cardTitleEl = canvasEl.closest('.status-summary-card')?.querySelector('.rs-title');
-        if (cardTitleEl) cardTitleEl.textContent = 'Incorrect vs Correct (Butterfly)';
-
-        const wrapEl = canvasEl.parentElement;
-        if (wrapEl) {
-            wrapEl.style.height = Math.max(195, fullLabels.length * 42 + 70) + 'px';
-        }
-
-        const butterflyValueLabels = {
-            id: 'ctButterflyValueLabels',
+        const statusLabels = [['Not', 'Visited'], ['Not', 'Answered'], ['Answered'], ['Marked for', 'Review'], ['Answered &', 'Review']];
+        const statusColors = ['#94a3b8', '#f97316', '#22c55e', '#8b5cf6', '#0ea5e9'];
+        const statusValues = [
+            stateCounters['unvisited'],
+            stateCounters['unanswered'],
+            stateCounters['answered'],
+            stateCounters['review'],
+            stateCounters['answered-review']
+        ];
+        const statusTotal = statusValues.reduce((a, v) => a + (Number(v) || 0), 0);
+        // Direct value labels above each bar (no hover needed)
+        const valueLabels = {
+            id: 'ctValueLabels',
             afterDatasetsDraw(chart) {
-                const ctx = chart.ctx;
+                const ctx = chart.ctx, meta = chart.getDatasetMeta(0);
                 ctx.save();
-                ctx.font = '800 11px "Segoe UI", system-ui, -apple-system, sans-serif';
-                ctx.textBaseline = 'middle';
-                [0, 1].forEach(dsIdx => {
-                    const meta = chart.getDatasetMeta(dsIdx);
-                    const arr = chart.data.datasets[dsIdx].data;
-                    meta.data.forEach((bar, i) => {
-                        const val = Math.abs(Number(arr[i]) || 0);
-                        if (dsIdx === 0) {
-                            ctx.fillStyle = val === 0 ? '#94a3b8' : '#b91c1c';
-                            ctx.textAlign = 'right';
-                            ctx.fillText(String(val), bar.x - 6, bar.y);
-                        } else {
-                            ctx.fillStyle = val === 0 ? '#94a3b8' : '#15803d';
-                            ctx.textAlign = 'left';
-                            ctx.fillText(String(val), bar.x + 6, bar.y);
-                        }
-                    });
+                ctx.font = '800 13px "Segoe UI", system-ui, -apple-system, sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                meta.data.forEach((bar, i) => {
+                    const v = Number(chart.data.datasets[0].data[i]) || 0;
+                    ctx.fillStyle = v === 0 ? '#94a3b8' : '#0f172a';
+                    ctx.fillText(String(v), bar.x, bar.y - 6);
                 });
                 ctx.restore();
             }
         };
-
         new Chart(barCtx, {
             type: 'bar',
             data: {
-                labels,
-                datasets: [
-                    {
-                        label: 'Incorrect (Left)',
-                        data: wrongWing,
-                        backgroundColor: '#ef4444',
-                        borderRadius: { topLeft: 7, bottomLeft: 7, topRight: 0, bottomRight: 0 },
-                        borderSkipped: false,
-                        maxBarThickness: 26
-                    },
-                    {
-                        label: 'Correct (Right)',
-                        data: correctWing,
-                        backgroundColor: '#22c55e',
-                        borderRadius: { topRight: 7, bottomRight: 7, topLeft: 0, bottomLeft: 0 },
-                        borderSkipped: false,
-                        maxBarThickness: 26
-                    }
-                ]
+                labels: statusLabels,
+                datasets: [{
+                    label: 'No. of Questions',
+                    data: statusValues,
+                    backgroundColor: statusColors,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    borderWidth: 0,
+                    maxBarThickness: 52
+                }]
             },
             options: {
-                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { left: 24, right: 24 } },
-                interaction: { mode: 'index', axis: 'y', intersect: false },
+                layout: { padding: { top: 24 } },
                 scales: {
-                    x: {
-                        stacked: true,
-                        min: -axisBound,
-                        max: axisBound,
-                        ticks: {
-                            precision: 0,
-                            color: th.text,
-                            font: { size: 10, weight: 700 },
-                            callback: v => String(Math.abs(v))
-                        },
-                        grid: {
-                            color: ctx => (ctx.tick && ctx.tick.value === 0) ? '#0b3c70' : th.grid,
-                            lineWidth: ctx => (ctx.tick && ctx.tick.value === 0) ? 1.8 : 1
-                        },
-                        border: { display: false }
-                    },
-                    y: {
-                        stacked: true,
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: { color: th.text, font: { size: window.innerWidth <= 600 ? 10 : 11, weight: 700 } }
-                    }
+                    y: { beginAtZero: true, ticks: { precision: 0, color: th.text, font: { weight: 600 } },
+                         grid: { color: th.grid, borderDash: [4, 4] }, border: { display: false, dash: [4, 4] } },
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: th.text, maxRotation: 0, autoSkip: false, font: { size: window.innerWidth <= 600 ? 9 : 11, weight: 600 } } }
                 },
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: { boxWidth: 11, usePointStyle: true, font: { size: 11, weight: '700' }, color: th.text }
-                    },
+                    legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#0f172a',
-                        cornerRadius: 8,
-                        padding: 10,
-                        titleColor: '#ffffff',
-                        bodyColor: '#e2e8f0',
+                        backgroundColor: '#0f172a', cornerRadius: 8, padding: 10, titleColor: '#ffffff', bodyColor: '#e2e8f0',
                         titleFont: { weight: '700' },
                         callbacks: {
-                            title: items => fullLabels[items[0].dataIndex] || '',
+                            title: items => { const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' ') : l; },
                             label: ctx => {
-                                const v = Math.abs(Number(ctx.parsed.x) || 0);
-                                const lbl = ctx.dataset.label.replace(/\s*\((Left|Right)\)/, '');
-                                return `${lbl}: ${v} question${v === 1 ? '' : 's'}`;
-                            },
-                            footer: items => {
-                                const idx = items[0].dataIndex;
-                                return `Skipped: ${skippedCounts[idx] || 0} Qs`;
+                                const v = Number(ctx.parsed.y) || 0;
+                                return `${v} question${v === 1 ? '' : 's'}` + (statusTotal > 0 ? ` · ${Math.round((v / statusTotal) * 100)}% of total` : '');
                             }
                         }
                     }
                 }
             },
-            plugins: [butterflyValueLabels]
+            plugins: [valueLabels]
         });
     }
 </script>
